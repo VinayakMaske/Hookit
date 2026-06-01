@@ -5,7 +5,7 @@ export default function AboutPage() {
         {
             icon: Heart,
             title: 'Creator First',
-            description: 'We built this platform with creators in mind. Zero commission, instant setup, and full control over your store.'
+            description: 'We built this platform with creators in mind. Instant setup, and full control over your store.'
         },
         {
             icon: Users,
@@ -15,7 +15,7 @@ export default function AboutPage() {
         {
             icon: Globe,
             title: 'No Borders',
-            description: 'Sell to anyone, anywhere. Our platform handles the logistics so you can focus on creating.'
+            description: 'Sell to anyone across PAN India'
         },
         {
             icon: Zap,
@@ -55,7 +55,7 @@ export default function AboutPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                         <div>
-                            <p className="text-4xl font-bold text-neutral-900 mb-2">0%</p>
+                            <p className="text-4xl font-bold text-neutral-900 mb-2">Less</p>
                             <p className="text-neutral-500">Commission Fee</p>
                         </div>
                         <div>

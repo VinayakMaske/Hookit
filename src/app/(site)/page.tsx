@@ -52,7 +52,7 @@ export default async function LandingPage() {
                                 className="mb-6 px-4 py-2 text-sm bg-white shadow-sm border-0 text-[#7C3AED] font-medium"
                             >
                                 <Sparkles className="w-4 h-4 mr-2 text-[#7C3AED]" />
-                                Zero commission for creators
+                                Creator first marketplace
                             </Badge>
 
                             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-neutral-900 tracking-tight leading-[1.1] mb-6">
@@ -90,7 +90,7 @@ export default async function LandingPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-3 mt-10">
-                                {['Handmade', 'Unique', 'Creator-owned', 'Free delivery'].map((tag) => (
+                                {['Handmade', 'Unique', 'Creator-owned'].map((tag) => (
                                     <span 
                                         key={tag} 
                                         className="px-4 py-2 bg-white rounded-full text-sm text-neutral-600 shadow-sm border border-neutral-100"
@@ -232,14 +232,14 @@ export default async function LandingPage() {
                                 <span className="text-[#7C3AED]">into profit</span>
                             </h2>
                             <p className="text-lg text-neutral-500 mb-8 leading-relaxed">
-                                Set up your store in under 5 minutes. Zero commission, instant setup, 
+                                Set up your store in under 5 minutes. Instant setup, 
                                 and full control over your brand. Your creations deserve an audience.
                             </p>
                             
                             <div className="space-y-4 mb-8">
                                 {[
                                     { icon: ShoppingBag, text: 'Set up in 5 minutes' },
-                                    { icon: Heart, text: 'Zero commission fees' },
+                                    { icon: Heart, text: 'Create unique hooks' },
                                     { icon: Eye, text: 'Reach thousands of buyers' },
                                 ].map((item) => (
                                     <div key={item.text} className="flex items-center gap-3">

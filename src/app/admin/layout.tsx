@@ -12,7 +12,7 @@ import {
     LogOut
 } from 'lucide-react'
 
-const ADMIN_EMAILS = ['your-email@example.com'] // Same as middleware
+const ADMIN_EMAILS = ['storeapp2026@gmail.com'] // Same as middleware
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient()

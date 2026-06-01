@@ -1,3 +1,4 @@
+// src/app/(site)/order/success/page.tsx
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
@@ -5,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2 } from 'lucide-react'
+import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2, XCircle } from 'lucide-react'
 
 function OrderSuccessContent() {
     const searchParams = useSearchParams()
@@ -16,8 +17,6 @@ function OrderSuccessContent() {
     const [error, setError] = useState('')
 
     useEffect(() => {
-        console.log('Order ID from URL:', orderId) // DEBUG
-        
         if (!orderId) {
             setError('No order ID found in URL')
             setLoading(false)
@@ -28,22 +27,16 @@ function OrderSuccessContent() {
 
     const fetchOrder = async () => {
         try {
-            const url = `/api/order/get?orderId=${orderId}`
-            console.log('Fetching from:', url) // DEBUG
-            
-            const response = await fetch(url)
-            console.log('Response status:', response.status) // DEBUG
-            
-            const data = await response.json()
-            console.log('Response data:', data) // DEBUG
+            const orderResponse = await fetch(`/api/order/get?orderId=${orderId}`)
+            const orderData = await orderResponse.json()
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Order not found')
+            if (!orderResponse.ok) {
+                throw new Error(orderData.error || 'Order not found')
             }
 
-            setOrder(data.order)
+            setOrder(orderData.order)
         } catch (err: any) {
-            console.error('Fetch error:', err) // DEBUG
+            console.error('Error:', err)
             setError(err.message)
         } finally {
             setLoading(false)
@@ -53,7 +46,10 @@ function OrderSuccessContent() {
     if (loading) {
         return (
             <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-neutral-400 mx-auto mb-4" />
+                    <p className="text-neutral-500">Loading your order...</p>
+                </div>
             </div>
         )
     }
@@ -72,6 +68,8 @@ function OrderSuccessContent() {
         )
     }
 
+    const isPaid = order.payment_status === 'paid'
+
     return (
         <div className="min-h-screen bg-neutral-50 py-12">
             <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -79,8 +77,14 @@ function OrderSuccessContent() {
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
-                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">Order Placed Successfully!</h1>
-                    <p className="text-neutral-500">Thank you for your order. The seller will contact you soon.</p>
+                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">
+                        {isPaid ? 'Payment Successful!' : 'Order Placed!'}
+                    </h1>
+                    <p className="text-neutral-500">
+                        {isPaid 
+                            ? 'Thank you for your payment. The seller will contact you soon.' 
+                            : 'Your order is confirmed. Please complete the payment.'}
+                    </p>
                 </div>
 
                 <Card className="border-0 shadow-sm mb-6">
@@ -89,6 +93,20 @@ function OrderSuccessContent() {
                             <span className="text-sm text-neutral-500">Order ID</span>
                             <span className="font-mono text-sm font-medium">#{order.id.slice(0, 12).toUpperCase()}</span>
                         </div>
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-neutral-500">Payment Status</span>
+                            <span className={`text-sm font-medium ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
+                                {isPaid ? '✅ Paid via Razorpay' : '⏳ Pending'}
+                            </span>
+                        </div>
+
+                        {order.razorpay_payment_id && (
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-neutral-500">Payment ID</span>
+                                <span className="font-mono text-xs">{order.razorpay_payment_id}</span>
+                            </div>
+                        )}
 
                         <div className="flex gap-4">
                             <div className="w-24 h-24 bg-neutral-100 rounded-lg overflow-hidden shrink-0">

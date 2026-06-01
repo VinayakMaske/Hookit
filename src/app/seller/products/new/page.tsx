@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Loader2, X, Upload, ImageIcon } from 'lucide-react'
+import { Loader2, X, Upload, ImageIcon, Truck, Shield, Plus, Receipt, Percent } from 'lucide-react'
 
 const PRODUCT_CATEGORIES = [
     'Art & Illustration',
@@ -41,6 +41,15 @@ const PRODUCT_CATEGORIES = [
     'Custom & Personalized',
 ]
 
+const GST_SLABS = [
+    { label: 'None (0%)', value: 'none', percentage: 0 },
+    { label: '5% GST', value: '5', percentage: 5 },
+    { label: '12% GST', value: '12', percentage: 12 },
+    { label: '18% GST', value: '18', percentage: 18 },
+    { label: '28% GST', value: '28', percentage: 28 },
+    { label: 'Custom %', value: 'custom', percentage: 0 },
+]
+
 interface ImageFile {
     id: string
     file: File
@@ -57,6 +66,17 @@ export default function NewProductPage() {
     const [images, setImages] = useState<ImageFile[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [hasAffiliate, setHasAffiliate] = useState(false)
+
+    // Fee toggles
+    const [hasDeliveryFee, setHasDeliveryFee] = useState(false)
+    const [hasPlatformFee, setHasPlatformFee] = useState(false)
+    const [hasAdditionalFee, setHasAdditionalFee] = useState(false)
+
+    // GST state
+    const [gstType, setGstType] = useState<'none' | 'inclusive' | 'exclusive'>('none')
+    const [gstSlab, setGstSlab] = useState('none')
+    const [customGstPercentage, setCustomGstPercentage] = useState('')
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -65,7 +85,12 @@ export default function NewProductPage() {
         category: '',
         stockQuantity: '1',
         affiliateLink: '',
-        isActive: true
+        isActive: true,
+        // Fees
+        deliveryFee: '',
+        platformFee: '',
+        additionalFee: '',
+        additionalFeeName: '',
     })
 
     // Generate unique ID
@@ -80,19 +105,16 @@ export default function NewProductPage() {
         for (let i = 0; i < files.length; i++) {
             const file = files[i]
 
-            // Validate file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 setError(`File ${file.name} is too large. Max 5MB.`)
                 continue
             }
 
-            // Validate file type
             if (!file.type.startsWith('image/')) {
                 setError(`File ${file.name} is not an image.`)
                 continue
             }
 
-            // Create instant preview using object URL
             const preview = URL.createObjectURL(file)
 
             newImages.push({
@@ -110,10 +132,8 @@ export default function NewProductPage() {
             return
         }
 
-        // Add to state immediately so previews show
         setImages(prev => [...prev, ...newImages])
 
-        // Upload each image
         newImages.forEach((img) => {
             uploadSingleImage(img)
         })
@@ -168,6 +188,52 @@ export default function NewProductPage() {
         })
     }
 
+    // Calculate GST percentage from slab
+    const getGstPercentage = (): number => {
+        if (gstType === 'none' || gstSlab === 'none') return 0
+        if (gstSlab === 'custom') {
+            return parseFloat(customGstPercentage) || 0
+        }
+        const slab = GST_SLABS.find(s => s.value === gstSlab)
+        return slab?.percentage || 0
+    }
+
+    // Calculate price breakdown for preview
+    const calculateBreakdown = () => {
+        const basePrice = parseFloat(formData.price) || 0
+        const deliveryFee = hasDeliveryFee ? parseFloat(formData.deliveryFee) || 0 : 0
+        const platformFee = hasPlatformFee ? parseFloat(formData.platformFee) || 0 : 0
+        const additionalFee = hasAdditionalFee ? parseFloat(formData.additionalFee) || 0 : 0
+        const gstPercent = getGstPercentage()
+
+        let subtotal = basePrice
+        let gstAmount = 0
+        let total = 0
+
+        if (gstType === 'inclusive') {
+            gstAmount = basePrice - (basePrice / (1 + gstPercent / 100))
+            subtotal = basePrice - gstAmount
+            total = basePrice + deliveryFee + platformFee + additionalFee
+        } else if (gstType === 'exclusive') {
+            gstAmount = basePrice * (gstPercent / 100)
+            subtotal = basePrice
+            total = basePrice + gstAmount + deliveryFee + platformFee + additionalFee
+        } else {
+            subtotal = basePrice
+            total = basePrice + deliveryFee + platformFee + additionalFee
+        }
+
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            gstAmount: Math.round(gstAmount * 100) / 100,
+            deliveryFee,
+            platformFee,
+            additionalFee,
+            total: Math.round(total * 100) / 100,
+            gstPercent
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -177,7 +243,6 @@ export default function NewProductPage() {
             return
         }
 
-        // Check if any images are still uploading
         const uploadingCount = images.filter(img => img.uploading).length
         if (uploadingCount > 0) {
             setError(`Please wait for ${uploadingCount} image(s) to finish uploading`)
@@ -207,10 +272,11 @@ export default function NewProductPage() {
             return
         }
 
-        // Only save successfully uploaded images
         const validUrls = images
             .filter(img => img.url !== null && !img.error)
             .map(img => img.url as string)
+
+        const gstPercent = getGstPercentage()
 
         const { error: insertError } = await supabase
             .from('products')
@@ -224,7 +290,15 @@ export default function NewProductPage() {
                 category: formData.category,
                 affiliate_link: hasAffiliate ? formData.affiliateLink : null,
                 stock_quantity: parseInt(formData.stockQuantity) || 0,
-                is_active: formData.isActive
+                is_active: formData.isActive,
+                // Fees
+                delivery_fee: hasDeliveryFee ? parseFloat(formData.deliveryFee) || 0 : 0,
+                platform_fee: hasPlatformFee ? parseFloat(formData.platformFee) || 0 : 0,
+                additional_fee: hasAdditionalFee ? parseFloat(formData.additionalFee) || 0 : 0,
+                // GST
+                gst_type: gstType,
+                gst_percentage: gstPercent,
+                gst_slab: gstSlab,
             })
 
         if (insertError) {
@@ -233,7 +307,6 @@ export default function NewProductPage() {
             return
         }
 
-        // Clean up object URLs
         images.forEach(img => URL.revokeObjectURL(img.preview))
 
         router.push('/seller/products')
@@ -242,101 +315,447 @@ export default function NewProductPage() {
     }
 
     const anyUploading = images.some(img => img.uploading)
+    const breakdown = calculateBreakdown()
 
     return (
         <div className="max-w-3xl mx-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-neutral-900">Add New Product</h1>
-                <p className="text-neutral-500 mt-1">Add a product or affiliate link to your store</p>
+                <p className="text-neutral-500 mt-1">Add a product with pricing, fees, and GST to your store</p>
             </div>
 
             <Card className="border-0 shadow-sm">
                 <CardContent className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Product Name *</Label>
-                            <Input
-                                id="name"
-                                placeholder="e.g., Handmade Ceramic Mug"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-                        </div>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* ===== BASIC INFO ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Receipt className="w-5 h-5 text-[#161616]" />
+                                Basic Information
+                            </h2>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                placeholder="Describe your product..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="price">Price (₹) *</Label>
+                                <Label htmlFor="name">Product Name *</Label>
                                 <Input
-                                    id="price"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="499.00"
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    id="name"
+                                    placeholder="e.g., Handmade Ceramic Mug"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <Label htmlFor="comparePrice">Compare at Price (₹)</Label>
-                                <Input
-                                    id="comparePrice"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="699.00"
-                                    value={formData.comparePrice}
-                                    onChange={(e) => setFormData({ ...formData, comparePrice: e.target.value })}
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="Describe your product..."
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows={4}
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="price">Base Price (₹) *</Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="499.00"
+                                        value={formData.price}
+                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="comparePrice">Compare at Price (₹)</Label>
+                                    <Input
+                                        id="comparePrice"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="699.00"
+                                        value={formData.comparePrice}
+                                        onChange={(e) => setFormData({ ...formData, comparePrice: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category *</Label>
+                                    <Select
+                                        value={formData.category}
+                                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-72">
+                                            {PRODUCT_CATEGORIES.map((cat) => (
+                                                <SelectItem key={cat} value={cat}>
+                                                    {cat}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="stock">Stock Quantity</Label>
+                                    <Input
+                                        id="stock"
+                                        type="number"
+                                        placeholder="10"
+                                        value={formData.stockQuantity}
+                                        onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Category *</Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-72">
-                                        {PRODUCT_CATEGORIES.map((cat) => (
-                                            <SelectItem key={cat} value={cat}>
-                                                {cat}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== GST SECTION ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Percent className="w-5 h-5 text-[#161616]" />
+                                GST (Tax)
+                            </h2>
+
+                            <div className="space-y-4">
+                                <Label>GST Type</Label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('none')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'none'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        No GST
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('inclusive')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'inclusive'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        GST Inclusive
+                                        <span className="block text-xs font-normal mt-1 text-neutral-400">
+                                            Tax included in price
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('exclusive')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'exclusive'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        GST Exclusive
+                                        <span className="block text-xs font-normal mt-1 text-neutral-400">
+                                            Tax added to price
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="stock">Stock Quantity</Label>
-                                <Input
-                                    id="stock"
-                                    type="number"
-                                    placeholder="10"
-                                    value={formData.stockQuantity}
-                                    onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                                />
+
+                            {gstType !== 'none' && (
+                                <div className="space-y-4 p-4 bg-[#f8f7fb] rounded-xl border border-[#7C3AED]/10">
+                                    <div className="space-y-2">
+                                        <Label>GST Slab</Label>
+                                        <Select
+                                            value={gstSlab}
+                                            onValueChange={setGstSlab}
+                                        >
+                                            <SelectTrigger className="w-full bg-white">
+                                                <SelectValue placeholder="Select GST slab" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {GST_SLABS.map((slab) => (
+                                                    <SelectItem key={slab.value} value={slab.value}>
+                                                        {slab.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {gstSlab === 'custom' && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="customGst">Custom GST Percentage (%)</Label>
+                                            <Input
+                                                id="customGst"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                placeholder="e.g., 7.5"
+                                                value={customGstPercentage}
+                                                onChange={(e) => setCustomGstPercentage(e.target.value)}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {gstType === 'inclusive' && (
+                                        <p className="text-sm text-neutral-500 bg-white p-3 rounded-lg">
+                                            <span className="font-medium text-[#161616]">Inclusive:</span> The base price you entered includes GST. 
+                                            Customer pays exactly ₹{formData.price || '0'}.
+                                        </p>
+                                    )}
+                                    {gstType === 'exclusive' && (
+                                        <p className="text-sm text-neutral-500 bg-white p-3 rounded-lg">
+                                            <span className="font-medium text-[#161616]">Exclusive:</span> GST will be added on top of the base price.
+                                            Customer pays ₹{formData.price || '0'} + GST.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== FEES SECTION ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Plus className="w-5 h-5 text-[#161616]" />
+                                Additional Fees
+                            </h2>
+
+                            {/* Delivery Fee */}
+                            <div 
+                                onClick={() => setHasDeliveryFee(!hasDeliveryFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasDeliveryFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasDeliveryFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Truck className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Delivery Fee</Label>
+                                            <p className="text-sm text-neutral-500">Charge for shipping/delivery</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasDeliveryFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasDeliveryFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasDeliveryFee}
+                                            onCheckedChange={setHasDeliveryFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasDeliveryFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 pl-13">
+                                        <Label htmlFor="deliveryFee" className="text-sm">Delivery Amount (₹)</Label>
+                                        <Input
+                                            id="deliveryFee"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="e.g., 50.00"
+                                            value={formData.deliveryFee}
+                                            onChange={(e) => setFormData({ ...formData, deliveryFee: e.target.value })}
+                                            className="mt-2 bg-white max-w-xs"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Platform Fee */}
+                            <div 
+                                onClick={() => setHasPlatformFee(!hasPlatformFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasPlatformFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasPlatformFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Shield className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Platform Fee</Label>
+                                            <p className="text-sm text-neutral-500">Service/convenience charge</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasPlatformFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasPlatformFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasPlatformFee}
+                                            onCheckedChange={setHasPlatformFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasPlatformFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 pl-13">
+                                        <Label htmlFor="platformFee" className="text-sm">Platform Fee Amount (₹)</Label>
+                                        <Input
+                                            id="platformFee"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="e.g., 20.00"
+                                            value={formData.platformFee}
+                                            onChange={(e) => setFormData({ ...formData, platformFee: e.target.value })}
+                                            className="mt-2 bg-white max-w-xs"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Additional Fee */}
+                            <div 
+                                onClick={() => setHasAdditionalFee(!hasAdditionalFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasAdditionalFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasAdditionalFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Plus className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Additional Fee</Label>
+                                            <p className="text-sm text-neutral-500">Custom fee (packaging, handling, etc.)</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasAdditionalFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasAdditionalFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasAdditionalFee}
+                                            onCheckedChange={setHasAdditionalFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasAdditionalFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 space-y-3 pl-13">
+                                        <div>
+                                            <Label htmlFor="additionalFeeName" className="text-sm">Fee Name</Label>
+                                            <Input
+                                                id="additionalFeeName"
+                                                placeholder="e.g., Packaging Fee"
+                                                value={formData.additionalFeeName}
+                                                onChange={(e) => setFormData({ ...formData, additionalFeeName: e.target.value })}
+                                                className="mt-2 bg-white max-w-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="additionalFee" className="text-sm">Fee Amount (₹)</Label>
+                                            <Input
+                                                id="additionalFee"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="e.g., 30.00"
+                                                value={formData.additionalFee}
+                                                onChange={(e) => setFormData({ ...formData, additionalFee: e.target.value })}
+                                                className="mt-2 bg-white max-w-xs"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Product Images */}
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== PRICE PREVIEW ===== */}
+                        <div className="space-y-4">
+                            <h2 className="text-lg font-semibold text-neutral-900">Price Breakdown Preview</h2>
+                            <div className="bg-neutral-50 rounded-xl p-5 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-neutral-600">Subtotal</span>
+                                    <span>₹{breakdown.subtotal.toFixed(2)}</span>
+                                </div>
+                                {gstType !== 'none' && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">GST ({breakdown.gstPercent}%)</span>
+                                        <span>₹{breakdown.gstAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasDeliveryFee && breakdown.deliveryFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">Delivery Fee</span>
+                                        <span>₹{breakdown.deliveryFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasPlatformFee && breakdown.platformFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">Platform Fee</span>
+                                        <span>₹{breakdown.platformFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasAdditionalFee && breakdown.additionalFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">{formData.additionalFeeName || 'Additional Fee'}</span>
+                                        <span>₹{breakdown.additionalFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-neutral-200 pt-3 flex justify-between items-center">
+                                    <span className="font-semibold text-neutral-900">Total Customer Pays</span>
+                                    <span className="text-xl font-bold text-[#161616]">₹{breakdown.total.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== PRODUCT IMAGES ===== */}
                         <div className="space-y-3">
-                            <Label>Product Images</Label>
+                            <h2 className="text-lg font-semibold text-neutral-900">Product Images</h2>
                             
-                            {/* Image Preview Grid */}
                             {images.length > 0 ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                     {images.map((img) => (
@@ -350,21 +769,18 @@ export default function NewProductPage() {
                                                 className="w-full h-full object-cover"
                                             />
                                             
-                                            {/* Uploading overlay */}
                                             {img.uploading && (
                                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                                     <Loader2 className="w-6 h-6 text-white animate-spin" />
                                                 </div>
                                             )}
                                             
-                                            {/* Error overlay */}
                                             {img.error && (
                                                 <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center p-2">
                                                     <p className="text-white text-xs text-center">{img.error}</p>
                                                 </div>
                                             )}
                                             
-                                            {/* Remove button */}
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage(img.id)}
@@ -385,7 +801,6 @@ export default function NewProductPage() {
                                 </div>
                             )}
 
-                            {/* Upload Button */}
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -418,50 +833,88 @@ export default function NewProductPage() {
                             </p>
                         </div>
 
-                        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-                            <div>
-                                <Label className="font-medium">This is an Affiliate Product</Label>
-                                <p className="text-sm text-neutral-500">Enable if you want to redirect buyers to an external link</p>
-                            </div>
-                            <Switch
-                                checked={hasAffiliate}
-                                onCheckedChange={setHasAffiliate}
-                            />
-                        </div>
+                        <div className="border-t border-neutral-200" />
 
-                        {hasAffiliate && (
-                            <div className="space-y-2">
-                                <Label htmlFor="affiliateLink">Affiliate Link *</Label>
-                                <Input
-                                    id="affiliateLink"
-                                    type="url"
-                                    placeholder="https://amazon.in/product/..."
-                                    value={formData.affiliateLink}
-                                    onChange={(e) => setFormData({ ...formData, affiliateLink: e.target.value })}
-                                    required={hasAffiliate}
-                                />
+                        {/* ===== AFFILIATE & ACTIVE ===== */}
+                        <div className="space-y-4">
+                            <div 
+                                onClick={() => setHasAffiliate(!hasAffiliate)}
+                                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasAffiliate 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200'
+                                }`}
+                            >
+                                <div>
+                                    <Label className="font-medium text-base cursor-pointer">Affiliate Product</Label>
+                                    <p className="text-sm text-neutral-500">Redirect buyers to an external link</p>
+                                </div>
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-3"
+                                >
+                                    <span className={`text-sm font-medium transition-colors ${
+                                        hasAffiliate ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                    }`}>
+                                        {hasAffiliate ? 'ON' : 'OFF'}
+                                    </span>
+                                    <Switch
+                                        checked={hasAffiliate}
+                                        onCheckedChange={setHasAffiliate}
+                                        className="data-[state=checked]:bg-[#161616]"
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-                            <div>
-                                <Label className="font-medium">Active</Label>
-                                <p className="text-sm text-neutral-500">Make this product visible to buyers</p>
+                            {hasAffiliate && (
+                                <div className="space-y-2 p-4 bg-[#f8f7fb] rounded-xl">
+                                    <Label htmlFor="affiliateLink">Affiliate Link *</Label>
+                                    <Input
+                                        id="affiliateLink"
+                                        type="url"
+                                        placeholder="https://amazon.in/product/..."
+                                        value={formData.affiliateLink}
+                                        onChange={(e) => setFormData({ ...formData, affiliateLink: e.target.value })}
+                                        required={hasAffiliate}
+                                    />
+                                </div>
+                            )}
+
+                            <div 
+                                onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                className="flex items-center justify-between p-5 rounded-xl border-2 border-neutral-200 cursor-pointer"
+                            >
+                                <div>
+                                    <Label className="font-medium text-base cursor-pointer">Active</Label>
+                                    <p className="text-sm text-neutral-500">Make this product visible to buyers</p>
+                                </div>
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-3"
+                                >
+                                    <span className={`text-sm font-medium transition-colors ${
+                                        formData.isActive ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                    }`}>
+                                        {formData.isActive ? 'ON' : 'OFF'}
+                                    </span>
+                                    <Switch
+                                        checked={formData.isActive}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                                        className="data-[state=checked]:bg-[#161616]"
+                                    />
+                                </div>
                             </div>
-                            <Switch
-                                checked={formData.isActive}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                            />
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded">{error}</p>
+                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{error}</p>
                         )}
 
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 pt-4">
                             <Button 
                                 type="submit" 
-                                className="flex-1" 
+                                className="flex-1 h-12 text-lg" 
+                                style={{ backgroundColor: '#7C3AED' }}
                                 disabled={loading || anyUploading} 
                                 size="lg"
                             >
@@ -478,6 +931,7 @@ export default function NewProductPage() {
                                 type="button"
                                 variant="outline"
                                 size="lg"
+                                className="h-12 px-8"
                                 onClick={() => router.push('/seller/products')}
                             >
                                 Cancel

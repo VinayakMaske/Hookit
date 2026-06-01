@@ -77,6 +77,9 @@ src/app/api/notify/route.ts
 src/app/api/order/get/route.ts
 src/app/api/order/route.ts
 src/app/api/orders/update-status/route.ts
+src/app/api/payment/create/route.ts
+src/app/api/payment/verify/route.ts
+src/app/api/payment/webhook/route.ts
 src/app/api/products/delete/route.ts
 src/app/favicon.ico
 src/app/globals.css
@@ -140,6 +143,302 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
+<file path="src/app/api/payment/create/route.ts">
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID!
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY!
+const CASHFREE_API_BASE = process.env.CASHFREE_API_BASE || 'https://api.cashfree.com'
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json()
+        const { orderId, orderAmount, customerDetails, orderMeta } = body
+
+        // Validate required fields
+        if (!orderId || !orderAmount || !customerDetails) {
+            return NextResponse.json(
+                { error: 'Missing required fields: orderId, orderAmount, customerDetails' },
+                { status: 400 }
+            )
+        }
+
+        // Create order with Cashfree
+        const response = await fetch(`${CASHFREE_API_BASE}/pg/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': CASHFREE_APP_ID,
+                'x-client-secret': CASHFREE_SECRET_KEY,
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                order_amount: orderAmount,
+                order_currency: 'INR',
+                customer_details: {
+                    customer_id: customerDetails.customerId,
+                    customer_name: customerDetails.customerName,
+                    customer_email: customerDetails.customerEmail,
+                    customer_phone: customerDetails.customerPhone,
+                },
+                order_meta: {
+                    return_url: orderMeta?.returnUrl,
+                    notify_url: orderMeta?.notifyUrl,
+                    payment_methods: orderMeta?.paymentMethods,
+                },
+            }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            console.error('Cashfree order creation failed:', data)
+            return NextResponse.json(
+                { error: data.message || 'Failed to create payment order' },
+                { status: response.status }
+            )
+        }
+
+        return NextResponse.json({
+            success: true,
+            paymentSessionId: data.payment_session_id,
+            orderId: data.order_id,
+            cfOrderId: data.cf_order_id,
+        })
+
+    } catch (error: any) {
+        console.error('Payment creation error:', error)
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
+}
+</file>
+
+<file path="src/app/api/payment/verify/route.ts">
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID!
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY!
+const CASHFREE_API_BASE = process.env.CASHFREE_API_BASE || 'https://api.cashfree.com'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+export async function POST(request: Request) {
+    try {
+        const { orderId } = await request.json()
+
+        if (!orderId) {
+            return NextResponse.json({ error: 'Order ID required' }, { status: 400 })
+        }
+
+        // Verify payment with Cashfree
+        const response = await fetch(`${CASHFREE_API_BASE}/pg/orders/${orderId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': CASHFREE_APP_ID,
+                'x-client-secret': CASHFREE_SECRET_KEY,
+            },
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            return NextResponse.json(
+                { error: data.message || 'Failed to verify payment' },
+                { status: response.status }
+            )
+        }
+
+        const paymentStatus = data.order_status
+
+        // Update order in database using service role
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        })
+
+        let dbStatus = 'pending'
+        let dbPaymentStatus = 'pending'
+
+        if (paymentStatus === 'PAID') {
+            dbStatus = 'processing'
+            dbPaymentStatus = 'paid'
+        } else if (paymentStatus === 'FAILED') {
+            dbPaymentStatus = 'failed'
+        } else if (paymentStatus === 'CANCELLED') {
+            dbPaymentStatus = 'cancelled'
+        }
+
+        const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+                status: dbStatus,
+                payment_status: dbPaymentStatus,
+                payment_method: 'cashfree',
+                cf_order_id: data.cf_order_id,
+                cf_payment_id: data.payments?.[0]?.cf_payment_id || null,
+                payment_time: data.payments?.[0]?.payment_time || null,
+            })
+            .eq('id', orderId)
+
+        if (updateError) {
+            console.error('Database update error:', updateError)
+        }
+
+        return NextResponse.json({
+            success: paymentStatus === 'PAID',
+            orderStatus: paymentStatus,
+            orderId: data.order_id,
+            cfOrderId: data.cf_order_id,
+        })
+
+    } catch (error: any) {
+        console.error('Payment verification error:', error)
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
+}
+</file>
+
+<file path="src/app/api/payment/webhook/route.ts">
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// Webhook signature verification (recommended for production)
+function verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
+    // Implement HMAC-SHA256 signature verification
+    // Cashfree sends signature in header: x-webhook-signature
+    // Reference: https://docs.cashfree.com/docs/webhook-signature-verification
+    return true // Implement actual verification for production
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.text()
+        const signature = request.headers.get('x-webhook-signature') || ''
+        const event = JSON.parse(body)
+
+        // Verify webhook signature in production
+        // if (!verifyWebhookSignature(body, signature, WEBHOOK_SECRET)) {
+        //     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+        // }
+
+        const { type, data } = event
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        })
+
+        if (type === 'PAYMENT_SUCCESS_WEBHOOK') {
+            const { order_id, cf_order_id, cf_payment_id, payment_status, payment_amount } = data
+
+            // Update order as paid
+            await supabase
+                .from('orders')
+                .update({
+                    status: 'processing',
+                    payment_status: 'paid',
+                    payment_method: 'cashfree',
+                    cf_order_id: cf_order_id,
+                    cf_payment_id: cf_payment_id,
+                    total_amount: payment_amount,
+                })
+                .eq('id', order_id)
+
+            // Send notification to seller
+            // You can call your existing notify API here
+        }
+
+        if (type === 'PAYMENT_FAILED_WEBHOOK') {
+            const { order_id, cf_order_id, payment_status } = data
+
+            await supabase
+                .from('orders')
+                .update({
+                    payment_status: 'failed',
+                    cf_order_id: cf_order_id,
+                })
+                .eq('id', order_id)
+        }
+
+        // Always return 200 to Cashfree to prevent retries
+        return NextResponse.json({ received: true })
+
+    } catch (error: any) {
+        console.error('Webhook error:', error)
+        // Still return 200 to prevent Cashfree retries
+        return NextResponse.json({ received: true })
+    }
+}
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="AGENTS.md">
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+</file>
+
+<file path="CLAUDE.md">
+@AGENTS.md
+</file>
+
 <file path="components.json">
 {
   "$schema": "https://ui.shadcn.com/schema.json",
@@ -168,6 +467,27 @@ This section contains the contents of the repository's files.
 }
 </file>
 
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
 <file path="middleware.ts">
 import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
@@ -193,6 +513,85 @@ export const config = {
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 </file>
 
 <file path="src/app/(auth)/layout.tsx">
@@ -777,360 +1176,6 @@ export default async function CategoryPage({
 }
 </file>
 
-<file path="src/app/(site)/checkout/page.tsx">
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { Loader2, ShoppingBag, ArrowLeft, MapPin, Phone, User, Mail, Package } from 'lucide-react'
-
-export default function CheckoutPage() {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const productId = searchParams.get('product')
-
-    const [loading, setLoading] = useState(true)
-    const [submitting, setSubmitting] = useState(false)
-    const [error, setError] = useState('')
-    const [product, setProduct] = useState<any>(null)
-    const [quantity, setQuantity] = useState(1)
-    const [formData, setFormData] = useState({
-        buyerName: '',
-        buyerEmail: '',
-        buyerPhone: '',
-        buyerAddress: '',
-    })
-
-    useEffect(() => {
-        if (!productId) {
-            router.push('/explore')
-            return
-        }
-        fetchProduct()
-    }, [productId])
-
-    const fetchProduct = async () => {
-        const supabase = createClient()
-        const { data, error } = await supabase
-            .from('products')
-            .select('*, stores(name, whatsapp_number, contact_phone, contact_email, slug)')
-            .eq('id', productId)
-            .eq('is_active', true)
-            .single()
-
-        if (error || !data) {
-            router.push('/explore')
-            return
-        }
-
-        setProduct(data)
-        setLoading(false)
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError('')
-
-        if (!formData.buyerName.trim() || !formData.buyerPhone.trim()) {
-            setError('Name and phone number are required')
-            return
-        }
-
-        // Phone validation (basic)
-        const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/
-        if (!phoneRegex.test(formData.buyerPhone.replace(/\s/g, ''))) {
-            setError('Please enter a valid phone number')
-            return
-        }
-
-        setSubmitting(true)
-
-        try {
-            // 1. Create order
-            const response = await fetch('/api/order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    productId: product.id,
-                    storeId: product.store_id,
-                    buyerName: formData.buyerName,
-                    buyerEmail: formData.buyerEmail,
-                    buyerPhone: formData.buyerPhone,
-                    buyerAddress: formData.buyerAddress,
-                    quantity: quantity,
-                    totalAmount: product.price * quantity,
-                }),
-            })
-
-            const result = await response.json()
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Failed to create order')
-            }
-
-            // 2. Send email notification to seller + buyer
-            const notifyResponse = await fetch('/api/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    orderId: result.orderId,
-                    sellerEmail: product.stores?.contact_email,
-                    sellerWhatsapp: product.stores?.whatsapp_number,
-                    sellerPhone: product.stores?.contact_phone,
-                    sellerName: product.stores?.name,
-                    buyerName: formData.buyerName,
-                    buyerPhone: formData.buyerPhone,
-                    buyerEmail: formData.buyerEmail,
-                    buyerAddress: formData.buyerAddress,
-                    productName: product.name,
-                    quantity: quantity,
-                    totalAmount: product.price * quantity,
-                }),
-            })
-
-            const notifyData = await notifyResponse.json()
-            console.log('Notification result:', notifyData)
-
-            // 3. Redirect to success page
-            window.location.href = `/order/success?order=${result.orderId}`
-        } catch (err: any) {
-            setError(err.message || 'Something went wrong')
-            setSubmitting(false)
-        }
-    }
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-white flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
-            </div>
-        )
-    }
-
-    const totalPrice = product.price * quantity
-
-    return (
-        <div className="min-h-screen bg-neutral-50 pt-20 pb-12">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Back Button */}
-                <button
-                    onClick={() => router.back()}
-                    className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 mb-6 transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Product
-                </button>
-
-                <h1 className="text-3xl font-bold text-neutral-900 mb-8">Checkout</h1>
-
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {/* Order Form */}
-                    <div className="lg:col-span-3 space-y-6">
-                        <Card className="border-0 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <User className="w-5 h-5" />
-                                    Your Details
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleSubmit} className="space-y-5">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="buyerName" className="flex items-center gap-2">
-                                            <User className="w-4 h-4 text-neutral-400" />
-                                            Full Name *
-                                        </Label>
-                                        <Input
-                                            id="buyerName"
-                                            placeholder="Enter your full name"
-                                            value={formData.buyerName}
-                                            onChange={(e) => setFormData({ ...formData, buyerName: e.target.value })}
-                                            required
-                                            className="h-12"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="buyerPhone" className="flex items-center gap-2">
-                                            <Phone className="w-4 h-4 text-neutral-400" />
-                                            Phone Number *
-                                        </Label>
-                                        <Input
-                                            id="buyerPhone"
-                                            type="tel"
-                                            placeholder="+91 98765 43210"
-                                            value={formData.buyerPhone}
-                                            onChange={(e) => setFormData({ ...formData, buyerPhone: e.target.value })}
-                                            required
-                                            className="h-12"
-                                        />
-                                        <p className="text-xs text-neutral-500">
-                                            Seller will contact you on WhatsApp for order updates
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="buyerEmail" className="flex items-center gap-2">
-                                            <Mail className="w-4 h-4 text-neutral-400" />
-                                            Email (optional)
-                                        </Label>
-                                        <Input
-                                            id="buyerEmail"
-                                            type="email"
-                                            placeholder="your@email.com"
-                                            value={formData.buyerEmail}
-                                            onChange={(e) => setFormData({ ...formData, buyerEmail: e.target.value })}
-                                            className="h-12"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="buyerAddress" className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-neutral-400" />
-                                            Delivery Address *
-                                        </Label>
-                                        <Textarea
-                                            id="buyerAddress"
-                                            placeholder="Full address with pincode..."
-                                            value={formData.buyerAddress}
-                                            onChange={(e) => setFormData({ ...formData, buyerAddress: e.target.value })}
-                                            required
-                                            rows={4}
-                                        />
-                                    </div>
-
-                                    {error && (
-                                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                                            <p className="text-sm text-red-600">{error}</p>
-                                        </div>
-                                    )}
-
-                                    <Button
-                                        type="submit"
-                                        className="w-full h-14 text-lg bg-neutral-900 hover:bg-neutral-800"
-                                        disabled={submitting}
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                                Placing Order...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ShoppingBag className="w-5 h-5 mr-2" />
-                                                Place Order — Cash on Delivery
-                                            </>
-                                        )}
-                                    </Button>
-
-                                    <p className="text-xs text-center text-neutral-500">
-                                        No account required. Your phone number is only shared with the seller for delivery.
-                                    </p>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Order Summary */}
-                    <div className="lg:col-span-2">
-                        <Card className="border-0 shadow-sm sticky top-24">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Package className="w-5 h-5" />
-                                    Order Summary
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Product */}
-                                <div className="flex gap-4">
-                                    <div className="w-20 h-20 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
-                                        {product.images?.[0] ? (
-                                            <img
-                                                src={product.images[0]}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <ShoppingBag className="w-6 h-6 text-neutral-300" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-medium text-neutral-900 line-clamp-2">{product.name}</h3>
-                                        <p className="text-sm text-neutral-500">{product.stores?.name}</p>
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                {/* Quantity */}
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-neutral-600">Quantity</span>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                            className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
-                                        >
-                                            -
-                                        </button>
-                                        <span className="w-8 text-center font-medium">{quantity}</span>
-                                        <button
-                                            onClick={() => setQuantity(quantity + 1)}
-                                            className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                {/* Price Breakdown */}
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-neutral-600">Price</span>
-                                        <span>₹{product.price} × {quantity}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-neutral-600">Delivery</span>
-                                        <span className="text-green-600">Free</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-neutral-600">Platform Fee</span>
-                                        <span className="text-green-600">Free</span>
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                <div className="flex justify-between items-center">
-                                    <span className="text-lg font-semibold text-neutral-900">Total</span>
-                                    <span className="text-2xl font-bold text-neutral-900">₹{totalPrice}</span>
-                                </div>
-
-                                <div className="p-3 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-700 text-center font-medium">
-                                        Cash on Delivery
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
-</file>
-
 <file path="src/app/(site)/explore/page.tsx">
 // src/app/(site)/explore/page.tsx
 import { createClient } from '@/lib/supabase/server'
@@ -1365,156 +1410,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             </main>
             <Footer />
         </>
-    )
-}
-</file>
-
-<file path="src/app/(site)/order/success/page.tsx">
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2 } from 'lucide-react'
-
-export default function OrderSuccessPage() {
-    const searchParams = useSearchParams()
-    const orderId = searchParams.get('order')
-    
-    const [order, setOrder] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState('')
-
-    useEffect(() => {
-        console.log('Order ID from URL:', orderId) // DEBUG
-        
-        if (!orderId) {
-            setError('No order ID found in URL')
-            setLoading(false)
-            return
-        }
-        fetchOrder()
-    }, [orderId])
-
-    const fetchOrder = async () => {
-        try {
-            const url = `/api/order/get?orderId=${orderId}`
-            console.log('Fetching from:', url) // DEBUG
-            
-            const response = await fetch(url)
-            console.log('Response status:', response.status) // DEBUG
-            
-            const data = await response.json()
-            console.log('Response data:', data) // DEBUG
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Order not found')
-            }
-
-            setOrder(data.order)
-        } catch (err: any) {
-            console.error('Fetch error:', err) // DEBUG
-            setError(err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
-            </div>
-        )
-    }
-
-    if (error || !order) {
-        return (
-            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-neutral-500 mb-4">{error || 'Order not found'}</p>
-                    <p className="text-sm text-neutral-400 mb-4">Order ID: {orderId || 'none'}</p>
-                    <Link href="/explore">
-                        <Button variant="outline">Continue Shopping</Button>
-                    </Link>
-                </div>
-            </div>
-        )
-    }
-
-    return (
-        <div className="min-h-screen bg-neutral-50 py-12">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle className="w-10 h-10 text-green-600" />
-                    </div>
-                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">Order Placed Successfully!</h1>
-                    <p className="text-neutral-500">Thank you for your order. The seller will contact you soon.</p>
-                </div>
-
-                <Card className="border-0 shadow-sm mb-6">
-                    <CardContent className="p-6 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-neutral-500">Order ID</span>
-                            <span className="font-mono text-sm font-medium">#{order.id.slice(0, 12).toUpperCase()}</span>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="w-24 h-24 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
-                                {order.products?.images?.[0] ? (
-                                    <img src={order.products.images[0]} alt={order.products.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8 text-neutral-300" /></div>
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-semibold text-neutral-900">{order.products?.name}</h3>
-                                <p className="text-sm text-neutral-500">{order.products?.stores?.name}</p>
-                                <p className="text-sm text-neutral-500 mt-1">Qty: {order.quantity}</p>
-                                <p className="font-bold text-neutral-900 mt-2">₹{order.total_amount}</p>
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-neutral-50 rounded-lg space-y-3">
-                            <div className="flex items-center gap-3">
-                                <Clock className="w-5 h-5 text-neutral-400" />
-                                <div>
-                                    <p className="text-sm font-medium text-neutral-900">Order Status</p>
-                                    <p className="text-sm text-neutral-500 capitalize">{order.status}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Phone className="w-5 h-5 text-neutral-400" />
-                                <div>
-                                    <p className="text-sm font-medium text-neutral-900">Seller Contact</p>
-                                    <p className="text-sm text-neutral-500">{order.products?.stores?.whatsapp_number || 'Not available'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {order.products?.stores?.whatsapp_number && (
-                    <a href={`https://wa.me/${order.products.stores.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="block mb-4">
-                        <Button className="w-full h-14 text-lg gap-2 bg-green-600 hover:bg-green-700">
-                            <Phone className="w-5 h-5" /> Chat with Seller on WhatsApp
-                        </Button>
-                    </a>
-                )}
-
-                <div className="flex gap-3">
-                    <Link href="/explore" className="flex-1">
-                        <Button variant="outline" className="w-full h-12 gap-2"><ArrowRight className="w-4 h-4" /> Continue Shopping</Button>
-                    </Link>
-                    <Link href="/" className="flex-1">
-                        <Button variant="outline" className="w-full h-12 gap-2"><Home className="w-4 h-4" /> Back to Home</Button>
-                    </Link>
-                </div>
-            </div>
-        </div>
     )
 }
 </file>
@@ -1900,45 +1795,86 @@ export default async function LandingPage() {
 </file>
 
 <file path="src/app/(site)/product/[id]/page.tsx">
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useEffect } from 'react'
 
-export default async function ProductPage({
-    params,
-}: {
-    params: Promise<{ id: string }>
-}) {
-    const { id } = await params
-    const supabase = await createClient()
+export default function ProductPage() {
+    const params = useParams()
+    const id = params.id as string
 
-    const { data: product } = await supabase
-        .from('products')
-        .select('*, stores(*)')
-        .eq('id', id)
-        .eq('is_active', true)
-        .single()
+    const [product, setProduct] = useState<any>(null)
+    const [relatedProducts, setRelatedProducts] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [mainImageIndex, setMainImageIndex] = useState(0)
+
+    useEffect(() => {
+        fetchProduct()
+    }, [id])
+
+    const fetchProduct = async () => {
+        const supabase = createClient()
+        
+        const { data: productData } = await supabase
+            .from('products')
+            .select('*, stores(*)')
+            .eq('id', id)
+            .eq('is_active', true)
+            .single()
+
+        if (!productData) {
+            setLoading(false)
+            return
+        }
+
+        setProduct(productData)
+
+        // Fetch related products
+        const { data: related } = await supabase
+            .from('products')
+            .select('id, name, price, images, category, affiliate_link')
+            .eq('is_active', true)
+            .neq('id', id)
+            .or(`store_id.eq.${productData.store_id},category.eq.${productData.category}`)
+            .limit(4)
+
+        setRelatedProducts(related || [])
+        setLoading(false)
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white pt-20 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-neutral-200 border-t-[#7C3AED] rounded-full animate-spin" />
+            </div>
+        )
+    }
 
     if (!product) {
-        notFound()
+        return (
+            <div className="min-h-screen bg-white pt-20 flex items-center justify-center">
+                <p className="text-neutral-500">Product not found</p>
+            </div>
+        )
     }
 
     const isAffiliate = !!product.affiliate_link
     const hasImages = product.images && product.images.length > 0
+    const allImages = product.images || []
+    const mainImage = allImages[mainImageIndex] || allImages[0]
 
-    // Fetch related products from same store/category
-    const { data: relatedProducts } = await supabase
-        .from('products')
-        .select('id, name, price, images, category, affiliate_link')
-        .eq('is_active', true)
-        .neq('id', product.id)
-        .or(`store_id.eq.${product.store_id},category.eq.${product.category}`)
-        .limit(4)
+    const handleThumbnailClick = (index: number) => {
+        setMainImageIndex(index)
+    }
 
     return (
         <div className="min-h-screen bg-white pt-20">
@@ -1955,12 +1891,13 @@ export default async function ProductPage({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
                     {/* Images */}
                     <div className="space-y-4">
-                        <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden">
+                        {/* Main Image */}
+                        <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden relative group">
                             {hasImages ? (
                                 <img
-                                    src={product.images[0]}
+                                    src={mainImage}
                                     alt={product.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
@@ -1968,16 +1905,26 @@ export default async function ProductPage({
                                 </div>
                             )}
                         </div>
-                        {hasImages && product.images.length > 1 && (
+
+                        {/* Thumbnail Grid */}
+                        {allImages.length > 1 && (
                             <div className="grid grid-cols-4 gap-3">
-                                {product.images.slice(1, 5).map((img: string, i: number) => (
-                                    <div key={i} className="aspect-square bg-neutral-100 rounded-lg overflow-hidden">
+                                {allImages.slice(0, 5).map((img: string, i: number) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleThumbnailClick(i)}
+                                        className={`aspect-square bg-neutral-100 rounded-lg overflow-hidden border-2 transition-all ${
+                                            mainImageIndex === i
+                                                ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/20'
+                                                : 'border-transparent hover:border-neutral-300'
+                                        }`}
+                                    >
                                         <img
                                             src={img}
-                                            alt={`${product.name} ${i + 2}`}
+                                            alt={`${product.name} ${i + 1}`}
                                             className="w-full h-full object-cover"
                                         />
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         )}
@@ -3091,9 +3038,16 @@ export async function POST(request: Request) {
             buyerAddress,
             quantity,
             totalAmount,
+            // New fee fields
+            deliveryFee,
+            platformFee,
+            additionalFee,
+            gstAmount,
+            gstType,
+            gstPercentage,
+            subtotal,
         } = body
 
-        // Validation
         if (!productId || !storeId || !buyerName || !buyerPhone || !buyerAddress) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
@@ -3101,7 +3055,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Use service role client (bypasses RLS)
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -3113,7 +3066,6 @@ export async function POST(request: Request) {
             }
         )
 
-        // Verify product exists and is active
         const { data: product } = await supabase
             .from('products')
             .select('id, stock_quantity, is_active')
@@ -3128,7 +3080,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Check stock
         if (product.stock_quantity !== null && product.stock_quantity < quantity) {
             return NextResponse.json(
                 { error: 'Insufficient stock' },
@@ -3136,7 +3087,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Create order
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -3148,6 +3098,14 @@ export async function POST(request: Request) {
                 buyer_address: buyerAddress,
                 quantity: quantity,
                 total_amount: totalAmount,
+                // Fee breakdown
+                delivery_fee: deliveryFee || 0,
+                platform_fee: platformFee || 0,
+                additional_fee: additionalFee || 0,
+                gst_amount: gstAmount || 0,
+                gst_type: gstType || 'none',
+                gst_percentage: gstPercentage || 0,
+                subtotal: subtotal || totalAmount,
                 status: 'pending',
                 payment_status: 'pending',
                 payment_method: 'cod',
@@ -3163,7 +3121,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Decrease stock
         if (product.stock_quantity !== null) {
             await supabase
                 .from('products')
@@ -4570,7 +4527,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Loader2, X, Upload, ImageIcon } from 'lucide-react'
+import { Loader2, X, Upload, ImageIcon, Truck, Shield, Plus, Receipt, Percent } from 'lucide-react'
 
 const PRODUCT_CATEGORIES = [
     'Art & Illustration',
@@ -4595,6 +4552,15 @@ const PRODUCT_CATEGORIES = [
     'Custom & Personalized',
 ]
 
+const GST_SLABS = [
+    { label: 'None (0%)', value: 'none', percentage: 0 },
+    { label: '5% GST', value: '5', percentage: 5 },
+    { label: '12% GST', value: '12', percentage: 12 },
+    { label: '18% GST', value: '18', percentage: 18 },
+    { label: '28% GST', value: '28', percentage: 28 },
+    { label: 'Custom %', value: 'custom', percentage: 0 },
+]
+
 interface ImageFile {
     id: string
     file: File
@@ -4611,6 +4577,17 @@ export default function NewProductPage() {
     const [images, setImages] = useState<ImageFile[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [hasAffiliate, setHasAffiliate] = useState(false)
+
+    // Fee toggles
+    const [hasDeliveryFee, setHasDeliveryFee] = useState(false)
+    const [hasPlatformFee, setHasPlatformFee] = useState(false)
+    const [hasAdditionalFee, setHasAdditionalFee] = useState(false)
+
+    // GST state
+    const [gstType, setGstType] = useState<'none' | 'inclusive' | 'exclusive'>('none')
+    const [gstSlab, setGstSlab] = useState('none')
+    const [customGstPercentage, setCustomGstPercentage] = useState('')
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -4619,7 +4596,12 @@ export default function NewProductPage() {
         category: '',
         stockQuantity: '1',
         affiliateLink: '',
-        isActive: true
+        isActive: true,
+        // Fees
+        deliveryFee: '',
+        platformFee: '',
+        additionalFee: '',
+        additionalFeeName: '',
     })
 
     // Generate unique ID
@@ -4634,19 +4616,16 @@ export default function NewProductPage() {
         for (let i = 0; i < files.length; i++) {
             const file = files[i]
 
-            // Validate file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 setError(`File ${file.name} is too large. Max 5MB.`)
                 continue
             }
 
-            // Validate file type
             if (!file.type.startsWith('image/')) {
                 setError(`File ${file.name} is not an image.`)
                 continue
             }
 
-            // Create instant preview using object URL
             const preview = URL.createObjectURL(file)
 
             newImages.push({
@@ -4664,10 +4643,8 @@ export default function NewProductPage() {
             return
         }
 
-        // Add to state immediately so previews show
         setImages(prev => [...prev, ...newImages])
 
-        // Upload each image
         newImages.forEach((img) => {
             uploadSingleImage(img)
         })
@@ -4722,6 +4699,52 @@ export default function NewProductPage() {
         })
     }
 
+    // Calculate GST percentage from slab
+    const getGstPercentage = (): number => {
+        if (gstType === 'none' || gstSlab === 'none') return 0
+        if (gstSlab === 'custom') {
+            return parseFloat(customGstPercentage) || 0
+        }
+        const slab = GST_SLABS.find(s => s.value === gstSlab)
+        return slab?.percentage || 0
+    }
+
+    // Calculate price breakdown for preview
+    const calculateBreakdown = () => {
+        const basePrice = parseFloat(formData.price) || 0
+        const deliveryFee = hasDeliveryFee ? parseFloat(formData.deliveryFee) || 0 : 0
+        const platformFee = hasPlatformFee ? parseFloat(formData.platformFee) || 0 : 0
+        const additionalFee = hasAdditionalFee ? parseFloat(formData.additionalFee) || 0 : 0
+        const gstPercent = getGstPercentage()
+
+        let subtotal = basePrice
+        let gstAmount = 0
+        let total = 0
+
+        if (gstType === 'inclusive') {
+            gstAmount = basePrice - (basePrice / (1 + gstPercent / 100))
+            subtotal = basePrice - gstAmount
+            total = basePrice + deliveryFee + platformFee + additionalFee
+        } else if (gstType === 'exclusive') {
+            gstAmount = basePrice * (gstPercent / 100)
+            subtotal = basePrice
+            total = basePrice + gstAmount + deliveryFee + platformFee + additionalFee
+        } else {
+            subtotal = basePrice
+            total = basePrice + deliveryFee + platformFee + additionalFee
+        }
+
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            gstAmount: Math.round(gstAmount * 100) / 100,
+            deliveryFee,
+            platformFee,
+            additionalFee,
+            total: Math.round(total * 100) / 100,
+            gstPercent
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -4731,7 +4754,6 @@ export default function NewProductPage() {
             return
         }
 
-        // Check if any images are still uploading
         const uploadingCount = images.filter(img => img.uploading).length
         if (uploadingCount > 0) {
             setError(`Please wait for ${uploadingCount} image(s) to finish uploading`)
@@ -4761,10 +4783,11 @@ export default function NewProductPage() {
             return
         }
 
-        // Only save successfully uploaded images
         const validUrls = images
             .filter(img => img.url !== null && !img.error)
             .map(img => img.url as string)
+
+        const gstPercent = getGstPercentage()
 
         const { error: insertError } = await supabase
             .from('products')
@@ -4778,7 +4801,15 @@ export default function NewProductPage() {
                 category: formData.category,
                 affiliate_link: hasAffiliate ? formData.affiliateLink : null,
                 stock_quantity: parseInt(formData.stockQuantity) || 0,
-                is_active: formData.isActive
+                is_active: formData.isActive,
+                // Fees
+                delivery_fee: hasDeliveryFee ? parseFloat(formData.deliveryFee) || 0 : 0,
+                platform_fee: hasPlatformFee ? parseFloat(formData.platformFee) || 0 : 0,
+                additional_fee: hasAdditionalFee ? parseFloat(formData.additionalFee) || 0 : 0,
+                // GST
+                gst_type: gstType,
+                gst_percentage: gstPercent,
+                gst_slab: gstSlab,
             })
 
         if (insertError) {
@@ -4787,7 +4818,6 @@ export default function NewProductPage() {
             return
         }
 
-        // Clean up object URLs
         images.forEach(img => URL.revokeObjectURL(img.preview))
 
         router.push('/seller/products')
@@ -4796,101 +4826,447 @@ export default function NewProductPage() {
     }
 
     const anyUploading = images.some(img => img.uploading)
+    const breakdown = calculateBreakdown()
 
     return (
         <div className="max-w-3xl mx-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-neutral-900">Add New Product</h1>
-                <p className="text-neutral-500 mt-1">Add a product or affiliate link to your store</p>
+                <p className="text-neutral-500 mt-1">Add a product with pricing, fees, and GST to your store</p>
             </div>
 
             <Card className="border-0 shadow-sm">
                 <CardContent className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Product Name *</Label>
-                            <Input
-                                id="name"
-                                placeholder="e.g., Handmade Ceramic Mug"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-                        </div>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* ===== BASIC INFO ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Receipt className="w-5 h-5 text-[#161616]" />
+                                Basic Information
+                            </h2>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                placeholder="Describe your product..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="price">Price (₹) *</Label>
+                                <Label htmlFor="name">Product Name *</Label>
                                 <Input
-                                    id="price"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="499.00"
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    id="name"
+                                    placeholder="e.g., Handmade Ceramic Mug"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <Label htmlFor="comparePrice">Compare at Price (₹)</Label>
-                                <Input
-                                    id="comparePrice"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="699.00"
-                                    value={formData.comparePrice}
-                                    onChange={(e) => setFormData({ ...formData, comparePrice: e.target.value })}
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="Describe your product..."
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows={4}
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="price">Base Price (₹) *</Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="499.00"
+                                        value={formData.price}
+                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="comparePrice">Compare at Price (₹)</Label>
+                                    <Input
+                                        id="comparePrice"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="699.00"
+                                        value={formData.comparePrice}
+                                        onChange={(e) => setFormData({ ...formData, comparePrice: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category *</Label>
+                                    <Select
+                                        value={formData.category}
+                                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-72">
+                                            {PRODUCT_CATEGORIES.map((cat) => (
+                                                <SelectItem key={cat} value={cat}>
+                                                    {cat}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="stock">Stock Quantity</Label>
+                                    <Input
+                                        id="stock"
+                                        type="number"
+                                        placeholder="10"
+                                        value={formData.stockQuantity}
+                                        onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Category *</Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-72">
-                                        {PRODUCT_CATEGORIES.map((cat) => (
-                                            <SelectItem key={cat} value={cat}>
-                                                {cat}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== GST SECTION ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Percent className="w-5 h-5 text-[#161616]" />
+                                GST (Tax)
+                            </h2>
+
+                            <div className="space-y-4">
+                                <Label>GST Type</Label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('none')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'none'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        No GST
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('inclusive')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'inclusive'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        GST Inclusive
+                                        <span className="block text-xs font-normal mt-1 text-neutral-400">
+                                            Tax included in price
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGstType('exclusive')}
+                                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                                            gstType === 'exclusive'
+                                                ? 'border-[#161616] bg-[#7C3AED]/5 text-[#161616]'
+                                                : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                                        }`}
+                                    >
+                                        GST Exclusive
+                                        <span className="block text-xs font-normal mt-1 text-neutral-400">
+                                            Tax added to price
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="stock">Stock Quantity</Label>
-                                <Input
-                                    id="stock"
-                                    type="number"
-                                    placeholder="10"
-                                    value={formData.stockQuantity}
-                                    onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                                />
+
+                            {gstType !== 'none' && (
+                                <div className="space-y-4 p-4 bg-[#f8f7fb] rounded-xl border border-[#7C3AED]/10">
+                                    <div className="space-y-2">
+                                        <Label>GST Slab</Label>
+                                        <Select
+                                            value={gstSlab}
+                                            onValueChange={setGstSlab}
+                                        >
+                                            <SelectTrigger className="w-full bg-white">
+                                                <SelectValue placeholder="Select GST slab" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {GST_SLABS.map((slab) => (
+                                                    <SelectItem key={slab.value} value={slab.value}>
+                                                        {slab.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {gstSlab === 'custom' && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="customGst">Custom GST Percentage (%)</Label>
+                                            <Input
+                                                id="customGst"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                placeholder="e.g., 7.5"
+                                                value={customGstPercentage}
+                                                onChange={(e) => setCustomGstPercentage(e.target.value)}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {gstType === 'inclusive' && (
+                                        <p className="text-sm text-neutral-500 bg-white p-3 rounded-lg">
+                                            <span className="font-medium text-[#161616]">Inclusive:</span> The base price you entered includes GST. 
+                                            Customer pays exactly ₹{formData.price || '0'}.
+                                        </p>
+                                    )}
+                                    {gstType === 'exclusive' && (
+                                        <p className="text-sm text-neutral-500 bg-white p-3 rounded-lg">
+                                            <span className="font-medium text-[#161616]">Exclusive:</span> GST will be added on top of the base price.
+                                            Customer pays ₹{formData.price || '0'} + GST.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== FEES SECTION ===== */}
+                        <div className="space-y-6">
+                            <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                                <Plus className="w-5 h-5 text-[#161616]" />
+                                Additional Fees
+                            </h2>
+
+                            {/* Delivery Fee */}
+                            <div 
+                                onClick={() => setHasDeliveryFee(!hasDeliveryFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasDeliveryFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasDeliveryFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Truck className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Delivery Fee</Label>
+                                            <p className="text-sm text-neutral-500">Charge for shipping/delivery</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasDeliveryFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasDeliveryFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasDeliveryFee}
+                                            onCheckedChange={setHasDeliveryFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasDeliveryFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 pl-13">
+                                        <Label htmlFor="deliveryFee" className="text-sm">Delivery Amount (₹)</Label>
+                                        <Input
+                                            id="deliveryFee"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="e.g., 50.00"
+                                            value={formData.deliveryFee}
+                                            onChange={(e) => setFormData({ ...formData, deliveryFee: e.target.value })}
+                                            className="mt-2 bg-white max-w-xs"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Platform Fee */}
+                            <div 
+                                onClick={() => setHasPlatformFee(!hasPlatformFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasPlatformFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasPlatformFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Shield className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Platform Fee</Label>
+                                            <p className="text-sm text-neutral-500">Service/convenience charge</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasPlatformFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasPlatformFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasPlatformFee}
+                                            onCheckedChange={setHasPlatformFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasPlatformFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 pl-13">
+                                        <Label htmlFor="platformFee" className="text-sm">Platform Fee Amount (₹)</Label>
+                                        <Input
+                                            id="platformFee"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="e.g., 20.00"
+                                            value={formData.platformFee}
+                                            onChange={(e) => setFormData({ ...formData, platformFee: e.target.value })}
+                                            className="mt-2 bg-white max-w-xs"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Additional Fee */}
+                            <div 
+                                onClick={() => setHasAdditionalFee(!hasAdditionalFee)}
+                                className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasAdditionalFee 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                                            hasAdditionalFee ? 'bg-[#161616] text-white' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <Plus className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="font-medium text-base cursor-pointer">Additional Fee</Label>
+                                            <p className="text-sm text-neutral-500">Custom fee (packaging, handling, etc.)</p>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <span className={`text-sm font-medium transition-colors ${
+                                            hasAdditionalFee ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                        }`}>
+                                            {hasAdditionalFee ? 'ON' : 'OFF'}
+                                        </span>
+                                        <Switch
+                                            checked={hasAdditionalFee}
+                                            onCheckedChange={setHasAdditionalFee}
+                                            className="data-[state=checked]:bg-[#161616]"
+                                        />
+                                    </div>
+                                </div>
+                                {hasAdditionalFee && (
+                                    <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mt-4 space-y-3 pl-13">
+                                        <div>
+                                            <Label htmlFor="additionalFeeName" className="text-sm">Fee Name</Label>
+                                            <Input
+                                                id="additionalFeeName"
+                                                placeholder="e.g., Packaging Fee"
+                                                value={formData.additionalFeeName}
+                                                onChange={(e) => setFormData({ ...formData, additionalFeeName: e.target.value })}
+                                                className="mt-2 bg-white max-w-xs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="additionalFee" className="text-sm">Fee Amount (₹)</Label>
+                                            <Input
+                                                id="additionalFee"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="e.g., 30.00"
+                                                value={formData.additionalFee}
+                                                onChange={(e) => setFormData({ ...formData, additionalFee: e.target.value })}
+                                                className="mt-2 bg-white max-w-xs"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Product Images */}
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== PRICE PREVIEW ===== */}
+                        <div className="space-y-4">
+                            <h2 className="text-lg font-semibold text-neutral-900">Price Breakdown Preview</h2>
+                            <div className="bg-neutral-50 rounded-xl p-5 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-neutral-600">Subtotal</span>
+                                    <span>₹{breakdown.subtotal.toFixed(2)}</span>
+                                </div>
+                                {gstType !== 'none' && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">GST ({breakdown.gstPercent}%)</span>
+                                        <span>₹{breakdown.gstAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasDeliveryFee && breakdown.deliveryFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">Delivery Fee</span>
+                                        <span>₹{breakdown.deliveryFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasPlatformFee && breakdown.platformFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">Platform Fee</span>
+                                        <span>₹{breakdown.platformFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {hasAdditionalFee && breakdown.additionalFee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">{formData.additionalFeeName || 'Additional Fee'}</span>
+                                        <span>₹{breakdown.additionalFee.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-neutral-200 pt-3 flex justify-between items-center">
+                                    <span className="font-semibold text-neutral-900">Total Customer Pays</span>
+                                    <span className="text-xl font-bold text-[#161616]">₹{breakdown.total.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-neutral-200" />
+
+                        {/* ===== PRODUCT IMAGES ===== */}
                         <div className="space-y-3">
-                            <Label>Product Images</Label>
+                            <h2 className="text-lg font-semibold text-neutral-900">Product Images</h2>
                             
-                            {/* Image Preview Grid */}
                             {images.length > 0 ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                     {images.map((img) => (
@@ -4904,21 +5280,18 @@ export default function NewProductPage() {
                                                 className="w-full h-full object-cover"
                                             />
                                             
-                                            {/* Uploading overlay */}
                                             {img.uploading && (
                                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                                     <Loader2 className="w-6 h-6 text-white animate-spin" />
                                                 </div>
                                             )}
                                             
-                                            {/* Error overlay */}
                                             {img.error && (
                                                 <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center p-2">
                                                     <p className="text-white text-xs text-center">{img.error}</p>
                                                 </div>
                                             )}
                                             
-                                            {/* Remove button */}
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage(img.id)}
@@ -4939,7 +5312,6 @@ export default function NewProductPage() {
                                 </div>
                             )}
 
-                            {/* Upload Button */}
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -4972,50 +5344,88 @@ export default function NewProductPage() {
                             </p>
                         </div>
 
-                        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-                            <div>
-                                <Label className="font-medium">This is an Affiliate Product</Label>
-                                <p className="text-sm text-neutral-500">Enable if you want to redirect buyers to an external link</p>
-                            </div>
-                            <Switch
-                                checked={hasAffiliate}
-                                onCheckedChange={setHasAffiliate}
-                            />
-                        </div>
+                        <div className="border-t border-neutral-200" />
 
-                        {hasAffiliate && (
-                            <div className="space-y-2">
-                                <Label htmlFor="affiliateLink">Affiliate Link *</Label>
-                                <Input
-                                    id="affiliateLink"
-                                    type="url"
-                                    placeholder="https://amazon.in/product/..."
-                                    value={formData.affiliateLink}
-                                    onChange={(e) => setFormData({ ...formData, affiliateLink: e.target.value })}
-                                    required={hasAffiliate}
-                                />
+                        {/* ===== AFFILIATE & ACTIVE ===== */}
+                        <div className="space-y-4">
+                            <div 
+                                onClick={() => setHasAffiliate(!hasAffiliate)}
+                                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                                    hasAffiliate 
+                                        ? 'border-[#161616] bg-[#7C3AED]/5' 
+                                        : 'border-neutral-200'
+                                }`}
+                            >
+                                <div>
+                                    <Label className="font-medium text-base cursor-pointer">Affiliate Product</Label>
+                                    <p className="text-sm text-neutral-500">Redirect buyers to an external link</p>
+                                </div>
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-3"
+                                >
+                                    <span className={`text-sm font-medium transition-colors ${
+                                        hasAffiliate ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                    }`}>
+                                        {hasAffiliate ? 'ON' : 'OFF'}
+                                    </span>
+                                    <Switch
+                                        checked={hasAffiliate}
+                                        onCheckedChange={setHasAffiliate}
+                                        className="data-[state=checked]:bg-[#161616]"
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-                            <div>
-                                <Label className="font-medium">Active</Label>
-                                <p className="text-sm text-neutral-500">Make this product visible to buyers</p>
+                            {hasAffiliate && (
+                                <div className="space-y-2 p-4 bg-[#f8f7fb] rounded-xl">
+                                    <Label htmlFor="affiliateLink">Affiliate Link *</Label>
+                                    <Input
+                                        id="affiliateLink"
+                                        type="url"
+                                        placeholder="https://amazon.in/product/..."
+                                        value={formData.affiliateLink}
+                                        onChange={(e) => setFormData({ ...formData, affiliateLink: e.target.value })}
+                                        required={hasAffiliate}
+                                    />
+                                </div>
+                            )}
+
+                            <div 
+                                onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                                className="flex items-center justify-between p-5 rounded-xl border-2 border-neutral-200 cursor-pointer"
+                            >
+                                <div>
+                                    <Label className="font-medium text-base cursor-pointer">Active</Label>
+                                    <p className="text-sm text-neutral-500">Make this product visible to buyers</p>
+                                </div>
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-3"
+                                >
+                                    <span className={`text-sm font-medium transition-colors ${
+                                        formData.isActive ? 'text-[#7C3AED]' : 'text-neutral-400'
+                                    }`}>
+                                        {formData.isActive ? 'ON' : 'OFF'}
+                                    </span>
+                                    <Switch
+                                        checked={formData.isActive}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                                        className="data-[state=checked]:bg-[#161616]"
+                                    />
+                                </div>
                             </div>
-                            <Switch
-                                checked={formData.isActive}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                            />
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded">{error}</p>
+                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{error}</p>
                         )}
 
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 pt-4">
                             <Button 
                                 type="submit" 
-                                className="flex-1" 
+                                className="flex-1 h-12 text-lg" 
+                                style={{ backgroundColor: '#7C3AED' }}
                                 disabled={loading || anyUploading} 
                                 size="lg"
                             >
@@ -5032,6 +5442,7 @@ export default function NewProductPage() {
                                 type="button"
                                 variant="outline"
                                 size="lg"
+                                className="h-12 px-8"
                                 onClick={() => router.push('/seller/products')}
                             >
                                 Cancel
@@ -6748,231 +7159,6 @@ function Button({
 }
 
 export { Button, buttonVariants }
-</file>
-
-<file path="src/components/ui/calendar.tsx">
-"use client"
-
-import * as React from "react"
-import {
-  DayPicker,
-  getDefaultClassNames,
-  type DayButton,
-  type Locale,
-} from "react-day-picker"
-
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
-
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  captionLayout = "label",
-  buttonVariant = "ghost",
-  locale,
-  formatters,
-  components,
-  ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
-}) {
-  const defaultClassNames = getDefaultClassNames()
-
-  return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn(
-        "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
-        className
-      )}
-      captionLayout={captionLayout}
-      locale={locale}
-      formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString(locale?.code, { month: "short" }),
-        ...formatters,
-      }}
-      classNames={{
-        root: cn("w-fit", defaultClassNames.root),
-        months: cn(
-          "relative flex flex-col gap-4 md:flex-row",
-          defaultClassNames.months
-        ),
-        month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
-        nav: cn(
-          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
-          defaultClassNames.nav
-        ),
-        button_previous: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
-          defaultClassNames.button_previous
-        ),
-        button_next: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
-          defaultClassNames.button_next
-        ),
-        month_caption: cn(
-          "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
-          defaultClassNames.month_caption
-        ),
-        dropdowns: cn(
-          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
-          defaultClassNames.dropdowns
-        ),
-        dropdown_root: cn(
-          "relative rounded-(--cell-radius)",
-          defaultClassNames.dropdown_root
-        ),
-        dropdown: cn(
-          "absolute inset-0 bg-popover opacity-0",
-          defaultClassNames.dropdown
-        ),
-        caption_label: cn(
-          "font-medium select-none",
-          captionLayout === "label"
-            ? "text-sm"
-            : "flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
-          defaultClassNames.caption_label
-        ),
-        table: "w-full border-collapse",
-        weekdays: cn("flex", defaultClassNames.weekdays),
-        weekday: cn(
-          "flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal text-muted-foreground select-none",
-          defaultClassNames.weekday
-        ),
-        week: cn("mt-2 flex w-full", defaultClassNames.week),
-        week_number_header: cn(
-          "w-(--cell-size) select-none",
-          defaultClassNames.week_number_header
-        ),
-        week_number: cn(
-          "text-[0.8rem] text-muted-foreground select-none",
-          defaultClassNames.week_number
-        ),
-        day: cn(
-          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
-          props.showWeekNumber
-            ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
-            : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
-          defaultClassNames.day
-        ),
-        range_start: cn(
-          "relative isolate z-0 rounded-l-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-muted",
-          defaultClassNames.range_start
-        ),
-        range_middle: cn("rounded-none", defaultClassNames.range_middle),
-        range_end: cn(
-          "relative isolate z-0 rounded-r-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:left-0 after:w-4 after:bg-muted",
-          defaultClassNames.range_end
-        ),
-        today: cn(
-          "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
-          defaultClassNames.today
-        ),
-        outside: cn(
-          "text-muted-foreground aria-selected:text-muted-foreground",
-          defaultClassNames.outside
-        ),
-        disabled: cn(
-          "text-muted-foreground opacity-50",
-          defaultClassNames.disabled
-        ),
-        hidden: cn("invisible", defaultClassNames.hidden),
-        ...classNames,
-      }}
-      components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return (
-            <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
-            />
-          )
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            )
-          }
-
-          if (orientation === "right") {
-            return (
-              <ChevronRightIcon className={cn("size-4", className)} {...props} />
-            )
-          }
-
-          return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          )
-        },
-        DayButton: ({ ...props }) => (
-          <CalendarDayButton locale={locale} {...props} />
-        ),
-        WeekNumber: ({ children, ...props }) => {
-          return (
-            <td {...props}>
-              <div className="flex size-(--cell-size) items-center justify-center text-center">
-                {children}
-              </div>
-            </td>
-          )
-        },
-        ...components,
-      }}
-      {...props}
-    />
-  )
-}
-
-function CalendarDayButton({
-  className,
-  day,
-  modifiers,
-  locale,
-  ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
-  const defaultClassNames = getDefaultClassNames()
-
-  const ref = React.useRef<HTMLButtonElement>(null)
-  React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus()
-  }, [modifiers.focused])
-
-  return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      size="icon"
-      data-day={day.date.toLocaleDateString(locale?.code)}
-      data-selected-single={
-        modifiers.selected &&
-        !modifiers.range_start &&
-        !modifiers.range_end &&
-        !modifiers.range_middle
-      }
-      data-range-start={modifiers.range_start}
-      data-range-end={modifiers.range_end}
-      data-range-middle={modifiers.range_middle}
-      className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-foreground [&>span]:text-xs [&>span]:opacity-70",
-        defaultClassNames.day,
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-export { Calendar, CalendarDayButton }
 </file>
 
 <file path="src/components/ui/card.tsx">
@@ -10053,91 +10239,41 @@ export function cn(...inputs: ClassValue[]) {
 }
 </file>
 
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path="AGENTS.md">
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
-</file>
-
-<file path="CLAUDE.md">
-@AGENTS.md
-</file>
-
-<file path="eslint.config.mjs">
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
-
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
     "next-env.d.ts",
-  ]),
-]);
-
-export default eslintConfig;
-</file>
-
-<file path="next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
 </file>
 
 <file path="package.json">
@@ -10152,8 +10288,10 @@ export default nextConfig;
     "lint": "eslint"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.7",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "cashfree-pg": "^6.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -10189,73 +10327,660 @@ export default nextConfig;
 }
 </file>
 
-<file path="postcss.config.mjs">
-const config = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
-};
+<file path="src/app/(site)/checkout/page.tsx">
+'use client'
 
-export default config;
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Loader2, ShoppingBag, ArrowLeft, MapPin, Phone, User, Mail, Package, Truck, Shield, Plus, Receipt, Percent, CreditCard } from 'lucide-react'
+
+function CheckoutContent() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const productId = searchParams.get('product')
+
+    const [loading, setLoading] = useState(true)
+    const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState('')
+    const [product, setProduct] = useState<any>(null)
+    const [quantity, setQuantity] = useState(1)
+    const [formData, setFormData] = useState({
+        buyerName: '',
+        buyerEmail: '',
+        buyerPhone: '',
+        buyerAddress: '',
+    })
+
+    useEffect(() => {
+        if (!productId) {
+            router.push('/explore')
+            return
+        }
+        fetchProduct()
+    }, [productId])
+
+    const fetchProduct = async () => {
+        const supabase = createClient()
+        const { data, error } = await supabase
+            .from('products')
+            .select('*, stores(name, whatsapp_number, contact_phone, contact_email, slug)')
+            .eq('id', productId)
+            .eq('is_active', true)
+            .single()
+
+        if (error || !data) {
+            router.push('/explore')
+            return
+        }
+
+        setProduct(data)
+        setLoading(false)
+    }
+
+    // Calculate full price breakdown
+    const calculateBreakdown = () => {
+        if (!product) return null
+
+        const basePrice = product.price || 0
+        const qty = quantity
+        const itemTotal = basePrice * qty
+
+        const deliveryFee = (product.delivery_fee || 0) * qty
+        const platformFee = (product.platform_fee || 0) * qty
+        const additionalFee = (product.additional_fee || 0) * qty
+
+        let subtotal = itemTotal
+        let gstAmount = 0
+        let total = 0
+
+        if (product.gst_type === 'inclusive') {
+            // GST included in price
+            gstAmount = itemTotal - (itemTotal / (1 + (product.gst_percentage || 0) / 100))
+            subtotal = itemTotal - gstAmount
+            total = itemTotal + deliveryFee + platformFee + additionalFee
+        } else if (product.gst_type === 'exclusive') {
+            // GST added on top
+            gstAmount = itemTotal * ((product.gst_percentage || 0) / 100)
+            subtotal = itemTotal
+            total = itemTotal + gstAmount + deliveryFee + platformFee + additionalFee
+        } else {
+            subtotal = itemTotal
+            total = itemTotal + deliveryFee + platformFee + additionalFee
+        }
+
+        return {
+            itemTotal,
+            subtotal: Math.round(subtotal * 100) / 100,
+            gstAmount: Math.round(gstAmount * 100) / 100,
+            deliveryFee: Math.round(deliveryFee * 100) / 100,
+            platformFee: Math.round(platformFee * 100) / 100,
+            additionalFee: Math.round(additionalFee * 100) / 100,
+            total: Math.round(total * 100) / 100,
+            gstType: product.gst_type,
+            gstPercentage: product.gst_percentage,
+            hasDeliveryFee: product.delivery_fee > 0,
+            hasPlatformFee: product.platform_fee > 0,
+            hasAdditionalFee: product.additional_fee > 0,
+            additionalFeeName: product.additional_fee_name || 'Additional Fee',
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError('')
+
+        if (!formData.buyerName.trim() || !formData.buyerPhone.trim()) {
+            setError('Name and phone number are required')
+            return
+        }
+
+        const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/
+        if (!phoneRegex.test(formData.buyerPhone.replace(/\s/g, ''))) {
+            setError('Please enter a valid phone number')
+            return
+        }
+
+        setSubmitting(true)
+
+        try {
+            const breakdown = calculateBreakdown()
+            if (!breakdown) throw new Error('Could not calculate order total')
+
+            const response = await fetch('/api/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    productId: product.id,
+                    storeId: product.store_id,
+                    buyerName: formData.buyerName,
+                    buyerEmail: formData.buyerEmail,
+                    buyerPhone: formData.buyerPhone,
+                    buyerAddress: formData.buyerAddress,
+                    quantity: quantity,
+                    totalAmount: breakdown.total,
+                    // Fee breakdown
+                    deliveryFee: breakdown.deliveryFee,
+                    platformFee: breakdown.platformFee,
+                    additionalFee: breakdown.additionalFee,
+                    gstAmount: breakdown.gstAmount,
+                    gstType: breakdown.gstType,
+                    gstPercentage: breakdown.gstPercentage,
+                    subtotal: breakdown.subtotal,
+                }),
+            })
+
+            const result = await response.json()
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to create order')
+            }
+
+            // Send notifications
+            const notifyResponse = await fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: result.orderId,
+                    sellerEmail: product.stores?.contact_email,
+                    sellerWhatsapp: product.stores?.whatsapp_number,
+                    sellerPhone: product.stores?.contact_phone,
+                    sellerName: product.stores?.name,
+                    buyerName: formData.buyerName,
+                    buyerPhone: formData.buyerPhone,
+                    buyerEmail: formData.buyerEmail,
+                    buyerAddress: formData.buyerAddress,
+                    productName: product.name,
+                    quantity: quantity,
+                    totalAmount: breakdown.total,
+                }),
+            })
+
+            const notifyData = await notifyResponse.json()
+            console.log('Notification result:', notifyData)
+
+            window.location.href = `/order/success?order=${result.orderId}`
+        } catch (err: any) {
+            setError(err.message || 'Something went wrong')
+            setSubmitting(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+            </div>
+        )
+    }
+
+    const breakdown = calculateBreakdown()
+
+    return (
+        <div className="min-h-screen bg-neutral-50 pt-20 pb-12">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <button
+                    onClick={() => router.back()}
+                    className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 mb-6 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Product
+                </button>
+
+                <h1 className="text-3xl font-bold text-neutral-900 mb-8">Checkout</h1>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* Order Form */}
+                    <div className="lg:col-span-3 space-y-6">
+                        <Card className="border-0 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <User className="w-5 h-5" />
+                                    Your Details
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleSubmit} className="space-y-5">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="buyerName" className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-neutral-400" />
+                                            Full Name *
+                                        </Label>
+                                        <Input
+                                            id="buyerName"
+                                            placeholder="Enter your full name"
+                                            value={formData.buyerName}
+                                            onChange={(e) => setFormData({ ...formData, buyerName: e.target.value })}
+                                            required
+                                            className="h-12"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="buyerPhone" className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4 text-neutral-400" />
+                                            Phone Number *
+                                        </Label>
+                                        <Input
+                                            id="buyerPhone"
+                                            type="tel"
+                                            placeholder="+91 98765 43210"
+                                            value={formData.buyerPhone}
+                                            onChange={(e) => setFormData({ ...formData, buyerPhone: e.target.value })}
+                                            required
+                                            className="h-12"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="buyerEmail" className="flex items-center gap-2">
+                                            <Mail className="w-4 h-4 text-neutral-400" />
+                                            Email (optional)
+                                        </Label>
+                                        <Input
+                                            id="buyerEmail"
+                                            type="email"
+                                            placeholder="your@email.com"
+                                            value={formData.buyerEmail}
+                                            onChange={(e) => setFormData({ ...formData, buyerEmail: e.target.value })}
+                                            className="h-12"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="buyerAddress" className="flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-neutral-400" />
+                                            Delivery Address *
+                                        </Label>
+                                        <Textarea
+                                            id="buyerAddress"
+                                            placeholder="Full address with pincode..."
+                                            value={formData.buyerAddress}
+                                            onChange={(e) => setFormData({ ...formData, buyerAddress: e.target.value })}
+                                            required
+                                            rows={4}
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-sm text-red-600">{error}</p>
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-14 text-lg gap-2"
+                                        style={{ backgroundColor: '#7C3AED' }}
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                Placing Order...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CreditCard className="w-5 h-5 mr-2" />
+                                                Pay ₹{breakdown?.total.toFixed(2)}
+                                            </>
+                                        )}
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Order Summary */}
+                    <div className="lg:col-span-2">
+                        <Card className="border-0 shadow-sm sticky top-24">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Package className="w-5 h-5" />
+                                    Order Summary
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* Product */}
+                                <div className="flex gap-4">
+                                    <div className="w-20 h-20 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
+                                        {product.images?.[0] ? (
+                                            <img
+                                                src={product.images[0]}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <ShoppingBag className="w-6 h-6 text-neutral-300" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-medium text-neutral-900 line-clamp-2">{product.name}</h3>
+                                        <p className="text-sm text-neutral-500">{product.stores?.name}</p>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* Quantity */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-neutral-600">Quantity</span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
+                                        >
+                                            -
+                                        </button>
+                                        <span className="w-8 text-center font-medium">{quantity}</span>
+                                        <button
+                                            onClick={() => setQuantity(quantity + 1)}
+                                            className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* Price Breakdown */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-neutral-600">Price</span>
+                                        <span>₹{product.price} × {quantity}</span>
+                                    </div>
+                                    
+                                    {breakdown && (
+                                        <>
+                                            {breakdown.gstType !== 'none' && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-neutral-600 flex items-center gap-1">
+                                                        <Percent className="w-3 h-3" />
+                                                        GST ({breakdown.gstPercentage}%)
+                                                        <span className="text-xs text-neutral-400 capitalize">({breakdown.gstType})</span>
+                                                    </span>
+                                                    <span>₹{breakdown.gstAmount.toFixed(2)}</span>
+                                                </div>
+                                            )}
+
+                                            {breakdown.hasDeliveryFee && breakdown.deliveryFee > 0 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-neutral-600 flex items-center gap-1">
+                                                        <Truck className="w-3 h-3" />
+                                                        Delivery Fee
+                                                    </span>
+                                                    <span>₹{breakdown.deliveryFee.toFixed(2)}</span>
+                                                </div>
+                                            )}
+
+                                            {breakdown.hasPlatformFee && breakdown.platformFee > 0 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-neutral-600 flex items-center gap-1">
+                                                        <Shield className="w-3 h-3" />
+                                                        Platform Fee
+                                                    </span>
+                                                    <span>₹{breakdown.platformFee.toFixed(2)}</span>
+                                                </div>
+                                            )}
+
+                                            {breakdown.hasAdditionalFee && breakdown.additionalFee > 0 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-neutral-600 flex items-center gap-1">
+                                                        <Plus className="w-3 h-3" />
+                                                        {breakdown.additionalFeeName}
+                                                    </span>
+                                                    <span>₹{breakdown.additionalFee.toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+
+                                <Separator />
+
+                                <div className="flex justify-between items-center">
+                                    <span className="text-lg font-semibold text-neutral-900">Total</span>
+                                    <span className="text-2xl font-bold text-[#7C3AED]">₹{breakdown?.total.toFixed(2)}</span>
+                                </div>
+
+                                <div className="p-3 bg-[#7C3AED]/10 rounded-lg">
+                                    <p className="text-sm text-[#7C3AED] text-center font-medium flex items-center justify-center gap-2">
+                                        <Receipt className="w-4 h-4" />
+                                        Cash on Delivery
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+            </div>
+        }>
+            <CheckoutContent />
+        </Suspense>
+    )
+}
 </file>
 
-<file path="public/file.svg">
-<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
-</file>
+<file path="src/app/(site)/order/success/page.tsx">
+'use client'
 
-<file path="public/globe.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
-</file>
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2, XCircle } from 'lucide-react'
 
-<file path="public/next.svg">
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
-</file>
+function OrderSuccessContent() {
+    const searchParams = useSearchParams()
+    const orderId = searchParams.get('order')
+    
+    const [order, setOrder] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [verifying, setVerifying] = useState(true)
+    const [error, setError] = useState('')
+    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending')
 
-<file path="public/vercel.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
-</file>
+    useEffect(() => {
+        if (!orderId) {
+            setError('No order ID found in URL')
+            setLoading(false)
+            setVerifying(false)
+            return
+        }
+        verifyAndFetchOrder()
+    }, [orderId])
 
-<file path="public/window.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
-</file>
+    const verifyAndFetchOrder = async () => {
+        try {
+            // First verify payment with Cashfree
+            const verifyResponse = await fetch('/api/payment/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId }),
+            })
 
-<file path="README.md">
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+            const verifyData = await verifyResponse.json()
 
-## Getting Started
+            if (verifyData.success) {
+                setPaymentStatus('success')
+            } else if (verifyData.orderStatus === 'FAILED') {
+                setPaymentStatus('failed')
+            }
 
-First, run the development server:
+            // Then fetch order details
+            const orderResponse = await fetch(`/api/order/get?orderId=${orderId}`)
+            const orderData = await orderResponse.json()
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+            if (!orderResponse.ok) {
+                throw new Error(orderData.error || 'Order not found')
+            }
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+            setOrder(orderData.order)
+        } catch (err: any) {
+            console.error('Error:', err)
+            setError(err.message)
+        } finally {
+            setLoading(false)
+            setVerifying(false)
+        }
+    }
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    if (loading || verifying) {
+        return (
+            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-neutral-400 mx-auto mb-4" />
+                    <p className="text-neutral-500">Verifying your payment...</p>
+                </div>
+            </div>
+        )
+    }
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    if (error || !order) {
+        return (
+            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-neutral-500 mb-4">{error || 'Order not found'}</p>
+                    <p className="text-sm text-neutral-400 mb-4">Order ID: {orderId || 'none'}</p>
+                    <Link href="/explore">
+                        <Button variant="outline">Continue Shopping</Button>
+                    </Link>
+                </div>
+            </div>
+        )
+    }
 
-## Learn More
+    if (paymentStatus === 'failed') {
+        return (
+            <div className="min-h-screen bg-neutral-50 py-12">
+                <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <XCircle className="w-10 h-10 text-red-600" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">Payment Failed</h1>
+                    <p className="text-neutral-500 mb-8">Your payment could not be processed. Please try again.</p>
+                    <Link href={`/checkout?product=${order.product_id}`}>
+                        <Button className="gap-2" style={{ backgroundColor: '#7C3AED' }}>
+                            <ArrowRight className="w-4 h-4" />
+                            Retry Payment
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        )
+    }
 
-To learn more about Next.js, take a look at the following resources:
+    return (
+        <div className="min-h-screen bg-neutral-50 py-12">
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-10">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">Payment Successful!</h1>
+                    <p className="text-neutral-500">Thank you for your order. The seller will contact you soon.</p>
+                </div>
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+                <Card className="border-0 shadow-sm mb-6">
+                    <CardContent className="p-6 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-neutral-500">Order ID</span>
+                            <span className="font-mono text-sm font-medium">#{order.id.slice(0, 12).toUpperCase()}</span>
+                        </div>
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+                        <div className="flex gap-4">
+                            <div className="w-24 h-24 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
+                                {order.products?.images?.[0] ? (
+                                    <img src={order.products.images[0]} alt={order.products.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8 text-neutral-300" /></div>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-neutral-900">{order.products?.name}</h3>
+                                <p className="text-sm text-neutral-500">{order.products?.stores?.name}</p>
+                                <p className="text-sm text-neutral-500 mt-1">Qty: {order.quantity}</p>
+                                <p className="font-bold text-neutral-900 mt-2">₹{order.total_amount}</p>
+                            </div>
+                        </div>
 
-## Deploy on Vercel
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <p className="text-sm text-green-700 font-medium text-center">
+                                ✅ Payment of ₹{order.total_amount} received via Cashfree
+                            </p>
+                        </div>
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+                        <div className="p-4 bg-neutral-50 rounded-lg space-y-3">
+                            <div className="flex items-center gap-3">
+                                <Clock className="w-5 h-5 text-neutral-400" />
+                                <div>
+                                    <p className="text-sm font-medium text-neutral-900">Order Status</p>
+                                    <p className="text-sm text-neutral-500 capitalize">{order.status}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Phone className="w-5 h-5 text-neutral-400" />
+                                <div>
+                                    <p className="text-sm font-medium text-neutral-900">Seller Contact</p>
+                                    <p className="text-sm text-neutral-500">{order.products?.stores?.whatsapp_number || 'Not available'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+                {order.products?.stores?.whatsapp_number && (
+                    <a href={`https://wa.me/${order.products.stores.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="block mb-4">
+                        <Button className="w-full h-14 text-lg gap-2 bg-green-600 hover:bg-green-700">
+                            <Phone className="w-5 h-5" /> Chat with Seller on WhatsApp
+                        </Button>
+                    </a>
+                )}
+
+                <div className="flex gap-3">
+                    <Link href="/explore" className="flex-1">
+                        <Button variant="outline" className="w-full h-12 gap-2"><ArrowRight className="w-4 h-4" /> Continue Shopping</Button>
+                    </Link>
+                    <Link href="/" className="flex-1">
+                        <Button variant="outline" className="w-full h-12 gap-2"><Home className="w-4 h-4" /> Back to Home</Button>
+                    </Link>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default function OrderSuccessPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+            </div>
+        }>
+            <OrderSuccessContent />
+        </Suspense>
+    )
+}
 </file>
 
 <file path="src/app/globals.css">
@@ -10344,6 +11069,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
+            <head>
+                <script 
+                    src="https://sdk.cashfree.com/js/v3/cashfree.js" 
+                    async
+                />
+            </head>
             <body className={`${inter.className} ${playfair.variable}`}>
                 {children}
             </body>
@@ -10352,41 +11083,228 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 </file>
 
-<file path="tsconfig.json">
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
-  "exclude": ["node_modules"]
+<file path="src/components/ui/calendar.tsx">
+"use client"
+
+import * as React from "react"
+import {
+  DayPicker,
+  getDefaultClassNames,
+  type DayButton,
+  type Locale,
+} from "react-day-picker"
+
+import { cn } from "@/lib/utils"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
+
+function Calendar({
+  className,
+  classNames,
+  showOutsideDays = true,
+  captionLayout = "label",
+  buttonVariant = "ghost",
+  locale,
+  formatters,
+  components,
+  ...props
+}: React.ComponentProps<typeof DayPicker> & {
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+}) {
+  const defaultClassNames = getDefaultClassNames()
+
+  return (
+    <DayPicker
+      showOutsideDays={showOutsideDays}
+      className={cn(
+        "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
+        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+        className
+      )}
+      captionLayout={captionLayout}
+      locale={locale}
+      formatters={{
+        formatMonthDropdown: (date) =>
+          date.toLocaleString(locale?.code, { month: "short" }),
+        ...formatters,
+      }}
+      classNames={{
+        root: cn("w-fit", defaultClassNames.root),
+        months: cn(
+          "relative flex flex-col gap-4 md:flex-row",
+          defaultClassNames.months
+        ),
+        month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
+        nav: cn(
+          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+          defaultClassNames.nav
+        ),
+        button_previous: cn(
+          buttonVariants({ variant: buttonVariant }),
+          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          defaultClassNames.button_previous
+        ),
+        button_next: cn(
+          buttonVariants({ variant: buttonVariant }),
+          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          defaultClassNames.button_next
+        ),
+        month_caption: cn(
+          "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+          defaultClassNames.month_caption
+        ),
+        dropdowns: cn(
+          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
+          defaultClassNames.dropdowns
+        ),
+        dropdown_root: cn(
+          "relative rounded-(--cell-radius)",
+          defaultClassNames.dropdown_root
+        ),
+        dropdown: cn(
+          "absolute inset-0 bg-popover opacity-0",
+          defaultClassNames.dropdown
+        ),
+        caption_label: cn(
+          "font-medium select-none",
+          captionLayout === "label"
+            ? "text-sm"
+            : "flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+          defaultClassNames.caption_label
+        ),
+        weekdays: cn("flex", defaultClassNames.weekdays),
+        weekday: cn(
+          "flex-1 rounded-(--cell-radius) text-[0.8rem] font-normal text-muted-foreground select-none",
+          defaultClassNames.weekday
+        ),
+        week: cn("mt-2 flex w-full", defaultClassNames.week),
+        week_number_header: cn(
+          "w-(--cell-size) select-none",
+          defaultClassNames.week_number_header
+        ),
+        week_number: cn(
+          "text-[0.8rem] text-muted-foreground select-none",
+          defaultClassNames.week_number
+        ),
+        day: cn(
+          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
+          props.showWeekNumber
+            ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
+            : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
+          defaultClassNames.day
+        ),
+        range_start: cn(
+          "relative isolate z-0 rounded-l-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-muted",
+          defaultClassNames.range_start
+        ),
+        range_middle: cn("rounded-none", defaultClassNames.range_middle),
+        range_end: cn(
+          "relative isolate z-0 rounded-r-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:left-0 after:w-4 after:bg-muted",
+          defaultClassNames.range_end
+        ),
+        today: cn(
+          "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
+          defaultClassNames.today
+        ),
+        outside: cn(
+          "text-muted-foreground aria-selected:text-muted-foreground",
+          defaultClassNames.outside
+        ),
+        disabled: cn(
+          "text-muted-foreground opacity-50",
+          defaultClassNames.disabled
+        ),
+        hidden: cn("invisible", defaultClassNames.hidden),
+        ...classNames,
+      }}
+      components={{
+        Root: ({ className, rootRef, ...props }) => {
+          return (
+            <div
+              data-slot="calendar"
+              ref={rootRef}
+              className={cn(className)}
+              {...props}
+            />
+          )
+        },
+        Chevron: ({ className, orientation, ...props }) => {
+          if (orientation === "left") {
+            return (
+              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
+            )
+          }
+
+          if (orientation === "right") {
+            return (
+              <ChevronRightIcon className={cn("size-4", className)} {...props} />
+            )
+          }
+
+          return (
+            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+          )
+        },
+        DayButton: ({ ...props }) => (
+          <CalendarDayButton locale={locale} {...props} />
+        ),
+        WeekNumber: ({ children, ...props }) => {
+          return (
+            <td {...props}>
+              <div className="flex size-(--cell-size) items-center justify-center text-center">
+                {children}
+              </div>
+            </td>
+          )
+        },
+        ...components,
+      }}
+      {...props}
+    />
+  )
 }
+
+function CalendarDayButton({
+  className,
+  day,
+  modifiers,
+  locale,
+  ...props
+}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
+  const defaultClassNames = getDefaultClassNames()
+
+  const ref = React.useRef<HTMLButtonElement>(null)
+  React.useEffect(() => {
+    if (modifiers.focused) ref.current?.focus()
+  }, [modifiers.focused])
+
+  return (
+    <Button
+      ref={ref}
+      variant="ghost"
+      size="icon"
+      data-day={day.date.toLocaleDateString(locale?.code)}
+      data-selected-single={
+        modifiers.selected &&
+        !modifiers.range_start &&
+        !modifiers.range_end &&
+        !modifiers.range_middle
+      }
+      data-range-start={modifiers.range_start}
+      data-range-end={modifiers.range_end}
+      data-range-middle={modifiers.range_middle}
+      className={cn(
+        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-foreground [&>span]:text-xs [&>span]:opacity-70",
+        defaultClassNames.day,
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Calendar, CalendarDayButton }
 </file>
 
 </files>

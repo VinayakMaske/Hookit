@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const ADMIN_EMAILS = ['your-email@example.com'] // Same as middleware
+const ADMIN_EMAILS = ['storeapp2026@gmail.com'] // Same as middleware
 
 export async function POST(request: Request) {
     const supabase = await createClient()

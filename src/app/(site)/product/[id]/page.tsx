@@ -1,42 +1,83 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useEffect } from 'react'
 
-export default async function ProductPage({
-    params,
-}: {
-    params: Promise<{ id: string }>
-}) {
-    const { id } = await params
-    const supabase = await createClient()
+export default function ProductPage() {
+    const params = useParams()
+    const id = params.id as string
 
-    const { data: product } = await supabase
-        .from('products')
-        .select('*, stores(*)')
-        .eq('id', id)
-        .eq('is_active', true)
-        .single()
+    const [product, setProduct] = useState<any>(null)
+    const [relatedProducts, setRelatedProducts] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [mainImageIndex, setMainImageIndex] = useState(0)
+
+    useEffect(() => {
+        fetchProduct()
+    }, [id])
+
+    const fetchProduct = async () => {
+        const supabase = createClient()
+        
+        const { data: productData } = await supabase
+            .from('products')
+            .select('*, stores(*)')
+            .eq('id', id)
+            .eq('is_active', true)
+            .single()
+
+        if (!productData) {
+            setLoading(false)
+            return
+        }
+
+        setProduct(productData)
+
+        // Fetch related products
+        const { data: related } = await supabase
+            .from('products')
+            .select('id, name, price, images, category, affiliate_link')
+            .eq('is_active', true)
+            .neq('id', id)
+            .or(`store_id.eq.${productData.store_id},category.eq.${productData.category}`)
+            .limit(4)
+
+        setRelatedProducts(related || [])
+        setLoading(false)
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white pt-20 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-neutral-200 border-t-[#7C3AED] rounded-full animate-spin" />
+            </div>
+        )
+    }
 
     if (!product) {
-        notFound()
+        return (
+            <div className="min-h-screen bg-white pt-20 flex items-center justify-center">
+                <p className="text-neutral-500">Product not found</p>
+            </div>
+        )
     }
 
     const isAffiliate = !!product.affiliate_link
     const hasImages = product.images && product.images.length > 0
+    const allImages = product.images || []
+    const mainImage = allImages[mainImageIndex] || allImages[0]
 
-    // Fetch related products from same store/category
-    const { data: relatedProducts } = await supabase
-        .from('products')
-        .select('id, name, price, images, category, affiliate_link')
-        .eq('is_active', true)
-        .neq('id', product.id)
-        .or(`store_id.eq.${product.store_id},category.eq.${product.category}`)
-        .limit(4)
+    const handleThumbnailClick = (index: number) => {
+        setMainImageIndex(index)
+    }
 
     return (
         <div className="min-h-screen bg-white pt-20">
@@ -53,12 +94,13 @@ export default async function ProductPage({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
                     {/* Images */}
                     <div className="space-y-4">
-                        <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden">
+                        {/* Main Image */}
+                        <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden relative group">
                             {hasImages ? (
                                 <img
-                                    src={product.images[0]}
+                                    src={mainImage}
                                     alt={product.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
@@ -66,16 +108,26 @@ export default async function ProductPage({
                                 </div>
                             )}
                         </div>
-                        {hasImages && product.images.length > 1 && (
+
+                        {/* Thumbnail Grid */}
+                        {allImages.length > 1 && (
                             <div className="grid grid-cols-4 gap-3">
-                                {product.images.slice(1, 5).map((img: string, i: number) => (
-                                    <div key={i} className="aspect-square bg-neutral-100 rounded-lg overflow-hidden">
+                                {allImages.slice(0, 5).map((img: string, i: number) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleThumbnailClick(i)}
+                                        className={`aspect-square bg-neutral-100 rounded-lg overflow-hidden border-2 transition-all ${
+                                            mainImageIndex === i
+                                                ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/20'
+                                                : 'border-transparent hover:border-neutral-300'
+                                        }`}
+                                    >
                                         <img
                                             src={img}
-                                            alt={`${product.name} ${i + 2}`}
+                                            alt={`${product.name} ${i + 1}`}
                                             className="w-full h-full object-cover"
                                         />
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         )}

@@ -1,3 +1,4 @@
+// src/app/api/order/route.ts
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -11,19 +12,31 @@ export async function POST(request: Request) {
             buyerEmail,
             buyerPhone,
             buyerAddress,
+            // New split address fields
+            addressLine1,
+            addressLine2,
+            city,
+            state,
+            pincode,
+            country,
             quantity,
             totalAmount,
+            deliveryFee,
+            platformFee,
+            additionalFee,
+            gstAmount,
+            gstType,
+            gstPercentage,
+            subtotal,
         } = body
 
-        // Validation
-        if (!productId || !storeId || !buyerName || !buyerPhone || !buyerAddress) {
+        if (!productId || !storeId || !buyerName || !buyerPhone || !addressLine1 || !city || !state || !pincode) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
             )
         }
 
-        // Use service role client (bypasses RLS)
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -35,7 +48,6 @@ export async function POST(request: Request) {
             }
         )
 
-        // Verify product exists and is active
         const { data: product } = await supabase
             .from('products')
             .select('id, stock_quantity, is_active')
@@ -50,7 +62,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Check stock
         if (product.stock_quantity !== null && product.stock_quantity < quantity) {
             return NextResponse.json(
                 { error: 'Insufficient stock' },
@@ -58,7 +69,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Create order
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -67,9 +77,23 @@ export async function POST(request: Request) {
                 buyer_name: buyerName,
                 buyer_email: buyerEmail || null,
                 buyer_phone: buyerPhone,
-                buyer_address: buyerAddress,
+                buyer_address: buyerAddress || null,
+                // New split address fields
+                address_line1: addressLine1,
+                address_line2: addressLine2 || null,
+                city: city,
+                state: state,
+                pincode: pincode,
+                country: country || 'India',
                 quantity: quantity,
                 total_amount: totalAmount,
+                delivery_fee: deliveryFee || 0,
+                platform_fee: platformFee || 0,
+                additional_fee: additionalFee || 0,
+                gst_amount: gstAmount || 0,
+                gst_type: gstType || 'none',
+                gst_percentage: gstPercentage || 0,
+                subtotal: subtotal || totalAmount,
                 status: 'pending',
                 payment_status: 'pending',
                 payment_method: 'cod',
@@ -85,7 +109,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Decrease stock
         if (product.stock_quantity !== null) {
             await supabase
                 .from('products')

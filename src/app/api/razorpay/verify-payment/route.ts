@@ -18,7 +18,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // Verify signature
         const secret = process.env.RAZORPAY_KEY_SECRET!
         const generatedSignature = crypto
             .createHmac('sha256', secret)
@@ -34,9 +33,12 @@ export async function POST(request: Request) {
             )
         }
 
-        // Update order in database as paid
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-            auth: { autoRefreshToken: false, persistSession: false }
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+                detectSessionInUrl: false,
+            },
         })
 
         const { error: updateError } = await supabase

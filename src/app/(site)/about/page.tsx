@@ -29,7 +29,7 @@ export default function AboutPage() {
             {/* Hero */}
             <div className="bg-neutral-900 text-white py-20">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-4xl sm:text-5xl font-bold mb-6">About CreatorMarket</h1>
+                    <h1 className="text-4xl sm:text-5xl font-bold mb-6">About Hookit</h1>
                     <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
                         We're building the most creator-friendly marketplace on the internet. 
                         No middlemen, no hidden fees, just pure connection between creators and buyers.

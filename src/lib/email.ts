@@ -23,14 +23,14 @@ export async function sendOrderNotification(
     }
 ) {
     const mailOptions = {
-        from: `"CreatorMarket" <${process.env.EMAIL_FROM}>`,
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
         to: to,
         subject: `🛒 New Order #${orderDetails.orderId.slice(0, 8).toUpperCase()} - ${orderDetails.productName}`,
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: #1a1a1a; color: white; padding: 30px; border-radius: 12px 12px 0 0;">
                     <h1 style="margin: 0; font-size: 24px;">🛒 New Order Received!</h1>
-                    <p style="margin: 10px 0 0 0; opacity: 0.8;">From CreatorMarket Platform</p>
+                    <p style="margin: 10px 0 0 0; opacity: 0.8;">From Hookit</p>
                 </div>
                 
                 <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
@@ -61,7 +61,7 @@ export async function sendOrderNotification(
                     </div>
                     
                     <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
-                        This is an automated notification from CreatorMarket.<br>
+                        This is an automated notification from Hookit.<br>
                         You can manage your orders at https://yourdomain.com/seller/orders
                     </p>
                 </div>
@@ -85,14 +85,14 @@ export async function sendBuyerConfirmation(
     }
 ) {
     const mailOptions = {
-        from: `"CreatorMarket" <${process.env.EMAIL_FROM}>`,
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
         to: to,
         subject: `✅ Order Confirmed #${orderDetails.orderId.slice(0, 8).toUpperCase()} - ${orderDetails.productName}`,
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: #1a1a1a; color: white; padding: 30px; border-radius: 12px 12px 0 0;">
                     <h1 style="margin: 0; font-size: 24px;">✅ Order Confirmed!</h1>
-                    <p style="margin: 10px 0 0 0; opacity: 0.8;">Thank you for shopping with CreatorMarket</p>
+                    <p style="margin: 10px 0 0 0; opacity: 0.8;">Thank you for shopping with Hookit</p>
                 </div>
                 
                 <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">

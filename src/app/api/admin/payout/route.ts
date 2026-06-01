@@ -1,42 +1,67 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const ADMIN_EMAILS = ['storeapp2026@gmail.com'] // Same as middleware
-
 export async function POST(request: Request) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user || !ADMIN_EMAILS.includes(user.email || '')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    if (!user) {
+        return NextResponse.redirect(new URL('/login', request.url))
     }
 
     const formData = await request.formData()
     const orderId = formData.get('orderId') as string
     const sellerId = formData.get('sellerId') as string
-    const amount = parseFloat(formData.get('amount') as string)
+    const storeId = formData.get('storeId') as string
+    const amount = formData.get('amount') as string
     const utrNumber = formData.get('utrNumber') as string
 
-    if (!orderId || !sellerId || !amount || !utrNumber) {
-        return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    if (!orderId || !sellerId || !storeId || !amount || !utrNumber) {
+        return NextResponse.redirect(new URL('/admin/payouts?error=missing_fields', request.url))
+    }
+
+    // Verify the order exists and is completed
+    const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, status, payment_status')
+        .eq('id', orderId)
+        .single()
+
+    if (orderError || !order) {
+        return NextResponse.redirect(new URL('/admin/payouts?error=order_not_found', request.url))
+    }
+
+    if (order.status !== 'completed' || order.payment_status !== 'paid') {
+        return NextResponse.redirect(new URL('/admin/payouts?error=order_not_eligible', request.url))
+    }
+
+    // Check if payout already exists
+    const { data: existingPayout } = await supabase
+        .from('payouts')
+        .select('id')
+        .eq('order_id', orderId)
+        .single()
+
+    if (existingPayout) {
+        return NextResponse.redirect(new URL('/admin/payouts?error=already_paid', request.url))
     }
 
     // Create payout record
-    const { error } = await supabase
+    const { error: insertError } = await supabase
         .from('payouts')
         .insert({
-            seller_id: sellerId,
             order_id: orderId,
-            amount: amount,
+            seller_id: sellerId,
+            store_id: storeId,
+            amount: parseFloat(amount),
             status: 'completed',
             utr_number: utrNumber,
-            paid_at: new Date().toISOString(),
         })
 
-    if (error) {
-        console.error('Payout error:', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+    if (insertError) {
+        console.error('Payout creation error:', insertError)
+        return NextResponse.redirect(new URL('/admin/payouts?error=' + encodeURIComponent(insertError.message), request.url))
     }
 
-    return NextResponse.redirect(new URL('/admin/payouts', request.url))
+    return NextResponse.redirect(new URL('/admin/payouts?success=payout_processed', request.url))
 }

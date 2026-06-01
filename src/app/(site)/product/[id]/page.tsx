@@ -1,3 +1,4 @@
+// src/app/(site)/product/[id]/page.tsx - FULL UPDATED VERSION
 'use client'
 
 import { useState } from 'react'
@@ -7,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock } from 'lucide-react'
+import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock, Lock, BadgeCheck, Star, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
+import OrderProtectionBadge from '@/components/order-protection-badge'
 
 export default function ProductPage() {
     const params = useParams()
@@ -19,6 +21,7 @@ export default function ProductPage() {
     const [relatedProducts, setRelatedProducts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [mainImageIndex, setMainImageIndex] = useState(0)
+    const [reviews, setReviews] = useState<any[]>([])
 
     useEffect(() => {
         fetchProduct()
@@ -40,6 +43,17 @@ export default function ProductPage() {
         }
 
         setProduct(productData)
+
+        // Fetch reviews
+        const { data: reviewsData } = await supabase
+            .from('reviews')
+            .select('*')
+            .eq('product_id', id)
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false })
+            .limit(5)
+
+        setReviews(reviewsData || [])
 
         // Fetch related products
         const { data: related } = await supabase
@@ -79,6 +93,10 @@ export default function ProductPage() {
         setMainImageIndex(index)
     }
 
+    const averageRating = reviews.length > 0 
+        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+        : '0'
+
     return (
         <div className="min-h-screen bg-white pt-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -94,7 +112,6 @@ export default function ProductPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
                     {/* Images */}
                     <div className="space-y-4">
-                        {/* Main Image */}
                         <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden relative group">
                             {hasImages ? (
                                 <img
@@ -109,7 +126,6 @@ export default function ProductPage() {
                             )}
                         </div>
 
-                        {/* Thumbnail Grid */}
                         {allImages.length > 1 && (
                             <div className="grid grid-cols-4 gap-3">
                                 {allImages.slice(0, 5).map((img: string, i: number) => (
@@ -165,6 +181,22 @@ export default function ProductPage() {
                             )}
                         </div>
 
+                        {/* Rating */}
+                        {reviews.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star 
+                                            key={star} 
+                                            className={`w-4 h-4 ${star <= Math.round(parseFloat(averageRating)) ? 'text-amber-400 fill-amber-400' : 'text-neutral-300'}`}
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-sm font-medium text-neutral-900">{averageRating}</span>
+                                <span className="text-sm text-neutral-500">({reviews.length} reviews)</span>
+                            </div>
+                        )}
+
                         {/* Price */}
                         <div className="flex items-baseline gap-3">
                             <span className="text-4xl font-bold text-neutral-900">₹{product.price}</span>
@@ -180,6 +212,19 @@ export default function ProductPage() {
                             )}
                         </div>
 
+                        {/* Order Protection Badge */}
+                        <div className="flex items-center gap-3 py-2">
+                            <OrderProtectionBadge size="md" variant="green" />
+                            <div className="flex items-center gap-1 text-sm text-neutral-500">
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Secure payment</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-neutral-500">
+                                <BadgeCheck className="w-3.5 h-3.5" />
+                                <span>Verified seller</span>
+                            </div>
+                        </div>
+
                         {/* Description */}
                         {product.description && (
                             <p className="text-neutral-600 leading-relaxed text-lg">
@@ -192,11 +237,11 @@ export default function ProductPage() {
                         {/* Trust Badges */}
                         <div className="grid grid-cols-3 gap-4">
                             <div className="text-center p-3 bg-neutral-50 rounded-lg">
-                                <Truck className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
-                                <p className="text-xs font-medium text-neutral-700">Fast Delivery</p>
+                                <Shield className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
+                                <p className="text-xs font-medium text-neutral-700">Verified Seller</p>
                             </div>
                             <div className="text-center p-3 bg-neutral-50 rounded-lg">
-                                <Shield className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
+                                <Lock className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
                                 <p className="text-xs font-medium text-neutral-700">Secure Payment</p>
                             </div>
                             <div className="text-center p-3 bg-neutral-50 rounded-lg">
@@ -204,6 +249,38 @@ export default function ProductPage() {
                                 <p className="text-xs font-medium text-neutral-700">24/7 Support</p>
                             </div>
                         </div>
+
+                        {/* Buyer Protection Card */}
+                        <Card className="border-0 shadow-sm bg-green-50/50 border border-green-100">
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <Shield className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium text-green-800 text-sm">Buyer Protection</p>
+                                        <p className="text-xs text-green-600 mt-1">
+                                            Your payment is held securely until you receive your order. 
+                                            If the product is not as described, you can request a full refund within 7 days.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Anti-Leakage Warning */}
+                        <Card className="border-0 shadow-sm bg-amber-50/50 border border-amber-100">
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium text-amber-800 text-sm">Stay Protected</p>
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Always complete your purchase on Hookit. Never pay the seller directly outside the platform. 
+                                            Off-platform transactions are not covered by our Buyer Protection.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* Action Buttons */}
                         <div className="space-y-3 pt-4">
@@ -223,7 +300,7 @@ export default function ProductPage() {
                                 <Link href={`/checkout?product=${product.id}`} className="block">
                                     <Button size="lg" className="w-full h-14 text-lg gap-2 bg-neutral-900 hover:bg-neutral-800">
                                         <ShoppingBag className="w-5 h-5" />
-                                        Buy Now — No Login Required
+                                        Buy Now — Protected Checkout
                                     </Button>
                                 </Link>
                             )}
@@ -267,9 +344,54 @@ export default function ProductPage() {
                     </div>
                 </div>
 
+                {/* Reviews Section */}
+                {reviews.length > 0 && (
+                    <div className="mt-16">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-6">
+                            Buyer Reviews ({reviews.length})
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {reviews.map((review) => (
+                                <Card key={review.id} className="border-0 shadow-sm">
+                                    <CardContent className="p-5">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
+                                                <span className="text-sm font-bold text-neutral-600">
+                                                    {review.buyer_name?.charAt(0) || 'A'}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-neutral-900">{review.buyer_name || 'Anonymous'}</p>
+                                                <p className="text-xs text-neutral-500">
+                                                    {new Date(review.created_at).toLocaleDateString('en-IN')}
+                                                </p>
+                                            </div>
+                                            <div className="ml-auto flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Star 
+                                                        key={star} 
+                                                        className={`w-3.5 h-3.5 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-neutral-300'}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-neutral-600">{review.comment}</p>
+                                        {review.verified_purchase && (
+                                            <Badge variant="secondary" className="mt-3 text-xs bg-green-50 text-green-700 border-0">
+                                                <BadgeCheck className="w-3 h-3 mr-1" />
+                                                Verified Purchase
+                                            </Badge>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Related Products */}
                 {relatedProducts && relatedProducts.length > 0 && (
-                    <div className="mt-20">
+                    <div className="mt-16">
                         <h2 className="text-2xl font-bold text-neutral-900 mb-8">More from this Creator</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {relatedProducts.map((item) => (

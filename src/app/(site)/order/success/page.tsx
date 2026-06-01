@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle, Package, Phone, Clock, ArrowRight, Home, Loader2, XCircle, Star, Shield } from 'lucide-react'
+import GuestReviewForm from '@/components/guest-review-form'
 
 function OrderSuccessContent() {
     const searchParams = useSearchParams()
@@ -140,8 +141,25 @@ function OrderSuccessContent() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Order Protection Badge */}
+                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                            <Shield className="w-5 h-5 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">Protected by Hookit Buyer Protection</span>
+                        </div>
                     </CardContent>
                 </Card>
+
+                {/* Guest Review Form */}
+                {order.products?.id && (
+                    <div className="mb-6">
+                        <GuestReviewForm 
+                            productId={order.products.id}
+                            orderId={order.id}
+                            buyerName={order.buyer_name}
+                        />
+                    </div>
+                )}
 
                 {order.products?.stores?.whatsapp_number && (
                     <a href={`https://wa.me/${order.products.stores.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="block mb-4">

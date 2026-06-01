@@ -1,20 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, ShoppingCart, Users, Store } from 'lucide-react'
+import { DollarSign, ShoppingCart, Store } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default async function AdminDashboardPage() {
     const supabase = await createClient()
 
-    // Fetch all stats
-    const { data: sellers } = await supabase.from('stores').select('id')
-    const { data: allOrders } = await supabase.from('orders').select('*')
-    const { data: products } = await supabase.from('products').select('id')
-    const { data: payouts } = await supabase.from('payouts').select('*')
+    // Simple queries - no joins
+    const { data: sellers, error: sellersError } = await supabase
+        .from('stores')
+        .select('id')
+    
+    const { data: allOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, total_amount, status, payment_status')
+    
+    const { data: payouts, error: payoutsError } = await supabase
+        .from('payouts')
+        .select('id, amount, status')
 
-    const totalRevenue = allOrders?.reduce((sum, o) => sum + Number(o.total_amount), 0) || 0
+    const totalRevenue = allOrders?.reduce((sum, o) => sum + Number(o.total_amount || 0), 0) || 0
     const completedOrders = allOrders?.filter(o => o.status === 'completed').length || 0
     const pendingOrders = allOrders?.filter(o => o.status === 'pending').length || 0
-    const totalPaidOut = payouts?.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0) || 0
+    const paidOrders = allOrders?.filter(o => o.payment_status === 'paid').length || 0
+    const totalPaidOut = payouts?.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0
 
     const stats = [
         { title: 'Total Sellers', value: sellers?.length || 0, icon: Store, color: 'bg-blue-500/20 text-blue-400' },
@@ -29,6 +38,14 @@ export default async function AdminDashboardPage() {
                 <h1 className="text-3xl font-bold text-white">Platform Overview</h1>
                 <p className="text-neutral-400 mt-1">Manage all sellers, orders, and payouts</p>
             </div>
+
+            {(sellersError || ordersError || payoutsError) && (
+                <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 text-red-300 text-sm">
+                    {sellersError && <p>Sellers: {sellersError.message}</p>}
+                    {ordersError && <p>Orders: {ordersError.message}</p>}
+                    {payoutsError && <p>Payouts: {payoutsError.message}</p>}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat) => (
@@ -54,18 +71,20 @@ export default async function AdminDashboardPage() {
                     <CardContent>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
+                                <span className="text-neutral-400">Total Orders</span>
+                                <span className="text-white font-bold">{allOrders?.length || 0}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
                                 <span className="text-neutral-400">Pending</span>
                                 <span className="text-amber-400 font-bold">{pendingOrders}</span>
-                            </div>
-                            <div className="w-full bg-neutral-800 rounded-full h-2">
-                                <div className="bg-amber-400 h-2 rounded-full" style={{ width: `${(pendingOrders / (allOrders?.length || 1)) * 100}%` }} />
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-neutral-400">Completed</span>
                                 <span className="text-green-400 font-bold">{completedOrders}</span>
                             </div>
-                            <div className="w-full bg-neutral-800 rounded-full h-2">
-                                <div className="bg-green-400 h-2 rounded-full" style={{ width: `${(completedOrders / (allOrders?.length || 1)) * 100}%` }} />
+                            <div className="flex justify-between items-center">
+                                <span className="text-neutral-400">Payment Received</span>
+                                <span className="text-emerald-400 font-bold">{paidOrders}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -82,15 +101,13 @@ export default async function AdminDashboardPage() {
                         </a>
                         <a href="/admin/payouts" className="block p-4 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors">
                             <p className="font-medium text-white">Process Payouts</p>
-                            <p className="text-sm text-neutral-400">{payouts?.filter(p => p.status === 'pending').length || 0} pending payouts</p>
+                            <p className="text-sm text-neutral-400">
+                                {allOrders?.filter(o => o.status === 'completed' && o.payment_status === 'paid').length || 0} completed & paid orders
+                            </p>
                         </a>
                     </CardContent>
                 </Card>
             </div>
         </div>
     )
-}
-
-function cn(...classes: (string | undefined | false)[]) {
-    return classes.filter(Boolean).join(' ')
 }

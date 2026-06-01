@@ -1,3 +1,4 @@
+// src/app/seller/settings/page.tsx - UPDATED WITH POLICY FIELDS
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -20,7 +21,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Loader2, Save, Trash2, Store, AlertTriangle } from 'lucide-react'
+import { Loader2, Save, Trash2, Store, AlertTriangle, Truck, RotateCcw, Shield, Globe } from 'lucide-react'
 
 export default function SettingsPage() {
     const router = useRouter()
@@ -39,7 +40,17 @@ export default function SettingsPage() {
         whatsappNumber: '',
         logoUrl: '',
         bannerUrl: '',
-        isActive: true
+        isActive: true,
+        // Policies
+        returnPolicy: '',
+        returnWindowDays: '7',
+        acceptsReturns: true,
+        shippingPolicy: '',
+        processingTimeDays: '3',
+        deliveryTimeDaysMin: '5',
+        deliveryTimeDaysMax: '10',
+        freeShippingAbove: '',
+        shippingFee: '0',
     })
 
     useEffect(() => {
@@ -70,7 +81,17 @@ export default function SettingsPage() {
                 whatsappNumber: data.whatsapp_number || '',
                 logoUrl: data.logo_url || '',
                 bannerUrl: data.banner_url || '',
-                isActive: data.is_active
+                isActive: data.is_active,
+                // Policies
+                returnPolicy: data.return_policy || '',
+                returnWindowDays: data.return_window_days?.toString() || '7',
+                acceptsReturns: data.accepts_returns ?? true,
+                shippingPolicy: data.shipping_policy || '',
+                processingTimeDays: data.processing_time_days?.toString() || '3',
+                deliveryTimeDaysMin: data.delivery_time_days_min?.toString() || '5',
+                deliveryTimeDaysMax: data.delivery_time_days_max?.toString() || '10',
+                freeShippingAbove: data.free_shipping_above?.toString() || '',
+                shippingFee: data.shipping_fee?.toString() || '0',
             })
         }
 
@@ -97,7 +118,17 @@ export default function SettingsPage() {
                 whatsapp_number: formData.whatsappNumber,
                 logo_url: formData.logoUrl,
                 banner_url: formData.bannerUrl,
-                is_active: formData.isActive
+                is_active: formData.isActive,
+                // Policies
+                return_policy: formData.returnPolicy,
+                return_window_days: parseInt(formData.returnWindowDays) || 7,
+                accepts_returns: formData.acceptsReturns,
+                shipping_policy: formData.shippingPolicy,
+                processing_time_days: parseInt(formData.processingTimeDays) || 3,
+                delivery_time_days_min: parseInt(formData.deliveryTimeDaysMin) || 5,
+                delivery_time_days_max: parseInt(formData.deliveryTimeDaysMax) || 10,
+                free_shipping_above: formData.freeShippingAbove ? parseFloat(formData.freeShippingAbove) : null,
+                shipping_fee: parseFloat(formData.shippingFee) || 0,
             })
             .eq('id', storeId)
 
@@ -117,10 +148,7 @@ export default function SettingsPage() {
 
         if (!user) return
 
-        // Delete store (cascades to products and orders via foreign keys)
         await supabase.from('stores').delete().eq('id', storeId)
-
-        // Sign out user
         await supabase.auth.signOut()
 
         router.push('/')
@@ -139,7 +167,7 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Store Settings</h1>
-                <p className="text-neutral-500 mt-1">Update your store details or delete your account</p>
+                <p className="text-neutral-500 mt-1">Update your store details, policies, and preferences</p>
             </div>
 
             <Card className="border-0 shadow-sm">
@@ -169,7 +197,7 @@ export default function SettingsPage() {
                                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                                 required
                             />
-                            <p className="text-xs text-neutral-500">URL: yoursite.com/store/{formData.slug}</p>
+                            <p className="text-xs text-neutral-500">URL: hookit.online/store/{formData.slug}</p>
                         </div>
 
                         <div className="space-y-2">
@@ -213,7 +241,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                            <Label htmlFor="whatsappNumber">WhatsApp Number (for order notifications)</Label>
                             <Input
                                 id="whatsappNumber"
                                 type="tel"
@@ -253,6 +281,147 @@ export default function SettingsPage() {
                             />
                         </div>
 
+                        {/* ===== RETURN & REFUND POLICY ===== */}
+                        <div className="border-t border-neutral-200 pt-6">
+                            <CardHeader className="px-0 pb-4">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <RotateCcw className="w-5 h-5 text-[#7C3AED]" />
+                                    Return & Refund Policy
+                                </CardTitle>
+                            </CardHeader>
+                            
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
+                                    <div>
+                                        <Label className="font-medium">Accept Returns</Label>
+                                        <p className="text-sm text-neutral-500">Allow buyers to return products</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.acceptsReturns}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, acceptsReturns: checked })}
+                                    />
+                                </div>
+
+                                {formData.acceptsReturns && (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="returnWindowDays">Return Window (Days)</Label>
+                                                <Input
+                                                    id="returnWindowDays"
+                                                    type="number"
+                                                    min="1"
+                                                    max="30"
+                                                    value={formData.returnWindowDays}
+                                                    onChange={(e) => setFormData({ ...formData, returnWindowDays: e.target.value })}
+                                                />
+                                                <p className="text-xs text-neutral-500">Days after delivery buyer can request return</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="returnPolicy">Return Policy Details</Label>
+                                            <Textarea
+                                                id="returnPolicy"
+                                                placeholder="e.g., We accept returns within 7 days for unused items in original packaging. Refunds processed within 5 business days."
+                                                value={formData.returnPolicy}
+                                                onChange={(e) => setFormData({ ...formData, returnPolicy: e.target.value })}
+                                                rows={4}
+                                            />
+                                            <p className="text-xs text-neutral-500">This will be displayed on your store page and product pages</p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ===== SHIPPING & DELIVERY POLICY ===== */}
+                        <div className="border-t border-neutral-200 pt-6">
+                            <CardHeader className="px-0 pb-4">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Truck className="w-5 h-5 text-[#7C3AED]" />
+                                    Shipping & Delivery Policy
+                                </CardTitle>
+                            </CardHeader>
+                            
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="processingTimeDays">Processing Time (Days)</Label>
+                                        <Input
+                                            id="processingTimeDays"
+                                            type="number"
+                                            min="1"
+                                            max="14"
+                                            value={formData.processingTimeDays}
+                                            onChange={(e) => setFormData({ ...formData, processingTimeDays: e.target.value })}
+                                        />
+                                        <p className="text-xs text-neutral-500">Days to ship after order</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="deliveryTimeDaysMin">Delivery Min (Days)</Label>
+                                        <Input
+                                            id="deliveryTimeDaysMin"
+                                            type="number"
+                                            min="1"
+                                            value={formData.deliveryTimeDaysMin}
+                                            onChange={(e) => setFormData({ ...formData, deliveryTimeDaysMin: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="deliveryTimeDaysMax">Delivery Max (Days)</Label>
+                                        <Input
+                                            id="deliveryTimeDaysMax"
+                                            type="number"
+                                            min="1"
+                                            value={formData.deliveryTimeDaysMax}
+                                            onChange={(e) => setFormData({ ...formData, deliveryTimeDaysMax: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="shippingFee">Standard Shipping Fee (₹)</Label>
+                                        <Input
+                                            id="shippingFee"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={formData.shippingFee}
+                                            onChange={(e) => setFormData({ ...formData, shippingFee: e.target.value })}
+                                        />
+                                        <p className="text-xs text-neutral-500">0 for free shipping</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="freeShippingAbove">Free Shipping Above (₹)</Label>
+                                        <Input
+                                            id="freeShippingAbove"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="e.g., 500"
+                                            value={formData.freeShippingAbove}
+                                            onChange={(e) => setFormData({ ...formData, freeShippingAbove: e.target.value })}
+                                        />
+                                        <p className="text-xs text-neutral-500">Leave empty if no free shipping threshold</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="shippingPolicy">Shipping Policy Details</Label>
+                                    <Textarea
+                                        id="shippingPolicy"
+                                        placeholder="e.g., We ship via Delhivery and Blue Dart. All orders are carefully packed and dispatched within 2-3 business days. Tracking details are shared via WhatsApp."
+                                        value={formData.shippingPolicy}
+                                        onChange={(e) => setFormData({ ...formData, shippingPolicy: e.target.value })}
+                                        rows={4}
+                                    />
+                                    <p className="text-xs text-neutral-500">Displayed on your store page</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {error && (
                             <p className="text-sm text-red-500 bg-red-50 p-3 rounded">{error}</p>
                         )}
@@ -272,7 +441,7 @@ export default function SettingsPage() {
                             ) : (
                                 <>
                                     <Save className="w-4 h-4" />
-                                    Save Changes
+                                    Save All Changes
                                 </>
                             )}
                         </Button>

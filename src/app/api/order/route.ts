@@ -12,7 +12,6 @@ export async function POST(request: Request) {
             buyerEmail,
             buyerPhone,
             buyerAddress,
-            // New split address fields
             addressLine1,
             addressLine2,
             city,
@@ -48,17 +47,33 @@ export async function POST(request: Request) {
             }
         )
 
-        const { data: product } = await supabase
+        // FIX: Better error handling - separate "not found" from "inactive"
+        const { data: product, error: productError } = await supabase
             .from('products')
-            .select('id, stock_quantity, is_active')
+            .select('id, stock_quantity, is_active, store_id')
             .eq('id', productId)
-            .eq('is_active', true)
             .single()
 
-        if (!product) {
+        if (productError || !product) {
+            console.error('Product fetch error:', productError)
             return NextResponse.json(
-                { error: 'Product not found or inactive' },
+                { error: 'Product not found in database' },
                 { status: 404 }
+            )
+        }
+
+        if (!product.is_active) {
+            return NextResponse.json(
+                { error: 'Product is currently inactive' },
+                { status: 400 }
+            )
+        }
+
+        // FIX: Verify store_id matches
+        if (product.store_id !== storeId) {
+            return NextResponse.json(
+                { error: 'Store mismatch' },
+                { status: 400 }
             )
         }
 
@@ -78,7 +93,6 @@ export async function POST(request: Request) {
                 buyer_email: buyerEmail || null,
                 buyer_phone: buyerPhone,
                 buyer_address: buyerAddress || null,
-                // New split address fields
                 address_line1: addressLine1,
                 address_line2: addressLine2 || null,
                 city: city,
@@ -96,7 +110,7 @@ export async function POST(request: Request) {
                 subtotal: subtotal || totalAmount,
                 status: 'pending',
                 payment_status: 'pending',
-                payment_method: 'cod',
+                payment_method: 'razorpay', // <-- FIXED: was 'cod'
             })
             .select()
             .single()
@@ -104,7 +118,7 @@ export async function POST(request: Request) {
         if (orderError) {
             console.error('Order creation error:', orderError)
             return NextResponse.json(
-                { error: 'Failed to create order' },
+                { error: 'Failed to create order: ' + orderError.message },
                 { status: 500 }
             )
         }
@@ -121,10 +135,10 @@ export async function POST(request: Request) {
             orderId: order.id,
         })
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('API error:', error)
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal server error: ' + error.message },
             { status: 500 }
         )
     }

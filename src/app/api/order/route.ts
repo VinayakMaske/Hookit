@@ -5,31 +5,27 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
     try {
         const body = await request.json()
+        console.log('=== ORDER API CALLED ===')
+        console.log('Request body:', JSON.stringify(body, null, 2))
+
         const {
             productId,
             storeId,
             buyerName,
-            buyerEmail,
             buyerPhone,
-            buyerAddress,
             addressLine1,
-            addressLine2,
             city,
             state,
             pincode,
-            country,
             quantity,
             totalAmount,
-            deliveryFee,
-            platformFee,
-            additionalFee,
-            gstAmount,
-            gstType,
-            gstPercentage,
-            subtotal,
         } = body
 
+        console.log('productId:', productId)
+        console.log('storeId:', storeId)
+
         if (!productId || !storeId || !buyerName || !buyerPhone || !addressLine1 || !city || !state || !pincode) {
+            console.log('Missing fields:', { productId, storeId, buyerName, buyerPhone, addressLine1, city, state, pincode })
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
@@ -47,70 +43,68 @@ export async function POST(request: Request) {
             }
         )
 
-        // FIX: Better error handling - separate "not found" from "inactive"
+        // Try fetching without is_active filter first to debug
+        console.log('Fetching product with ID:', productId)
+        
         const { data: product, error: productError } = await supabase
             .from('products')
-            .select('id, stock_quantity, is_active, store_id')
+            .select('id, stock_quantity, is_active, store_id, name')
             .eq('id', productId)
             .single()
 
-        if (productError || !product) {
+        console.log('Product result:', product)
+        console.log('Product error:', productError)
+
+        if (productError) {
             console.error('Product fetch error:', productError)
             return NextResponse.json(
-                { error: 'Product not found in database' },
+                { error: 'Database error: ' + productError.message },
+                { status: 500 }
+            )
+        }
+
+        if (!product) {
+            return NextResponse.json(
+                { error: 'Product not found. ID: ' + productId },
                 { status: 404 }
             )
         }
 
         if (!product.is_active) {
             return NextResponse.json(
-                { error: 'Product is currently inactive' },
+                { error: 'Product is inactive' },
                 { status: 400 }
             )
         }
 
-        // FIX: Verify store_id matches
-        if (product.store_id !== storeId) {
-            return NextResponse.json(
-                { error: 'Store mismatch' },
-                { status: 400 }
-            )
-        }
-
-        if (product.stock_quantity !== null && product.stock_quantity < quantity) {
-            return NextResponse.json(
-                { error: 'Insufficient stock' },
-                { status: 400 }
-            )
-        }
-
+        // Rest of your code...
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
                 product_id: productId,
                 store_id: storeId,
                 buyer_name: buyerName,
-                buyer_email: buyerEmail || null,
+                buyer_email: body.buyerEmail || null,
                 buyer_phone: buyerPhone,
-                buyer_address: buyerAddress || null,
+                buyer_address: body.buyerAddress || null,
                 address_line1: addressLine1,
-                address_line2: addressLine2 || null,
+                address_line2: body.addressLine2 || null,
                 city: city,
                 state: state,
                 pincode: pincode,
-                country: country || 'India',
+                country: body.country || 'India',
                 quantity: quantity,
                 total_amount: totalAmount,
-                delivery_fee: deliveryFee || 0,
-                platform_fee: platformFee || 0,
-                additional_fee: additionalFee || 0,
-                gst_amount: gstAmount || 0,
-                gst_type: gstType || 'none',
-                gst_percentage: gstPercentage || 0,
-                subtotal: subtotal || totalAmount,
+                delivery_fee: body.deliveryFee || 0,
+                platform_fee: body.platformFee || 0,
+                additional_fee: body.additionalFee || 0,
+                gst_amount: body.gstAmount || 0,
+                gst_type: body.gstType || 'none',
+                gst_percentage: body.gstPercentage || 0,
+                subtotal: body.subtotal || totalAmount,
                 status: 'pending',
                 payment_status: 'pending',
-                payment_method: 'razorpay', // <-- FIXED: was 'cod'
+                payment_method: 'razorpay',
             })
             .select()
             .single()

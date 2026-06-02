@@ -21,7 +21,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Loader2, Save, Trash2, Store, AlertTriangle, Truck, RotateCcw, Upload, X, ImageIcon } from 'lucide-react'
+import { Loader2, Save, Trash2, Store, AlertTriangle, Truck, RotateCcw, Upload, X, ImageIcon, Clock, Mail, CheckCircle } from 'lucide-react'
 
 export default function SettingsPage() {
     const router = useRouter()
@@ -30,6 +30,8 @@ export default function SettingsPage() {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
     const [storeId, setStoreId] = useState('')
+    const [deleting, setDeleting] = useState(false)
+    const [deleteRequested, setDeleteRequested] = useState(false)
 
     // Image upload states
     const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -65,6 +67,13 @@ export default function SettingsPage() {
     useEffect(() => {
         fetchStore()
     }, [])
+
+    // Check if store is already pending deletion
+    useEffect(() => {
+        if (storeId && formData.isActive === false) {
+            setDeleteRequested(true)
+        }
+    }, [storeId, formData.isActive])
 
     const fetchStore = async () => {
         const supabase = createClient()
@@ -236,16 +245,61 @@ export default function SettingsPage() {
     }
 
     const handleDelete = async () => {
+        setDeleting(true)
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) return
+        if (!user) {
+            setDeleting(false)
+            return
+        }
 
-        await supabase.from('stores').delete().eq('id', storeId)
-        await supabase.auth.signOut()
+        try {
+            // 1. Deactivate store (don't delete yet)
+            const { error: updateError } = await supabase
+                .from('stores')
+                .update({ 
+                    is_active: false,
+                    deletion_requested_at: new Date().toISOString()
+                })
+                .eq('id', storeId)
 
-        router.push('/')
-        router.refresh()
+            if (updateError) {
+                setError(updateError.message)
+                setDeleting(false)
+                return
+            }
+
+            // 2. Deactivate all products
+            await supabase
+                .from('products')
+                .update({ is_active: false })
+                .eq('store_id', storeId)
+
+            // 3. Send admin notification email
+            await fetch('/api/admin/delete-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storeId: storeId,
+                    storeName: formData.name,
+                    storeSlug: formData.slug,
+                    sellerEmail: user.email,
+                    sellerName: formData.name,
+                    sellerPhone: formData.contactPhone,
+                    sellerId: user.id,
+                    requestedAt: new Date().toISOString(),
+                })
+            })
+
+            setDeleteRequested(true)
+            setSuccess(true)
+
+        } catch (err: any) {
+            setError('Failed to process deletion request: ' + err.message)
+        }
+
+        setDeleting(false)
     }
 
     if (loading) {
@@ -639,46 +693,82 @@ export default function SettingsPage() {
             </Card>
 
             {/* Danger Zone */}
-            <Card className="border-red-200 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle className="w-5 h-5" />
-                        Danger Zone
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-neutral-600 mb-4">
-                        Deleting your store will permanently remove all products, orders, and data. This action cannot be undone.
-                    </p>
+            {deleteRequested ? (
+                <Card className="border-amber-200 shadow-sm bg-amber-50">
+                    <CardContent className="p-6 text-center">
+                        <Clock className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-amber-800 mb-2">
+                            Store Deactivation Pending
+                        </h3>
+                        <p className="text-amber-700 mb-4 max-w-md mx-auto">
+                            Your store has been deactivated and is scheduled for permanent deletion within <strong>48 hours</strong>.
+                        </p>
+                        <div className="bg-white rounded-lg p-4 mb-4 text-left max-w-md mx-auto">
+                            <p className="text-sm text-neutral-600 mb-2">
+                                <Mail className="w-4 h-4 inline mr-2" />
+                                We've notified our team. You'll receive an email confirmation shortly.
+                            </p>
+                            <p className="text-sm text-neutral-600">
+                                <CheckCircle className="w-4 h-4 inline mr-2" />
+                                Your store and products are no longer visible to buyers.
+                            </p>
+                        </div>
+                        <p className="text-xs text-amber-600">
+                            Changed your mind? Contact support at support@hookit.online
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="border-red-200 shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="w-5 h-5" />
+                            Danger Zone
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-neutral-600 mb-4">
+                            Deactivating your store will hide all products from buyers. Our team will review and permanently delete your data within 48 hours.
+                        </p>
 
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="gap-2">
-                                <Trash2 className="w-4 h-4" />
-                                Delete Store
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete your store, all products, orders, and payout history.
-                                    You will be logged out and all data will be lost forever.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleDelete}
-                                    className="bg-red-600 hover:bg-red-700"
-                                >
-                                    Yes, Delete Everything
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="gap-2" disabled={deleting}>
+                                    <Trash2 className="w-4 h-4" />
+                                    {deleting ? 'Processing...' : 'Delete Store'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will deactivate your store immediately. All products will be hidden from buyers. 
+                                        Your store data will be permanently deleted by our team within 48 hours after review.
+                                        This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleDelete}
+                                        className="bg-red-600 hover:bg-red-700"
+                                        disabled={deleting}
+                                    >
+                                        {deleting ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            'Yes, Deactivate & Delete'
+                                        )}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }

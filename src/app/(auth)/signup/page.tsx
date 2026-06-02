@@ -8,11 +8,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronRight, ChevronLeft, Shield } from 'lucide-react'
 import Link from 'next/link'
+
+const SECURITY_QUESTIONS = [
+    'What is your mother\'s maiden name?',
+    'What was the name of your first pet?',
+    'What city were you born in?',
+    'What is your favorite childhood teacher\'s name?',
+    'What was your childhood nickname?',
+    'What is the name of your favorite book?',
+]
 
 export default function SignupPage() {
     const router = useRouter()
+    const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [formData, setFormData] = useState({
@@ -20,7 +30,9 @@ export default function SignupPage() {
         email: '',
         phone: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        securityQuestion: '',
+        securityAnswer: '',
     })
 
     const handleSignup = async (e: React.FormEvent) => {
@@ -37,6 +49,11 @@ export default function SignupPage() {
             return
         }
 
+        if (!formData.securityQuestion || !formData.securityAnswer.trim()) {
+            setError('Please set up a security question for password recovery')
+            return
+        }
+
         setLoading(true)
 
         const supabase = createClient()
@@ -48,6 +65,8 @@ export default function SignupPage() {
                 data: {
                     full_name: formData.fullName,
                     phone: formData.phone,
+                    security_question: formData.securityQuestion,
+                    security_answer: formData.securityAnswer.trim(),
                 },
                 emailRedirectTo: undefined,
             },
@@ -76,6 +95,40 @@ export default function SignupPage() {
         setLoading(false)
     }
 
+    const nextStep = () => {
+        if (step === 1) {
+            if (!formData.fullName || !formData.email || !formData.phone) {
+                setError('Please fill in all fields')
+                return
+            }
+            if (!formData.email.includes('@')) {
+                setError('Please enter a valid email')
+                return
+            }
+        }
+        if (step === 2) {
+            if (!formData.password || !formData.confirmPassword) {
+                setError('Please enter and confirm your password')
+                return
+            }
+            if (formData.password !== formData.confirmPassword) {
+                setError('Passwords do not match')
+                return
+            }
+            if (formData.password.length < 6) {
+                setError('Password must be at least 6 characters')
+                return
+            }
+        }
+        setError('')
+        setStep(step + 1)
+    }
+
+    const prevStep = () => {
+        setError('')
+        setStep(step - 1)
+    }
+
     return (
         <Card className="w-full max-w-md border-0 shadow-xl rounded-3xl bg-white">
             <CardHeader className="text-center pb-6">
@@ -92,93 +145,206 @@ export default function SignupPage() {
                     hookit
                 </CardTitle>
                 <CardDescription className="text-neutral-500 mt-2">
-                    Start selling your creations
+                    {step === 1 && 'Start selling your creations'}
+                    {step === 2 && 'Create a secure password'}
+                    {step === 3 && 'Set up password recovery'}
                 </CardDescription>
+                
+                {/* Step indicator */}
+                <div className="flex items-center justify-center gap-2 mt-4">
+                    {[1, 2, 3].map((s) => (
+                        <div 
+                            key={s} 
+                            className={`h-1.5 rounded-full transition-all ${
+                                s === step ? 'w-8 bg-[#7C3AED]' : 
+                                s < step ? 'w-4 bg-[#7C3AED]/50' : 
+                                'w-4 bg-neutral-200'
+                            }`}
+                        />
+                    ))}
+                </div>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSignup} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="fullName" className="text-neutral-700 font-medium">Full Name</Label>
-                        <Input
-                            id="fullName"
-                            placeholder="John Doe"
-                            value={formData.fullName}
-                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                            required
-                            className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
-                        />
-                    </div>
+                    {/* Step 1: Basic Info */}
+                    {step === 1 && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="fullName" className="text-neutral-700 font-medium">Full Name</Label>
+                                <Input
+                                    id="fullName"
+                                    placeholder="John Doe"
+                                    value={formData.fullName}
+                                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="email" className="text-neutral-700 font-medium">Email</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="john@example.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                            className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
-                        />
-                    </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-neutral-700 font-medium">Email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="john@example.com"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-neutral-700 font-medium">Phone Number</Label>
-                        <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="+91 98765 43210"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            required
-                            className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
-                        />
-                    </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone" className="text-neutral-700 font-medium">Phone Number</Label>
+                                <Input
+                                    id="phone"
+                                    type="tel"
+                                    placeholder="+91 98765 43210"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="password" className="text-neutral-700 font-medium">Password</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            required
-                            className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
-                        />
-                    </div>
+                            <Button 
+                                type="button"
+                                onClick={nextStep}
+                                className="w-full h-12 rounded-full bg-[#7C3AED] hover:bg-[#6d28d9] text-lg font-medium gap-2"
+                            >
+                                Next
+                                <ChevronRight className="w-4 h-4" />
+                            </Button>
+                        </>
+                    )}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-neutral-700 font-medium">Confirm Password</Label>
-                        <Input
-                            id="confirmPassword"
-                            type="password"
-                            placeholder="••••••••"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                            required
-                            className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
-                        />
-                    </div>
+                    {/* Step 2: Password */}
+                    {step === 2 && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="password" className="text-neutral-700 font-medium">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword" className="text-neutral-700 font-medium">Confirm Password</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={formData.confirmPassword}
+                                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button 
+                                    type="button"
+                                    variant="outline"
+                                    onClick={prevStep}
+                                    className="flex-1 h-12 rounded-full gap-2"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Back
+                                </Button>
+                                <Button 
+                                    type="button"
+                                    onClick={nextStep}
+                                    className="flex-1 h-12 rounded-full bg-[#7C3AED] hover:bg-[#6d28d9] text-lg font-medium gap-2"
+                                >
+                                    Next
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Step 3: Security Question */}
+                    {step === 3 && (
+                        <>
+                            <div className="p-4 bg-[#f8f7fb] rounded-xl mb-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Shield className="w-5 h-5 text-[#7C3AED]" />
+                                    <p className="font-medium text-neutral-900 text-sm">Password Recovery</p>
+                                </div>
+                                <p className="text-xs text-neutral-500">
+                                    This helps you reset your password if you forget it. No email confirmation needed.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="securityQuestion" className="text-neutral-700 font-medium">Security Question</Label>
+                                <select
+                                    id="securityQuestion"
+                                    value={formData.securityQuestion}
+                                    onChange={(e) => setFormData({ ...formData, securityQuestion: e.target.value })}
+                                    required
+                                    className="h-12 w-full rounded-xl border border-neutral-200 bg-transparent px-3 text-sm outline-none focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                >
+                                    <option value="">Select a question...</option>
+                                    {SECURITY_QUESTIONS.map((q) => (
+                                        <option key={q} value={q}>{q}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="securityAnswer" className="text-neutral-700 font-medium">Your Answer</Label>
+                                <Input
+                                    id="securityAnswer"
+                                    type="text"
+                                    placeholder="Your answer (case-insensitive)"
+                                    value={formData.securityAnswer}
+                                    onChange={(e) => setFormData({ ...formData, securityAnswer: e.target.value })}
+                                    required
+                                    className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
+                                />
+                                <p className="text-xs text-neutral-400">
+                                    Remember this answer — you&apos;ll need it to reset your password.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button 
+                                    type="button"
+                                    variant="outline"
+                                    onClick={prevStep}
+                                    className="flex-1 h-12 rounded-full gap-2"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Back
+                                </Button>
+                                <Button 
+                                    type="submit" 
+                                    className="flex-1 h-12 rounded-full bg-[#7C3AED] hover:bg-[#6d28d9] text-lg font-medium"
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        'Create Account'
+                                    )}
+                                </Button>
+                            </div>
+                        </>
+                    )}
 
                     {error && (
                         <p className="text-sm text-red-500 bg-red-50 p-3 rounded-xl">{error}</p>
                     )}
-
-                    <Button 
-                        type="submit" 
-                        className="w-full h-12 rounded-full bg-[#7C3AED] hover:bg-[#6d28d9] text-lg font-medium"
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating account...
-                            </>
-                        ) : (
-                            'Create Account'
-                        )}
-                    </Button>
 
                     <p className="text-center text-sm text-neutral-500">
                         Already have an account?{' '}

@@ -1,29 +1,119 @@
 // src/app/seller/payouts/page.tsx
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Wallet, Clock, CheckCircle, TrendingUp } from 'lucide-react'
+import { Wallet, Clock, CheckCircle, TrendingUp, AlertCircle, Percent } from 'lucide-react'
 
-export default async function PayoutsPage() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+interface Payout {
+    id: string
+    seller_id: string
+    order_id: string
+    store_id: string
+    product_name: string | null
+    amount: number          // total order amount
+    paid_amount: number | null  // what seller gets after commission
+    platform_fee: number | null // your commission
+    status: string
+    utr_number: string | null
+    paid_at: string | null
+    created_at: string
+    updated_at: string
+}
 
-    if (!user) redirect('/login')
+export default function PayoutsPage() {
+    const [payouts, setPayouts] = useState<Payout[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [commissionRate, setCommissionRate] = useState<number>(9.5)
 
-    // Get seller's payouts
-    const { data: payouts } = await supabase
-        .from('payouts')
-        .select('*')
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
+    const fetchPayouts = async () => {
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
 
-    const awaiting = payouts?.filter(p => p.status === 'awaiting_payout') || []
-    const paid = payouts?.filter(p => p.status === 'paid') || []
+            if (!user) {
+                setLoading(false)
+                return
+            }
+
+            // Fetch commission rate
+            const { data: settings } = await supabase
+                .from('platform_settings')
+                .select('value')
+                .eq('key', 'commission_rate')
+                .single()
+
+            if (settings) {
+                setCommissionRate(parseFloat(settings.value))
+            }
+
+            // Fetch payouts
+            const { data, error: fetchError } = await supabase
+                .from('payouts')
+                .select('*')
+                .eq('seller_id', user.id)
+                .order('created_at', { ascending: false })
+
+            if (fetchError) {
+                console.error('Error fetching payouts:', fetchError)
+                setError(fetchError.message)
+                setLoading(false)
+                return
+            }
+
+            setPayouts(data || [])
+            setLoading(false)
+        } catch (err: any) {
+            console.error('Exception:', err)
+            setError(err.message)
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchPayouts()
+    }, [])
+
+    // Calculate totals
+    const awaiting = payouts.filter(p => p.status === 'awaiting_payout')
+    const paid = payouts.filter(p => p.status === 'paid')
     
-    const totalAwaiting = awaiting.reduce((sum, p) => sum + Number(p.amount), 0)
-    const totalPaid = paid.reduce((sum, p) => sum + Number(p.amount), 0)
-    const totalEarned = totalAwaiting + totalPaid
+    // Total Earned = sum of all order amounts (what buyer paid)
+    const totalEarned = payouts.reduce((sum, p) => sum + Number(p.amount), 0)
+    
+    // Total Paid = sum of paid_amount (what you actually transferred to seller)
+    const totalPaid = paid.reduce((sum, p) => sum + Number(p.paid_amount || 0), 0)
+    
+    // Pending = awaiting payouts show their paid_amount (after commission)
+    const totalPending = awaiting.reduce((sum, p) => sum + Number(p.paid_amount || 0), 0)
+    
+    // Your total commission earned
+    const totalCommission = payouts.reduce((sum, p) => sum + Number(p.platform_fee || 0), 0)
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin w-8 h-8 border-2 border-neutral-900 border-t-transparent rounded-full" />
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="p-6">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <div>
+                        <p className="font-medium text-red-700">Error loading payouts</p>
+                        <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -32,39 +122,49 @@ export default async function PayoutsPage() {
                 <p className="text-neutral-500 mt-1">Track payments received from the platform</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Commission Rate Badge */}
+            <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg w-fit">
+                <Percent className="w-4 h-4" />
+                <span className="text-sm font-medium">Platform Commission: 8.5% + 1.5%</span>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-neutral-600 flex items-center gap-2">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-2">
                             <TrendingUp className="w-4 h-4" />
                             Total Earned
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                        </div>
                         <div className="text-2xl font-bold text-neutral-900">₹{totalEarned.toFixed(2)}</div>
                         <p className="text-xs text-neutral-500 mt-1">From completed orders</p>
                     </CardContent>
                 </Card>
+                
                 <Card className="border-0 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-neutral-600">Total Paid</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-2">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            Total Paid
+                        </div>
                         <div className="text-2xl font-bold text-green-600">₹{totalPaid.toFixed(2)}</div>
-                        <p className="text-xs text-neutral-500 mt-1">Transferred to your account</p>
+                        <p className="text-xs text-neutral-500 mt-1">Transferred to seller</p>
                     </CardContent>
                 </Card>
+                
                 <Card className="border-0 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-neutral-600">Pending</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-amber-600">₹{totalAwaiting.toFixed(2)}</div>
-                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout</p>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-2">
+                            <Clock className="w-4 h-4 text-amber-500" />
+                            Pending
+                        </div>
+                        <div className="text-2xl font-bold text-amber-600">₹{totalPending.toFixed(2)}</div>
+                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout (after {commissionRate}% fee)</p>
                     </CardContent>
                 </Card>
             </div>
 
+            {/* Pending Payouts */}
             {awaiting.length > 0 && (
                 <div>
                     <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
@@ -85,12 +185,15 @@ export default async function PayoutsPage() {
                                                     {payout.product_name || 'Order'}
                                                 </p>
                                                 <p className="text-sm text-neutral-500">
-                                                    Order #{payout.order_id.slice(0, 8)} • {new Date(payout.created_at).toLocaleDateString('en-IN')}
+                                                    Order #{payout.order_id?.slice(0, 8)} • {new Date(payout.created_at).toLocaleDateString('en-IN')}
+                                                </p>
+                                                <p className="text-xs text-neutral-400">
+                                                    Order: ₹{Number(payout.amount).toFixed(2)} → You pay: ₹{Number(payout.paid_amount).toFixed(2)} (Fee: ₹{Number(payout.platform_fee).toFixed(2)})
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-lg font-bold text-amber-600">₹{Number(payout.amount).toFixed(2)}</p>
+                                            <p className="text-lg font-bold text-amber-600">₹{Number(payout.paid_amount).toFixed(2)}</p>
                                             <Badge className="bg-amber-100 text-amber-700 border-0">
                                                 Awaiting Payout
                                             </Badge>
@@ -103,10 +206,11 @@ export default async function PayoutsPage() {
                 </div>
             )}
 
+            {/* Paid History */}
             <div>
                 <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-purple-500" />
-                    Payout History
+                    <Wallet className="w-5 h-5 text-green-500" />
+                    Payout History ({paid.length})
                 </h2>
 
                 {paid.length > 0 ? (
@@ -124,7 +228,10 @@ export default async function PayoutsPage() {
                                                     {payout.product_name || 'Order'}
                                                 </p>
                                                 <p className="text-sm text-neutral-500">
-                                                    Order #{payout.order_id.slice(0, 8)}
+                                                    Order #{payout.order_id?.slice(0, 8)}
+                                                </p>
+                                                <p className="text-xs text-neutral-400">
+                                                    Paid: ₹{Number(payout.paid_amount).toFixed(2)} (Fee: ₹{Number(payout.platform_fee).toFixed(2)})
                                                 </p>
                                                 {payout.utr_number && (
                                                     <p className="text-xs text-neutral-400">
@@ -134,7 +241,7 @@ export default async function PayoutsPage() {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-lg font-bold text-green-600">₹{Number(payout.amount).toFixed(2)}</p>
+                                            <p className="text-lg font-bold text-green-600">₹{Number(payout.paid_amount).toFixed(2)}</p>
                                             <Badge className="bg-green-100 text-green-700 border-0">
                                                 Paid
                                             </Badge>
@@ -151,9 +258,9 @@ export default async function PayoutsPage() {
                     <Card className="border-0 shadow-sm">
                         <CardContent className="flex flex-col items-center justify-center py-16">
                             <Wallet className="w-12 h-12 text-neutral-300 mb-4" />
-                            <h3 className="text-lg font-medium text-neutral-900 mb-2">No payouts yet</h3>
+                            <h3 className="text-lg font-medium text-neutral-900 mb-2">No paid payouts yet</h3>
                             <p className="text-neutral-500 text-center max-w-sm">
-                                Payouts will appear here once the platform processes your payments.
+                                Payouts will appear here once admin processes them.
                             </p>
                         </CardContent>
                     </Card>

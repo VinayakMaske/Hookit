@@ -214,28 +214,10 @@ export async function sendBuyerConfirmation(
                         </div>
                     </div>
 
-                    <!-- Next Steps -->
-                    <div style="background: #fff3e0; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 25px;">
-                        <p style="margin: 0; color: #e65100; font-weight: 600; font-size: 15px;">
-                            📱 The seller will contact you for order updates
-                        </p>
-                        <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">
-                            You can also reach out to <strong>${orderDetails.sellerName}</strong> at ${orderDetails.sellerPhone || 'N/A'}
-                        </p>
-                    </div>
-
-                    <!-- Contact Seller -->
-                    <div style="text-align: center; margin-bottom: 25px;">
-                        <a href="https://wa.me/${(orderDetails.sellerWhatsapp || orderDetails.sellerPhone || '').replace(/[^0-9]/g, '')}?text=Hi%2C%20I%20placed%20order%20%23${orderDetails.orderId.slice(0, 8)}%20on%20Hookit"
-                           style="display: inline-block; padding: 12px 28px; background: #25d366; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                            📱 Contact Seller on WhatsApp
-                        </a>
-                    </div>
-
                     <!-- Footer -->
                     <div style="border-top: 1px solid #e5e5e5; padding-top: 20px; text-align: center;">
                         <p style="margin: 0; font-size: 12px; color: #999;">
-                            Questions? Reply to this email or contact us at support@hookit.online
+                            Questions? Reply to this email or contact us at storeapp2026@gmail.com
                         </p>
                         <p style="margin: 8px 0 0 0; font-size: 11px; color: #bbb;">
                             © ${new Date().getFullYear()} Hookit. All rights reserved.

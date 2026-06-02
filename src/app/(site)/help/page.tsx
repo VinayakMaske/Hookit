@@ -91,7 +91,7 @@ const popularQuestions = [
     },
     {
         question: 'How much does it cost to sell on Hookit?',
-        answer: 'Creating a store and listing products is completely free. You only pay when you make a sale. Our fee is 8% platform commission + 1.5% payment processing fee (total 9.5%). For example, on a ₹1,000 sale, you receive ₹905. We also offer Pro (₹199/month, 6% commission) and Business plans (₹499/month, 3% commission) for sellers who want more features.',
+        answer: 'Creating a store and listing products is completely free. You only pay when you make a sale. Our fee is 8% platform commission + 1.5% payment processing fee (total 9.5%). For example, on a ₹1,000 sale, you receive ₹905. We also offer Pro (₹199/month, 0% commission + 3% Payment Processing) and Business plans (₹499/month, 0% commission + 2.5% Payment Processing) for sellers who want more features.',
     },
     {
         question: 'When do I get paid for my sales?',

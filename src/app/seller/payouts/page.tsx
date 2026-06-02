@@ -122,12 +122,6 @@ export default function PayoutsPage() {
                 <p className="text-neutral-500 mt-1">Track payments received from the platform</p>
             </div>
 
-            {/* Commission Rate Badge */}
-            <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg w-fit">
-                <Percent className="w-4 h-4" />
-                <span className="text-sm font-medium">Platform Commission: 8.5% + 1.5%</span>
-            </div>
-
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm">
@@ -159,7 +153,7 @@ export default function PayoutsPage() {
                             Pending
                         </div>
                         <div className="text-2xl font-bold text-amber-600">₹{totalPending.toFixed(2)}</div>
-                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout (after 8% + 1.5% fee)</p>
+                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout </p>
                     </CardContent>
                 </Card>
             </div>

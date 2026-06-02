@@ -1,4 +1,4 @@
-// src/app/(site)/product/[id]/page.tsx - FULL UPDATED VERSION
+// src/app/(site)/product/[id]/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -8,10 +8,47 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock, Lock, BadgeCheck, Star, AlertTriangle } from 'lucide-react'
+import { ExternalLink, ShoppingBag, Store, ArrowLeft, Truck, Shield, Clock, Lock, BadgeCheck, Star, AlertTriangle, Package } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
 import OrderProtectionBadge from '@/components/order-protection-badge'
+
+// Helper component for stock badges
+function StockBadge({ stock }: { stock: number }) {
+    if (stock <= 0) {
+        return (
+            <Badge className="bg-neutral-900 text-white border-0 text-xs px-3 py-1">
+                SOLD OUT
+            </Badge>
+        )
+    }
+    if (stock <= 5) {
+        return (
+            <Badge className="bg-red-500 text-white border-0 text-xs px-3 py-1 animate-pulse">
+                Only {stock} left!
+            </Badge>
+        )
+    }
+    if (stock <= 10) {
+        return (
+            <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-3 py-1">
+                Only {stock} left
+            </Badge>
+        )
+    }
+    return null
+}
+
+// Helper component for sold out overlay on images
+function SoldOutOverlay() {
+    return (
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+            <div className="bg-white px-6 py-3 rounded-xl shadow-lg">
+                <p className="text-neutral-900 font-bold text-xl tracking-wider">SOLD OUT</p>
+            </div>
+        </div>
+    )
+}
 
 export default function ProductPage() {
     const params = useParams()
@@ -34,7 +71,6 @@ export default function ProductPage() {
             .from('products')
             .select('*, stores(*)')
             .eq('id', id)
-            .eq('is_active', true)
             .single()
 
         if (!productData) {
@@ -55,11 +91,12 @@ export default function ProductPage() {
 
         setReviews(reviewsData || [])
 
-        // Fetch related products
+        // Fetch related products (exclude sold out)
         const { data: related } = await supabase
             .from('products')
-            .select('id, name, price, images, category, affiliate_link')
+            .select('id, name, price, images, category, affiliate_link, stock_quantity')
             .eq('is_active', true)
+            .gt('stock_quantity', 0)
             .neq('id', id)
             .or(`store_id.eq.${productData.store_id},category.eq.${productData.category}`)
             .limit(4)
@@ -88,6 +125,9 @@ export default function ProductPage() {
     const hasImages = product.images && product.images.length > 0
     const allImages = product.images || []
     const mainImage = allImages[mainImageIndex] || allImages[0]
+    const stockQty = product.stock_quantity || 0
+    const isSoldOut = stockQty <= 0 && !isAffiliate
+    const isLowStock = stockQty > 0 && stockQty <= 10 && !isAffiliate
 
     const handleThumbnailClick = (index: number) => {
         setMainImageIndex(index)
@@ -117,16 +157,18 @@ export default function ProductPage() {
                                 <img
                                     src={mainImage}
                                     alt={product.name}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    className={`w-full h-full object-cover transition-transform duration-300 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <ShoppingBag className="w-16 h-16 text-neutral-300" />
                                 </div>
                             )}
+                            {/* Sold Out Overlay */}
+                            {isSoldOut && <SoldOutOverlay />}
                         </div>
 
-                        {allImages.length > 1 && (
+                        {allImages.length > 1 && !isSoldOut && (
                             <div className="grid grid-cols-4 gap-3">
                                 {allImages.slice(0, 5).map((img: string, i: number) => (
                                     <button
@@ -171,9 +213,13 @@ export default function ProductPage() {
                         </Link>
 
                         <div>
-                            <h1 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-3">
-                                {product.name}
-                            </h1>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h1 className="text-3xl lg:text-4xl font-bold text-neutral-900">
+                                    {product.name}
+                                </h1>
+                                {/* Stock Badge next to title */}
+                                {!isAffiliate && <StockBadge stock={stockQty} />}
+                            </div>
                             {product.category && (
                                 <Badge variant="secondary" className="mb-4">
                                     {product.category}
@@ -199,8 +245,10 @@ export default function ProductPage() {
 
                         {/* Price */}
                         <div className="flex items-baseline gap-3">
-                            <span className="text-4xl font-bold text-neutral-900">₹{product.price}</span>
-                            {product.compare_price && (
+                            <span className={`text-4xl font-bold ${isSoldOut ? 'text-neutral-400 line-through' : 'text-neutral-900'}`}>
+                                ₹{product.price}
+                            </span>
+                            {product.compare_price && !isSoldOut && (
                                 <>
                                     <span className="text-xl text-neutral-400 line-through">
                                         ₹{product.compare_price}
@@ -212,18 +260,34 @@ export default function ProductPage() {
                             )}
                         </div>
 
+                        {/* Stock Info Line */}
+                        {!isAffiliate && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Package className="w-4 h-4 text-neutral-500" />
+                                {isSoldOut ? (
+                                    <span className="text-neutral-500">Currently out of stock</span>
+                                ) : (
+                                    <span className="text-neutral-600">
+                                        {stockQty} {stockQty === 1 ? 'unit' : 'units'} in stock
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
                         {/* Order Protection Badge */}
-                        <div className="flex items-center gap-3 py-2">
-                            <OrderProtectionBadge size="md" variant="green" />
-                            <div className="flex items-center gap-1 text-sm text-neutral-500">
-                                <Lock className="w-3.5 h-3.5" />
-                                <span>Secure payment</span>
+                        {!isSoldOut && (
+                            <div className="flex items-center gap-3 py-2">
+                                <OrderProtectionBadge size="md" variant="green" />
+                                <div className="flex items-center gap-1 text-sm text-neutral-500">
+                                    <Lock className="w-3.5 h-3.5" />
+                                    <span>Secure payment</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm text-neutral-500">
+                                    <BadgeCheck className="w-3.5 h-3.5" />
+                                    <span>Verified seller</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm text-neutral-500">
-                                <BadgeCheck className="w-3.5 h-3.5" />
-                                <span>Verified seller</span>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Description */}
                         {product.description && (
@@ -235,52 +299,58 @@ export default function ProductPage() {
                         <Separator />
 
                         {/* Trust Badges */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="text-center p-3 bg-neutral-50 rounded-lg">
-                                <Shield className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
-                                <p className="text-xs font-medium text-neutral-700">Verified Seller</p>
+                        {!isSoldOut && (
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="text-center p-3 bg-neutral-50 rounded-lg">
+                                    <Shield className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
+                                    <p className="text-xs font-medium text-neutral-700">Verified Seller</p>
+                                </div>
+                                <div className="text-center p-3 bg-neutral-50 rounded-lg">
+                                    <Lock className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
+                                    <p className="text-xs font-medium text-neutral-700">Secure Payment</p>
+                                </div>
+                                <div className="text-center p-3 bg-neutral-50 rounded-lg">
+                                    <Clock className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
+                                    <p className="text-xs font-medium text-neutral-700">24/7 Support</p>
+                                </div>
                             </div>
-                            <div className="text-center p-3 bg-neutral-50 rounded-lg">
-                                <Lock className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
-                                <p className="text-xs font-medium text-neutral-700">Secure Payment</p>
-                            </div>
-                            <div className="text-center p-3 bg-neutral-50 rounded-lg">
-                                <Clock className="w-5 h-5 mx-auto mb-1 text-neutral-600" />
-                                <p className="text-xs font-medium text-neutral-700">24/7 Support</p>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Buyer Protection Card */}
-                        <Card className="border-0 shadow-sm bg-green-50/50 border border-green-100">
-                            <CardContent className="p-4">
-                                <div className="flex items-start gap-3">
-                                    <Shield className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="font-medium text-green-800 text-sm">Buyer Protection</p>
-                                        <p className="text-xs text-green-600 mt-1">
-                                            Your payment is held securely until you receive your order. 
-                                            If the product is not as described, you can request a full refund within 7 days.
-                                        </p>
+                        {!isSoldOut && (
+                            <Card className="border-0 shadow-sm bg-green-50/50 border border-green-100">
+                                <CardContent className="p-4">
+                                    <div className="flex items-start gap-3">
+                                        <Shield className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-medium text-green-800 text-sm">Buyer Protection</p>
+                                            <p className="text-xs text-green-600 mt-1">
+                                                Your payment is held securely until you receive your order. 
+                                                If the product is not as described, you can request a full refund within 7 days.
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Anti-Leakage Warning */}
-                        <Card className="border-0 shadow-sm bg-amber-50/50 border border-amber-100">
-                            <CardContent className="p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="font-medium text-amber-800 text-sm">Stay Protected</p>
-                                        <p className="text-xs text-amber-600 mt-1">
-                                            Always complete your purchase on Hookit. Never pay the seller directly outside the platform. 
-                                            Off-platform transactions are not covered by our Buyer Protection.
-                                        </p>
+                        {!isSoldOut && (
+                            <Card className="border-0 shadow-sm bg-amber-50/50 border border-amber-100">
+                                <CardContent className="p-4">
+                                    <div className="flex items-start gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-medium text-amber-800 text-sm">Stay Protected</p>
+                                            <p className="text-xs text-amber-600 mt-1">
+                                                Always complete your purchase on Hookit. Never pay the seller directly outside the platform. 
+                                                Off-platform transactions are not covered by our Buyer Protection.
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Action Buttons */}
                         <div className="space-y-3 pt-4">
@@ -296,6 +366,15 @@ export default function ProductPage() {
                                         Buy via Affiliate Link
                                     </Button>
                                 </a>
+                            ) : isSoldOut ? (
+                                <Button 
+                                    size="lg" 
+                                    className="w-full h-14 text-lg gap-2 bg-neutral-300 hover:bg-neutral-300 cursor-not-allowed" 
+                                    disabled
+                                >
+                                    <ShoppingBag className="w-5 h-5" />
+                                    Sold Out
+                                </Button>
                             ) : (
                                 <Link href={`/checkout?product=${product.id}`} className="block">
                                     <Button size="lg" className="w-full h-14 text-lg gap-2 bg-neutral-900 hover:bg-neutral-800">
@@ -411,6 +490,19 @@ export default function ProductPage() {
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center">
                                                     <ShoppingBag className="w-8 h-8 text-neutral-300" />
+                                                </div>
+                                            )}
+                                            {/* Low stock / sold out on related products */}
+                                            {item.stock_quantity <= 0 && !item.affiliate_link && (
+                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                    <span className="text-white font-bold text-sm">SOLD OUT</span>
+                                                </div>
+                                            )}
+                                            {item.stock_quantity > 0 && item.stock_quantity <= 5 && !item.affiliate_link && (
+                                                <div className="absolute top-2 right-2">
+                                                    <Badge className="bg-red-500 text-white border-0 text-xs">
+                                                        Only {item.stock_quantity} left
+                                                    </Badge>
                                                 </div>
                                             )}
                                             {item.affiliate_link && (

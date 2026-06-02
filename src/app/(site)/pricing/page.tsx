@@ -21,6 +21,7 @@ const plans = [
         description: 'Perfect for hobbyists and new creators',
         commission: 8,
         features: [
+            '1.5% Payment Processing fee',
             'List up to 50 products',
             'Basic store page',
             'Standard analytics',
@@ -41,8 +42,9 @@ const plans = [
         price: '₹199',
         period: '/month',
         description: 'For serious creators growing their business',
-        commission: 6,
+        commission: 0,
         features: [
+            '3% Payment Processing fee',
             'List up to 300 products',
             'Custom store branding',
             'Advanced analytics dashboard',
@@ -63,8 +65,9 @@ const plans = [
         price: '₹499',
         period: '/month',
         description: 'For established brands and high-volume sellers',
-        commission: 3,
+        commission: 0,
         features: [
+            '2.5% Payment Processing fee',
             'Unlimited products',
             'Custom domain support',
             'Full analytics suite',
@@ -209,9 +212,6 @@ export default function PricingPage() {
                                     <div className="bg-neutral-50 rounded-lg p-3 mb-6">
                                         <p className="text-sm text-neutral-600">
                                             <span className="font-bold text-[#7C3AED]">{plan.commission}%</span> commission per sale
-                                        </p>
-                                        <p className="text-xs text-neutral-500">
-                                            + {PAYMENT_FEE}% payment processing
                                         </p>
                                     </div>
                                     

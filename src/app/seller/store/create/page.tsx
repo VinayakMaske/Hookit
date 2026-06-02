@@ -283,35 +283,38 @@ export default function CreateStorePage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="contactEmail">Contact Email</Label>
+                                <Label htmlFor="contactEmail">Contact Email (for order notifications)*</Label>
                                 <Input
                                     id="contactEmail"
                                     type="email"
                                     placeholder="store@example.com"
                                     value={formData.contactEmail}
+                                    required
                                     onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="contactPhone">Contact Phone</Label>
+                                <Label htmlFor="contactPhone">Contact Phone *</Label>
                                 <Input
                                     id="contactPhone"
                                     type="tel"
                                     placeholder="+91 98765 43210"
                                     value={formData.contactPhone}
+                                    required
                                     onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber">WhatsApp Number (for order notifications)</Label>
+                            <Label htmlFor="whatsappNumber">WhatsApp Number *</Label>
                             <Input
                                 id="whatsappNumber"
                                 type="tel"
                                 placeholder="+91 98765 43210"
                                 value={formData.whatsappNumber}
+                                required
                                 onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
                             />
                         </div>

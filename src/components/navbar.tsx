@@ -1,4 +1,4 @@
-// src/components/navbar.tsx - UPDATED
+// src/components/navbar.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Compass, Info, HelpCircle, X, Tag, Newspaper, Briefcase, FileText, Flame, Calculator, Rocket, DollarSign } from 'lucide-react'
+import { Menu, Compass, Store, Info, HelpCircle, X, Tag, Newspaper, Briefcase, FileText, Flame, Calculator, Rocket, DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Logo from '@/components/logo'
 
@@ -34,20 +34,21 @@ export default function Navbar() {
 
     const navLinks = [
         { href: '/explore', label: 'Explore', icon: Compass },
+        { href: '/stores', label: 'Stores', icon: Store },
         { href: '/about', label: 'About', icon: Info },
     ]
 
     const moreLinks = [
-    { href: '/pricing', label: 'Pricing', icon: DollarSign },
-    { href: '/help', label: 'Help Center', icon: HelpCircle },
-    { href: '/seller-guide', label: 'Seller Guide', icon: Rocket },
-    { href: '/seller-calculator', label: 'Earnings Calculator', icon: Calculator },
-    { href: '/payouts', label: 'Payout Schedule', icon: Tag },
-    { href: '/press', label: 'Press', icon: Newspaper },
-    { href: '/careers', label: 'Careers', icon: Briefcase },
-    { href: '/blog', label: 'Blog', icon: FileText },        // <-- ADD
-    { href: '/trending', label: 'Trending', icon: Flame },    // <-- ADD
-]
+        { href: '/pricing', label: 'Pricing', icon: DollarSign },
+        { href: '/help', label: 'Help Center', icon: HelpCircle },
+        { href: '/seller-guide', label: 'Seller Guide', icon: Rocket },
+        { href: '/seller-calculator', label: 'Earnings Calculator', icon: Calculator },
+        { href: '/payouts', label: 'Payout Schedule', icon: Tag },
+        { href: '/press', label: 'Press', icon: Newspaper },
+        { href: '/careers', label: 'Careers', icon: Briefcase },
+        { href: '/blog', label: 'Blog', icon: FileText },
+        { href: '/trending', label: 'Trending', icon: Flame },
+    ]
 
     return (
         <header

@@ -36,6 +36,74 @@ const INITIAL_CATEGORIES_COUNT = 10
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 
+// Product card with stock badges
+function ProductCard({ product }: { product: any }) {
+    const stockQty = product.stock_quantity || 0
+    const isSoldOut = stockQty <= 0 && !product.affiliate_link
+    const isLowStock = stockQty > 0 && stockQty <= 5 && !product.affiliate_link
+
+    return (
+        <Link
+            href={`/product/${product.id}`}
+            className="group block"
+        >
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
+                {product.images?.[0] ? (
+                    <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag className="w-8 h-8 text-neutral-300" />
+                    </div>
+                )}
+
+                {/* Sold Out Overlay */}
+                {isSoldOut && (
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                        <div className="bg-white px-4 py-2 rounded-xl shadow-lg">
+                            <p className="text-neutral-900 font-bold text-lg tracking-wider">SOLD OUT</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Low Stock Badge */}
+                {isLowStock && (
+                    <div className="absolute top-2 right-2 z-10">
+                        <Badge className="bg-red-500 text-white border-0 text-xs animate-pulse">
+                            Only {stockQty} left!
+                        </Badge>
+                    </div>
+                )}
+
+                {/* Affiliate Badge */}
+                {product.affiliate_link && (
+                    <Badge className="absolute top-2 left-2 bg-[#7C3AED] text-white text-xs border-0 z-10">
+                        Affiliate
+                    </Badge>
+                )}
+
+                {/* Hover overlay (only if not sold out) */}
+                {!isSoldOut && (
+                    <>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
+                                {product.name}
+                            </p>
+                            <p className="text-white/70 text-xs mt-1">
+                                by {product.stores?.name || 'Unknown'}
+                            </p>
+                        </div>
+                    </>
+                )}
+            </div>
+        </Link>
+    )
+}
+
 function ExploreContent() {
     const [showAll, setShowAll] = useState(false)
     const [products, setProducts] = useState<any[]>([])
@@ -116,41 +184,7 @@ function ExploreContent() {
                         {products.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {products.map((product) => (
-                                    <Link
-                                        key={product.id}
-                                        href={`/product/${product.id}`}
-                                        className="group block"
-                                    >
-                                        <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
-                                            {product.images?.[0] ? (
-                                                <img
-                                                    src={product.images[0]}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <ShoppingBag className="w-8 h-8 text-neutral-300" />
-                                                </div>
-                                            )}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                            
-                                            <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                                <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
-                                                    {product.name}
-                                                </p>
-                                                <p className="text-white/70 text-xs mt-1">
-                                                    by {product.stores?.name || 'Unknown'}
-                                                </p>
-                                            </div>
-
-                                            {product.affiliate_link && (
-                                                <Badge className="absolute top-2 left-2 bg-[#7C3AED] text-white text-xs border-0">
-                                                    Affiliate
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </Link>
+                                    <ProductCard key={product.id} product={product} />
                                 ))}
                             </div>
                         ) : !isSearching && (
@@ -220,41 +254,7 @@ function ExploreContent() {
                         <h2 className="text-2xl font-bold text-neutral-900 mb-6">Trending Now</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {products.map((product) => (
-                                <Link
-                                    key={product.id}
-                                    href={`/product/${product.id}`}
-                                    className="group block"
-                                >
-                                    <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
-                                        {product.images?.[0] ? (
-                                            <img
-                                                src={product.images[0]}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <ShoppingBag className="w-8 h-8 text-neutral-300" />
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        
-                                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
-                                                {product.name}
-                                            </p>
-                                            <p className="text-white/70 text-xs mt-1">
-                                                by {product.stores?.name || 'Unknown'}
-                                            </p>
-                                        </div>
-
-                                        {product.affiliate_link && (
-                                            <Badge className="absolute top-2 left-2 bg-[#7C3AED] text-white text-xs border-0">
-                                                Affiliate
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </Link>
+                                <ProductCard key={product.id} product={product} />
                             ))}
                         </div>
                     </div>

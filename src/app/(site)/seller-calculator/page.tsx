@@ -10,13 +10,26 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
-const COMMISSION_RATES = {
-    starter: 8,
-    pro: 6,
-    business: 3,
+const PLAN_CONFIG = {
+    starter: {
+        commission: 8,
+        paymentFee: 1.5,
+        monthlyPrice: 0,
+        label: 'Starter',
+    },
+    pro: {
+        commission: 0,
+        paymentFee: 3,
+        monthlyPrice: 199,
+        label: 'Pro',
+    },
+    business: {
+        commission: 0,
+        paymentFee: 2.5,
+        monthlyPrice: 499,
+        label: 'Business',
+    },
 }
-
-const PAYMENT_FEE = 1.5
 
 export default function SellerCalculatorPage() {
     const [salePrice, setSalePrice] = useState('1000')
@@ -29,9 +42,10 @@ export default function SellerCalculatorPage() {
     const delivery = parseFloat(deliveryFee) || 0
     const itemTotal = price * qty
 
-    const calculate = (commissionRate: number) => {
-        const commission = (itemTotal * commissionRate) / 100
-        const paymentProcessing = (itemTotal * PAYMENT_FEE) / 100
+    const calculate = (planKey: 'starter' | 'pro' | 'business') => {
+        const config = PLAN_CONFIG[planKey]
+        const commission = (itemTotal * config.commission) / 100
+        const paymentProcessing = (itemTotal * config.paymentFee) / 100
         const totalFees = commission + paymentProcessing
         const sellerReceives = itemTotal - totalFees + delivery
 
@@ -40,23 +54,20 @@ export default function SellerCalculatorPage() {
             paymentProcessing,
             totalFees,
             sellerReceives,
-            commissionRate,
+            commissionRate: config.commission,
+            paymentFeeRate: config.paymentFee,
+            monthlyPrice: config.monthlyPrice,
+            label: config.label,
         }
     }
 
-    const starter = calculate(COMMISSION_RATES.starter)
-    const pro = calculate(COMMISSION_RATES.pro)
-    const business = calculate(COMMISSION_RATES.business)
+    const starter = calculate('starter')
+    const pro = calculate('pro')
+    const business = calculate('business')
 
     const selected = plan === 'starter' ? starter : plan === 'pro' ? pro : business
 
-    const monthlyPlans = {
-        starter: 0,
-        pro: 499,
-        business: 1999,
-    }
-
-    const breakEven = monthlyPlans[plan] > 0 ? Math.ceil(monthlyPlans[plan] / ((COMMISSION_RATES.starter - selected.commissionRate) / 100 * price)) : 0
+    const breakEven = selected.monthlyPrice > 0 ? Math.ceil(selected.monthlyPrice / ((PLAN_CONFIG.starter.commission - selected.commissionRate) / 100 * price)) : 0
 
     return (
         <div className="min-h-screen bg-white pt-20">
@@ -141,7 +152,7 @@ export default function SellerCalculatorPage() {
                                                 >
                                                     <span className="block capitalize">{p}</span>
                                                     <span className="block text-xs font-normal mt-1">
-                                                        {COMMISSION_RATES[p]}% fee
+                                                        {PLAN_CONFIG[p].commission}% fee
                                                     </span>
                                                 </button>
                                             ))}
@@ -190,14 +201,18 @@ export default function SellerCalculatorPage() {
                                         <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                                             <div className="flex items-center gap-2">
                                                 <Percent className="w-4 h-4 text-[#7C3AED]" />
-                                                <span className="text-sm text-neutral-700">Platform Commission ({selected.commissionRate}%)</span>
+                                                <span className="text-sm text-neutral-700">
+                                                    Platform Commission ({selected.commissionRate}%)
+                                                </span>
                                             </div>
                                             <span className="font-medium text-neutral-900">₹{selected.commission.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                                             <div className="flex items-center gap-2">
                                                 <Percent className="w-4 h-4 text-blue-500" />
-                                                <span className="text-sm text-neutral-700">Payment Processing ({PAYMENT_FEE}%)</span>
+                                                <span className="text-sm text-neutral-700">
+                                                    Payment Processing ({selected.paymentFeeRate}%)
+                                                </span>
                                             </div>
                                             <span className="font-medium text-neutral-900">₹{selected.paymentProcessing.toFixed(2)}</span>
                                         </div>
@@ -220,9 +235,9 @@ export default function SellerCalculatorPage() {
                                     <div className="space-y-3">
                                         {[starter, pro, business].map((calc) => (
                                             <div 
-                                                key={calc.commissionRate}
+                                                key={calc.label}
                                                 className={`p-4 rounded-xl border-2 transition-all ${
-                                                    calc.commissionRate === selected.commissionRate
+                                                    calc.label.toLowerCase() === plan
                                                         ? 'border-[#7C3AED] bg-[#7C3AED]/5'
                                                         : 'border-neutral-100'
                                                 }`}
@@ -230,16 +245,16 @@ export default function SellerCalculatorPage() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-semibold text-neutral-900">
-                                                            {calc.commissionRate === 12 ? 'Starter' : calc.commissionRate === 10 ? 'Pro' : 'Business'}
+                                                            {calc.label}
                                                         </span>
-                                                        {calc.commissionRate === selected.commissionRate && (
+                                                        {calc.label.toLowerCase() === plan && (
                                                             <Badge className="bg-[#7C3AED] text-white border-0 text-xs">Selected</Badge>
                                                         )}
                                                     </div>
                                                     <span className="font-bold text-neutral-900">₹{calc.sellerReceives.toFixed(2)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm text-neutral-500">
-                                                    <span>{calc.commissionRate}% commission + {PAYMENT_FEE}% processing</span>
+                                                    <span>{calc.commissionRate}% commission + {calc.paymentFeeRate}% processing</span>
                                                     <span>₹{calc.totalFees.toFixed(2)} fees</span>
                                                 </div>
                                             </div>
@@ -259,8 +274,8 @@ export default function SellerCalculatorPage() {
                                                     Plan pays for itself at {breakEven} sales/month
                                                 </h3>
                                                 <p className="text-sm text-neutral-600">
-                                                    {plan === 'pro' ? 'Pro' : 'Business'} plan costs ₹{monthlyPlans[plan]}/month. 
-                                                    You save ₹{((COMMISSION_RATES.starter - selected.commissionRate) / 100 * price).toFixed(2)} per sale 
+                                                    {selected.label} plan costs ₹{selected.monthlyPrice}/month. 
+                                                    You save ₹{((PLAN_CONFIG.starter.commission - selected.commissionRate) / 100 * price).toFixed(2)} per sale 
                                                     compared to Starter. Break even at {breakEven} sales.
                                                 </p>
                                             </div>

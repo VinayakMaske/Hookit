@@ -1,3 +1,4 @@
+// src/app/api/notify/route.ts
 import { NextResponse } from 'next/server'
 import { sendOrderNotification, sendBuyerConfirmation } from '@/lib/email'
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
             results.sellerEmail = 'skipped: no email'
         }
 
-        // 2. Send email to buyer (if email provided)
+        // 2. Send email to buyer (if email provided) — with e-invoice
         if (buyerEmail) {
             try {
                 await sendBuyerConfirmation(buyerEmail, {
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
                     sellerName: sellerName || 'Unknown Store',
                     sellerPhone: sellerPhone || 'Not available',
                     sellerWhatsapp: sellerWhatsapp || '',
+                    buyerName: buyerName,
+                    buyerAddress: buyerAddress,
+                    buyerPhone: buyerPhone,
                 })
                 results.buyerEmail = 'sent'
             } catch (err: any) {

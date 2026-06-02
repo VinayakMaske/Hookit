@@ -11,6 +11,146 @@ export const metadata = {
     description: 'Discover the most popular and trending products on Hookit right now.',
 }
 
+// Product card with stock badges
+function TrendingProductCard({ product, index }: { product: any; index: number }) {
+    const stockQty = product.stock_quantity || 0
+    const isSoldOut = stockQty <= 0 && !product.affiliate_link
+    const isLowStock = stockQty > 0 && stockQty <= 5 && !product.affiliate_link
+
+    return (
+        <Link key={product.id} href={`/product/${product.id}`} className="group block">
+            <div className="relative">
+                <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
+                    {product.images?.[0] ? (
+                        <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className={`w-full h-full object-cover ${isSoldOut ? '' : 'group-hover:scale-105 transition-transform duration-500'}`}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingBag className="w-8 h-8 text-neutral-300" />
+                        </div>
+                    )}
+
+                    {/* Sold Out Overlay */}
+                    {isSoldOut && (
+                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                            <div className="bg-white px-4 py-2 rounded-xl shadow-lg">
+                                <p className="text-neutral-900 font-bold text-lg tracking-wider">SOLD OUT</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Low Stock Badge */}
+                    {isLowStock && (
+                        <div className="absolute top-2 right-2 z-10">
+                            <Badge className="bg-red-500 text-white border-0 text-xs animate-pulse">
+                                Only {stockQty} left!
+                            </Badge>
+                        </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Rank Badge */}
+                    {index < 3 && !isSoldOut && (
+                        <div className="absolute top-2 left-2 z-10">
+                            <Badge className={`border-0 text-white ${
+                                index === 0 ? 'bg-amber-500' : 
+                                index === 1 ? 'bg-neutral-400' : 
+                                'bg-amber-700'
+                            }`}>
+                                #{index + 1} Trending
+                            </Badge>
+                        </div>
+                    )}
+
+                    {/* Hover info (only if not sold out) */}
+                    {!isSoldOut && (
+                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
+                                {product.name}
+                            </p>
+                            <p className="text-white/70 text-xs mt-1">
+                                by {product.stores?.name || 'Unknown'}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="mt-3">
+                <p className="font-medium text-neutral-900 text-sm line-clamp-1 group-hover:text-[#7C3AED] transition-colors">
+                    {product.name}
+                </p>
+                <div className="flex items-center justify-between mt-1">
+                    <span className={`font-bold ${isSoldOut ? 'text-neutral-400 line-through' : 'text-neutral-900'}`}>
+                        ₹{product.price}
+                    </span>
+                    <span className="text-xs text-neutral-500 flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> {product.orders?.length || 0} sold
+                    </span>
+                </div>
+                {/* Stock indicator */}
+                {!product.affiliate_link && (
+                    <p className={`text-xs mt-1 ${isSoldOut ? 'text-neutral-400' : isLowStock ? 'text-red-500' : 'text-neutral-400'}`}>
+                        {isSoldOut ? 'Sold out' : `${stockQty} in stock`}
+                    </p>
+                )}
+            </div>
+        </Link>
+    )
+}
+
+function NewArrivalCard({ product }: { product: any }) {
+    const stockQty = product.stock_quantity || 0
+    const isSoldOut = stockQty <= 0 && !product.affiliate_link
+
+    return (
+        <Link key={product.id} href={`/product/${product.id}`} className="group block">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="aspect-square bg-neutral-100 relative overflow-hidden">
+                        {product.images?.[0] ? (
+                            <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className={`w-full h-full object-cover ${isSoldOut ? '' : 'group-hover:scale-105 transition-transform duration-500'}`}
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <ShoppingBag className="w-8 h-8 text-neutral-300" />
+                            </div>
+                        )}
+
+                        {/* Sold Out Overlay */}
+                        {isSoldOut && (
+                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                                <div className="bg-white px-3 py-1.5 rounded-lg shadow-lg">
+                                    <p className="text-neutral-900 font-bold text-sm tracking-wider">SOLD OUT</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isSoldOut && (
+                            <Badge className="absolute top-2 left-2 bg-green-500 text-white border-0">
+                                New
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="p-4">
+                        <p className="font-medium text-neutral-900 text-sm line-clamp-1">{product.name}</p>
+                        <p className="text-xs text-neutral-500 mt-1">{product.stores?.name}</p>
+                        <p className={`font-bold mt-2 ${isSoldOut ? 'text-neutral-400 line-through' : 'text-neutral-900'}`}>
+                            ₹{product.price}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
+    )
+}
+
 export default async function TrendingPage() {
     const supabase = await createClient()
 
@@ -79,57 +219,7 @@ export default async function TrendingPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {sortedProducts.map((product, index) => (
-                            <Link key={product.id} href={`/product/${product.id}`} className="group block">
-                                <div className="relative">
-                                    <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
-                                        {product.images?.[0] ? (
-                                            <img
-                                                src={product.images[0]}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <ShoppingBag className="w-8 h-8 text-neutral-300" />
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        
-                                        {/* Rank Badge */}
-                                        {index < 3 && (
-                                            <div className="absolute top-2 left-2">
-                                                <Badge className={`border-0 text-white ${
-                                                    index === 0 ? 'bg-amber-500' : 
-                                                    index === 1 ? 'bg-neutral-400' : 
-                                                    'bg-amber-700'
-                                                }`}>
-                                                    #{index + 1} Trending
-                                                </Badge>
-                                            </div>
-                                        )}
-
-                                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
-                                                {product.name}
-                                            </p>
-                                            <p className="text-white/70 text-xs mt-1">
-                                                by {product.stores?.name || 'Unknown'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-3">
-                                    <p className="font-medium text-neutral-900 text-sm line-clamp-1 group-hover:text-[#7C3AED] transition-colors">
-                                        {product.name}
-                                    </p>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <span className="font-bold text-neutral-900">₹{product.price}</span>
-                                        <span className="text-xs text-neutral-500 flex items-center gap-1">
-                                            <Eye className="w-3 h-3" /> {product.orders?.length || 0} sold
-                                        </span>
-                                    </div>
-                                </div>
-                            </Link>
+                            <TrendingProductCard key={product.id} product={product} index={index} />
                         ))}
                     </div>
                 </div>
@@ -155,33 +245,7 @@ export default async function TrendingPage() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {(newArrivals || []).map((product) => (
-                            <Link key={product.id} href={`/product/${product.id}`} className="group block">
-                                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                                    <CardContent className="p-0">
-                                        <div className="aspect-square bg-neutral-100 relative overflow-hidden">
-                                            {product.images?.[0] ? (
-                                                <img
-                                                    src={product.images[0]}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <ShoppingBag className="w-8 h-8 text-neutral-300" />
-                                                </div>
-                                            )}
-                                            <Badge className="absolute top-2 left-2 bg-green-500 text-white border-0">
-                                                New
-                                            </Badge>
-                                        </div>
-                                        <div className="p-4">
-                                            <p className="font-medium text-neutral-900 text-sm line-clamp-1">{product.name}</p>
-                                            <p className="text-xs text-neutral-500 mt-1">{product.stores?.name}</p>
-                                            <p className="font-bold text-neutral-900 mt-2">₹{product.price}</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </Link>
+                            <NewArrivalCard key={product.id} product={product} />
                         ))}
                     </div>
                 </div>

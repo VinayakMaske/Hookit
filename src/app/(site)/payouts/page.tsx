@@ -35,7 +35,7 @@ const payoutSchedules = [
     {
         plan: 'Pro',
         planColor: 'bg-[#7C3AED]/10 text-[#7C3AED]',
-        price: '₹499/mo',
+        price: '₹199/mo',
         settlement: 'T+2',
         settlementDays: 2,
         description: '2 business days after order delivery/completion',
@@ -57,7 +57,7 @@ const payoutSchedules = [
     {
         plan: 'Business',
         planColor: 'bg-amber-100 text-amber-700',
-        price: '₹1,999/mo',
+        price: '₹499/mo',
         settlement: 'T+1',
         settlementDays: 1,
         description: 'Next business day after order delivery/completion',

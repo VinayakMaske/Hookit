@@ -1,3 +1,4 @@
+// src/app/api/orders/update-status/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -6,59 +7,56 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    const orderId = formData.get('orderId') as string
-    const status = formData.get('status') as string
+    try {
+        const body = await request.json()
+        const { orderId, status } = body
 
-    if (!orderId || !status) {
-        return NextResponse.redirect(new URL('/seller/orders', request.url))
-    }
-
-    // Verify ownership - fetch order with store details
-    const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-            id,
-            store_id,
-            buyer_name,
-            buyer_phone,
-            total_amount,
-            stores!inner (
-                owner_id,
-                whatsapp_number,
-                name
-            )
-        `)
-        .eq('id', orderId)
-        .single()
-
-    if (orderError || !order) {
-        return NextResponse.redirect(new URL('/seller/orders', request.url))
-    }
-
-    // Handle both array and object response from Supabase
-    const storeData = Array.isArray(order.stores) ? order.stores[0] : order.stores
-
-    if (!storeData || storeData.owner_id !== user.id) {
-        return NextResponse.redirect(new URL('/seller/orders', request.url))
-    }
-
-    // Update order status
-    await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId)
-
-    // Send WhatsApp notification to seller if status changed to processing or shipped
-    if (status === 'processing' || status === 'shipped') {
-        const sellerWhatsapp = storeData.whatsapp_number
-        if (sellerWhatsapp) {
-            console.log(`WhatsApp notification to seller ${sellerWhatsapp}: Order #${orderId.slice(0, 8)} is now ${status}`)
+        if (!orderId || !status) {
+            return NextResponse.json({ error: 'Missing orderId or status' }, { status: 400 })
         }
-    }
 
-    return NextResponse.redirect(new URL('/seller/orders', request.url))
+        // Verify ownership - get store first
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('id, store_id, status')
+            .eq('id', orderId)
+            .single()
+
+        if (orderError || !order) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+        }
+
+        // Get store to verify owner
+        const { data: store } = await supabase
+            .from('stores')
+            .select('owner_id')
+            .eq('id', order.store_id)
+            .single()
+
+        if (!store || store.owner_id !== user.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        }
+
+        // Update order status - trigger will auto-create payout if completed
+        const { error: updateError } = await supabase
+            .from('orders')
+            .update({ status })
+            .eq('id', orderId)
+
+        if (updateError) {
+            return NextResponse.json({ error: updateError.message }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true, message: 'Status updated' })
+
+    } catch (error: any) {
+        console.error('Update status error:', error)
+        return NextResponse.json(
+            { error: error.message || 'Failed to update status' },
+            { status: 500 }
+        )
+    }
 }

@@ -25,18 +25,18 @@ const contactMethods = [
     {
         icon: Phone,
         title: 'Phone',
-        value: '+91 98765 43210',
+        value: '+91 8459444524',
         description: 'Mon-Sat, 9 AM - 6 PM IST',
-        action: 'tel:+919876543210',
+        action: 'tel:+918459444524',
         actionLabel: 'Call Now',
         color: 'bg-green-50 text-green-600',
     },
     {
         icon: MessageCircle,
         title: 'WhatsApp',
-        value: '+91 98765 43210',
+        value: '+91 8459444524',
         description: 'Fastest response for urgent queries',
-        action: 'https://wa.me/919876543210',
+        action: 'https://wa.me/918459444524',
         actionLabel: 'Chat on WhatsApp',
         color: 'bg-green-50 text-green-600',
     },
@@ -278,7 +278,7 @@ export default function ContactPage() {
                         <a href="#" className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center hover:bg-[#7C3AED] hover:text-white transition-all text-neutral-600">
                             <FaTwitter className="w-6 h-6" />
                         </a>
-                        <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center hover:bg-green-600 hover:text-white transition-all text-neutral-600">
+                        <a href="https://wa.me/918459444524" target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center hover:bg-green-600 hover:text-white transition-all text-neutral-600">
                             <MessageCircle className="w-6 h-6" />
                         </a>
                         <a href="mailto:support@hookit.online" className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all text-neutral-600">

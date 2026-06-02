@@ -149,26 +149,6 @@ function OrderSuccessContent() {
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Guest Review Form */}
-                {order.products?.id && (
-                    <div className="mb-6">
-                        <GuestReviewForm 
-                            productId={order.products.id}
-                            orderId={order.id}
-                            buyerName={order.buyer_name}
-                        />
-                    </div>
-                )}
-
-                {order.products?.stores?.whatsapp_number && (
-                    <a href={`https://wa.me/${order.products.stores.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="block mb-4">
-                        <Button className="w-full h-14 text-lg gap-2 bg-green-600 hover:bg-green-700">
-                            <Phone className="w-5 h-5" /> Chat with Seller on WhatsApp
-                        </Button>
-                    </a>
-                )}
-
                 <div className="flex gap-3">
                     <Link href="/explore" className="flex-1">
                         <Button variant="outline" className="w-full h-12 gap-2"><ArrowRight className="w-4 h-4" /> Continue Shopping</Button>

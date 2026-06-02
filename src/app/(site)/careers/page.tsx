@@ -220,7 +220,7 @@ export default function CareersPage() {
                                         </div>
                                         <a href={`mailto:careers@hookit.online?subject=Application: ${encodeURIComponent(position.title)}`}>
                                             <Button className="bg-[#7C3AED] hover:bg-[#6d28d9] gap-2 shrink-0">
-                                                Apply Now
+                                                Comming Soon
                                                 <ArrowRight className="w-4 h-4" />
                                             </Button>
                                         </a>
@@ -298,7 +298,7 @@ export default function CareersPage() {
                                     <span className="text-lg font-bold text-[#7C3AED]">V</span>
                                 </div>
                                 <div>
-                                    <p className="font-medium">Vinay M.</p>
+                                    <p className="font-medium">Vinayak M.</p>
                                     <p className="text-sm text-neutral-500">Founder & CEO</p>
                                 </div>
                             </div>

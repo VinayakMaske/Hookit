@@ -327,6 +327,7 @@ function CheckoutContent() {
                                             id="buyerName"
                                             placeholder="Enter your full name"
                                             value={formData.buyerName}
+                                            required
                                             onChange={(e) => setFormData({ ...formData, buyerName: e.target.value })}
                                             className="h-12"
                                         />
@@ -344,6 +345,7 @@ function CheckoutContent() {
                                             placeholder="+91 98765 43210"
                                             value={formData.buyerPhone}
                                             onChange={(e) => setFormData({ ...formData, buyerPhone: e.target.value })}
+                                            required
                                             className="h-12"
                                         />
                                     </div>
@@ -352,7 +354,7 @@ function CheckoutContent() {
                                     <div className="space-y-2">
                                         <Label htmlFor="buyerEmail" className="flex items-center gap-2">
                                             <Mail className="w-4 h-4 text-neutral-400" />
-                                            Email (optional)
+                                            Email *
                                         </Label>
                                         <Input
                                             id="buyerEmail"
@@ -360,6 +362,7 @@ function CheckoutContent() {
                                             placeholder="your@email.com"
                                             value={formData.buyerEmail}
                                             onChange={(e) => setFormData({ ...formData, buyerEmail: e.target.value })}
+                                            required
                                             className="h-12"
                                         />
                                     </div>
@@ -383,6 +386,7 @@ function CheckoutContent() {
                                                 value={formData.addressLine1}
                                                 onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
                                                 className="h-12"
+                                                required
                                             />
                                         </div>
 
@@ -413,6 +417,7 @@ function CheckoutContent() {
                                                     value={formData.city}
                                                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                                                     className="h-12"
+                                                    required
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -425,6 +430,7 @@ function CheckoutContent() {
                                                     value={formData.state}
                                                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                                                     className="h-12"
+                                                    required
                                                 />
                                             </div>
                                         </div>
@@ -447,6 +453,7 @@ function CheckoutContent() {
                                                         setFormData({ ...formData, pincode: val })
                                                     }}
                                                     className="h-12"
+                                                    required
                                                 />
                                             </div>
                                             <div className="space-y-2">

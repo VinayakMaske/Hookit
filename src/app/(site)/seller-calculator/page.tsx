@@ -11,9 +11,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 const COMMISSION_RATES = {
-    starter: 12,
-    pro: 10,
-    business: 8,
+    starter: 8,
+    pro: 6,
+    business: 3,
 }
 
 const PAYMENT_FEE = 1.5

@@ -91,7 +91,7 @@ const popularQuestions = [
     },
     {
         question: 'How much does it cost to sell on Hookit?',
-        answer: 'Creating a store and listing products is completely free. You only pay when you make a sale. Our fee is 8% platform commission + 1.5% payment processing fee (total 9.5%). For example, on a ₹1,000 sale, you receive ₹905. We also offer Pro (₹499/month, 10% commission) and Business plans (₹1,999/month, 8% commission) for sellers who want more features.',
+        answer: 'Creating a store and listing products is completely free. You only pay when you make a sale. Our fee is 8% platform commission + 1.5% payment processing fee (total 9.5%). For example, on a ₹1,000 sale, you receive ₹905. We also offer Pro (₹199/month, 6% commission) and Business plans (₹499/month, 3% commission) for sellers who want more features.',
     },
     {
         question: 'When do I get paid for my sales?',
@@ -213,11 +213,11 @@ export default function HelpCenterPage() {
                             Can't find what you're looking for? Our support team is here to help you with any questions.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a href="mailto:support@hookit.online" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#7C3AED] hover:bg-[#6d28d9] rounded-full text-white font-medium transition-colors">
+                            <a href="mailto:storeapp2026@gmail.com" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#7C3AED] hover:bg-[#6d28d9] rounded-full text-white font-medium transition-colors">
                                 <Mail className="w-5 h-5" />
                                 Email Support
                             </a>
-                            <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-full text-white font-medium transition-colors">
+                            <a href="https://wa.me/918459444524" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-full text-white font-medium transition-colors">
                                 <Phone className="w-5 h-5" />
                                 WhatsApp Support
                             </a>
@@ -225,11 +225,11 @@ export default function HelpCenterPage() {
                         <div className="mt-8 pt-8 border-t border-neutral-800 grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
                             <div>
                                 <p className="text-neutral-400 mb-1">Email</p>
-                                <p className="text-white">support@hookit.online</p>
+                                <p className="text-white">storeapp2026@gmail.com</p>
                             </div>
                             <div>
                                 <p className="text-neutral-400 mb-1">WhatsApp</p>
-                                <p className="text-white">+91 98765 43210</p>
+                                <p className="text-white">+91 8459444524</p>
                             </div>
                             <div>
                                 <p className="text-neutral-400 mb-1">Response Time</p>

@@ -193,7 +193,7 @@ export default function PressPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div className="flex justify-between py-2 border-b border-neutral-100">
                                     <span className="text-neutral-500">Legal Name</span>
-                                    <span className="font-medium text-neutral-900">Hookit Technologies Pvt. Ltd.</span>
+                                    <span className="font-medium text-neutral-900">Hookit Technologies </span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-neutral-100">
                                     <span className="text-neutral-500">Founded</span>
@@ -205,7 +205,7 @@ export default function PressPage() {
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-neutral-100">
                                     <span className="text-neutral-500">Founder & CEO</span>
-                                    <span className="font-medium text-neutral-900">Vinay Maske</span>
+                                    <span className="font-medium text-neutral-900">Vinayak Maske</span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-neutral-100">
                                     <span className="text-neutral-500">Website</span>
@@ -247,7 +247,7 @@ export default function PressPage() {
                                                 <span className="font-bold text-[#7C3AED]">V</span>
                                             </div>
                                             <div>
-                                                <p className="font-medium text-neutral-900">Vinay Maske</p>
+                                                <p className="font-medium text-neutral-900">Vinayak Maske</p>
                                                 <p className="text-sm text-neutral-500">Founder & CEO, Hookit</p>
                                             </div>
                                         </div>

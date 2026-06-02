@@ -19,9 +19,9 @@ const plans = [
         price: 'Free',
         period: 'forever',
         description: 'Perfect for hobbyists and new creators',
-        commission: 12,
+        commission: 8,
         features: [
-            'List up to 10 products',
+            'List up to 50 products',
             'Basic store page',
             'Standard analytics',
             'Email support',
@@ -38,12 +38,12 @@ const plans = [
     },
     {
         name: 'Pro',
-        price: '₹499',
+        price: '₹199',
         period: '/month',
         description: 'For serious creators growing their business',
-        commission: 10,
+        commission: 6,
         features: [
-            'List up to 50 products',
+            'List up to 300 products',
             'Custom store branding',
             'Advanced analytics dashboard',
             '5 featured listings/month',
@@ -55,15 +55,15 @@ const plans = [
             'API access',
             'Dedicated account manager',
         ],
-        cta: 'Upgrade to Pro',
+        cta: 'Comming Soon',
         popular: true,
     },
     {
         name: 'Business',
-        price: '₹1,999',
+        price: '₹499',
         period: '/month',
         description: 'For established brands and high-volume sellers',
-        commission: 8,
+        commission: 3,
         features: [
             'Unlimited products',
             'Custom domain support',
@@ -76,7 +76,7 @@ const plans = [
             'Bulk product upload',
         ],
         notIncluded: [],
-        cta: 'Contact Sales',
+        cta: 'Comming Soon',
         popular: false,
     },
 ]
@@ -151,10 +151,10 @@ export default function PricingPage() {
                             <div className="p-4 bg-neutral-50 font-medium text-neutral-900 border-b border-neutral-200 text-center">Listing Fee</div>
                             <div className="p-4 bg-neutral-50 font-medium text-neutral-900 border-b border-neutral-200 text-center">Monthly Fee</div>
                             
-                            <div className="p-4 font-bold text-[#7C3AED] border-b border-neutral-200">Hookit (Pro)</div>
-                            <div className="p-4 text-center font-bold text-[#7C3AED] border-b border-neutral-200">10%</div>
+                            <div className="p-4 font-bold text-[#7C3AED] border-b border-neutral-200">Hookit (Starter)</div>
+                            <div className="p-4 text-center font-bold text-[#7C3AED] border-b border-neutral-200">8% + 1.5%</div>
                             <div className="p-4 text-center text-green-600 font-medium border-b border-neutral-200">Free</div>
-                            <div className="p-4 text-center text-neutral-900 border-b border-neutral-200">₹499</div>
+                            <div className="p-4 text-center text-green-600 border-b border-neutral-200">Free</div>
                             
                             <div className="p-4 text-neutral-700 border-b border-neutral-200">Amazon India</div>
                             <div className="p-4 text-center text-neutral-600 border-b border-neutral-200">15-20%</div>
@@ -165,11 +165,6 @@ export default function PricingPage() {
                             <div className="p-4 text-center text-neutral-600 border-b border-neutral-200">15-25%</div>
                             <div className="p-4 text-center text-red-500 border-b border-neutral-200">Variable</div>
                             <div className="p-4 text-center text-neutral-600 border-b border-neutral-200">Variable</div>
-                            
-                            <div className="p-4 text-neutral-700">Etsy</div>
-                            <div className="p-4 text-center text-neutral-600">6.5% + fees</div>
-                            <div className="p-4 text-center text-red-500">$0.20/item</div>
-                            <div className="p-4 text-center text-neutral-600">None</div>
                         </div>
                     </div>
                     <p className="text-sm text-neutral-500 text-center mt-4">
@@ -270,10 +265,10 @@ export default function PricingPage() {
                         <CardContent className="p-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
-                                    <h3 className="font-semibold text-neutral-900 mb-4">Pro Plan (10% commission)</h3>
+                                    <h3 className="font-semibold text-neutral-900 mb-4">Starter (8% commission)</h3>
                                     <div className="space-y-4">
                                         {examples.map((ex) => {
-                                            const earnings = calculateEarnings(ex.amount, 10)
+                                            const earnings = calculateEarnings(ex.amount, 8)
                                             return (
                                                 <div key={ex.amount} className="bg-neutral-50 rounded-lg p-4">
                                                     <div className="flex justify-between items-center mb-2">
@@ -282,7 +277,37 @@ export default function PricingPage() {
                                                     </div>
                                                     <div className="space-y-1 text-xs text-neutral-500">
                                                         <div className="flex justify-between">
-                                                            <span>Platform Fee (10%)</span>
+                                                            <span>Platform Fee (8%)</span>
+                                                            <span>-₹{earnings.commission.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span>Payment Fee (1.5%)</span>
+                                                            <span>-₹{earnings.paymentFee.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="border-t border-neutral-200 pt-1 flex justify-between font-medium text-green-600">
+                                                            <span>You Receive</span>
+                                                            <span>₹{earnings.sellerReceives.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-neutral-900 mb-4">Pro Plan (6% commission)</h3>
+                                    <div className="space-y-4">
+                                        {examples.map((ex) => {
+                                            const earnings = calculateEarnings(ex.amount, 6)
+                                            return (
+                                                <div key={ex.amount} className="bg-neutral-50 rounded-lg p-4">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-sm font-medium text-neutral-700">{ex.label}</span>
+                                                        <span className="font-bold text-neutral-900">₹{ex.amount}</span>
+                                                    </div>
+                                                    <div className="space-y-1 text-xs text-neutral-500">
+                                                        <div className="flex justify-between">
+                                                            <span>Platform Fee (6%)</span>
                                                             <span>-₹{earnings.commission.toFixed(2)}</span>
                                                         </div>
                                                         <div className="flex justify-between">
@@ -301,10 +326,10 @@ export default function PricingPage() {
                                 </div>
                                 
                                 <div>
-                                    <h3 className="font-semibold text-neutral-900 mb-4">Business Plan (8% commission)</h3>
+                                    <h3 className="font-semibold text-neutral-900 mb-4">Business Plan (3% commission)</h3>
                                     <div className="space-y-4">
                                         {examples.map((ex) => {
-                                            const earnings = calculateEarnings(ex.amount, 8)
+                                            const earnings = calculateEarnings(ex.amount, 3)
                                             return (
                                                 <div key={ex.amount} className="bg-neutral-50 rounded-lg p-4">
                                                     <div className="flex justify-between items-center mb-2">
@@ -313,7 +338,7 @@ export default function PricingPage() {
                                                     </div>
                                                     <div className="space-y-1 text-xs text-neutral-500">
                                                         <div className="flex justify-between">
-                                                            <span>Platform Fee (8%)</span>
+                                                            <span>Platform Fee (3%)</span>
                                                             <span>-₹{earnings.commission.toFixed(2)}</span>
                                                         </div>
                                                         <div className="flex justify-between">

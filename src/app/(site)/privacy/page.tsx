@@ -157,7 +157,7 @@ export default function PrivacyPolicyPage() {
                                 </a>
                                 <a href="tel:+919876543210" className="flex items-center gap-2 text-neutral-700 hover:text-[#7C3AED]">
                                     <Phone className="w-5 h-5" />
-                                    +91 98765 43210
+                                    +91 8459444524
                                 </a>
                             </div>
                         </div>

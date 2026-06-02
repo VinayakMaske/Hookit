@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Store, ShoppingBag, MapPin, Phone, Mail, Shield, Star, Package, Users, Heart, ExternalLink } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Store, ShoppingBag, Shield, Star, Package, Users, Heart, ExternalLink, Truck, RotateCcw, Clock, CheckCircle, XCircle, Info } from 'lucide-react'
 
 export default async function StorePage({
     params,
@@ -40,6 +41,10 @@ export default async function StorePage({
         : null
 
     const totalReviews = reviews?.length || 0
+
+    // Check if seller has policies configured
+    const hasReturnPolicy = store.accepts_returns && store.return_policy
+    const hasShippingPolicy = store.shipping_policy
 
     return (
         <div className="min-h-screen bg-[#f8f7fb] pt-20">
@@ -119,15 +124,128 @@ export default async function StorePage({
                                     </span>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Actions */}
-                            <div className="flex flex-col gap-2 shrink-0">
-                                <Link href={`/store/${slug}/reviews`}>
-                                    <Button variant="outline" className="w-full gap-2 rounded-full border-neutral-200">
-                                        <Star className="w-4 h-4" />
-                                        Read Reviews
-                                    </Button>
-                                </Link>
+                        {/* Policies Section - Below Store Info */}
+                        <div className="mt-6 pt-6 border-t border-neutral-100">
+                            <div className="flex flex-wrap items-center gap-4">
+                                <p className="text-sm text-neutral-500 flex items-center gap-1.5">
+                                    <Info className="w-4 h-4 text-[#7C3AED]" />
+                                    Store Policies:
+                                </p>
+                                
+                                {/* Return & Refund Policy Dialog */}
+                                {hasReturnPolicy ? (
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button className="inline-flex items-center gap-1.5 text-sm text-[#7C3AED] hover:text-[#6d28d9] hover:underline transition-colors cursor-pointer">
+                                                <RotateCcw className="w-3.5 h-3.5" />
+                                                Return & Refund Policy
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle className="flex items-center gap-2 text-lg">
+                                                    <RotateCcw className="w-5 h-5 text-[#7C3AED]" />
+                                                    Return & Refund Policy
+                                                </DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4 mt-4">
+                                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                                                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                                                    <div>
+                                                        <p className="font-medium text-green-800">Returns Accepted</p>
+                                                        <p className="text-sm text-green-600">{store.return_window_days || 7}-day return window</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="bg-neutral-50 rounded-lg p-4">
+                                                    <h4 className="font-medium text-neutral-900 mb-2">Policy Details</h4>
+                                                    <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-wrap">
+                                                        {store.return_policy}
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-xs text-neutral-500 bg-neutral-100 rounded-lg p-3">
+                                                    <p className="flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        Return window: {store.return_window_days || 7} days from delivery
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-sm text-neutral-400">
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        No Returns
+                                    </span>
+                                )}
+
+                                <span className="text-neutral-300">|</span>
+
+                                {/* Shipping & Delivery Policy Dialog */}
+                                {hasShippingPolicy ? (
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button className="inline-flex items-center gap-1.5 text-sm text-[#7C3AED] hover:text-[#6d28d9] hover:underline transition-colors cursor-pointer">
+                                                <Truck className="w-3.5 h-3.5" />
+                                                Shipping & Delivery Policy
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle className="flex items-center gap-2 text-lg">
+                                                    <Truck className="w-5 h-5 text-[#7C3AED]" />
+                                                    Shipping & Delivery Policy
+                                                </DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4 mt-4">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="p-3 bg-neutral-50 rounded-lg text-center">
+                                                        <Clock className="w-5 h-5 text-[#7C3AED] mx-auto mb-1" />
+                                                        <p className="text-sm font-medium text-neutral-900">{store.processing_time_days || 3} days</p>
+                                                        <p className="text-xs text-neutral-500">Processing Time</p>
+                                                    </div>
+                                                    <div className="p-3 bg-neutral-50 rounded-lg text-center">
+                                                        <Truck className="w-5 h-5 text-[#7C3AED] mx-auto mb-1" />
+                                                        <p className="text-sm font-medium text-neutral-900">
+                                                            {store.delivery_time_days_min || 5}-{store.delivery_time_days_max || 10} days
+                                                        </p>
+                                                        <p className="text-xs text-neutral-500">Delivery Time</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-neutral-50 rounded-lg p-4">
+                                                    <h4 className="font-medium text-neutral-900 mb-2">Shipping Details</h4>
+                                                    <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-wrap">
+                                                        {store.shipping_policy}
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    <div className="p-3 bg-neutral-100 rounded-lg">
+                                                        <p className="text-neutral-500 text-xs mb-1">Shipping Fee</p>
+                                                        <p className="font-medium text-neutral-900">
+                                                            {store.shipping_fee > 0 ? `₹${store.shipping_fee}` : 'Free'}
+                                                        </p>
+                                                    </div>
+                                                    {store.free_shipping_above && (
+                                                        <div className="p-3 bg-green-50 rounded-lg">
+                                                            <p className="text-green-600 text-xs mb-1">Free Shipping Above</p>
+                                                            <p className="font-medium text-green-700">₹{store.free_shipping_above}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-sm text-neutral-400">
+                                        <Info className="w-3.5 h-3.5" />
+                                        Shipping details not set
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -237,10 +355,10 @@ export default async function StorePage({
                         </div>
                         <div>
                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                <Phone className="w-5 h-5 text-blue-600" />
+                                <Shield className="w-5 h-5 text-blue-600" />
                             </div>
-                            <p className="text-sm font-medium text-neutral-900">Direct Support</p>
-                            <p className="text-xs text-neutral-500">Chat with seller</p>
+                            <p className="text-sm font-medium text-neutral-900">Unique Products</p>
+                            <p className="text-xs text-neutral-500">Verified Products</p>
                         </div>
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+// src/lib/email.ts
 import nodemailer from 'nodemailer'
 
 // Create reusable transporter using Gmail
@@ -104,24 +105,122 @@ export async function sendBuyerConfirmation(
                         <p style="margin: 8px 0;"><strong>Total:</strong> ₹${orderDetails.totalAmount}</p>
                     </div>
                     
-                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                        <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">Seller Details</h2>
-                        <p style="margin: 8px 0;"><strong>Store:</strong> ${orderDetails.sellerName}</p>
-                        <p style="margin: 8px 0;"><strong>Phone:</strong> ${orderDetails.sellerPhone || 'Not available'}</p>
-                        ${orderDetails.sellerWhatsapp ? `
-                        <a href="https://wa.me/${orderDetails.sellerWhatsapp.replace(/[^0-9]/g, '')}" 
-                           style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #25d366; color: white; text-decoration: none; border-radius: 6px;">
-                            💬 Chat on WhatsApp
-                        </a>
-                        ` : ''}
-                    </div>
-                    
                     <div style="background: #fff3e0; padding: 20px; border-radius: 8px; text-align: center;">
                         <p style="margin: 0; color: #e65100; font-weight: 600;">
-                            📱 The seller will contact you on WhatsApp for order updates
+                            📱 The seller will contact you on Email for order updates
                         </p>
                     </div>
                     
+                    <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
+                        Questions? Reply to this email or contact the seller directly.
+                    </p>
+                </div>
+            </div>
+        `,
+    }
+
+    await transporter.sendMail(mailOptions)
+}
+
+// ✅ NEW FUNCTION: Send order status update email to buyer
+export async function sendStatusUpdateEmail(
+    to: string,
+    orderDetails: {
+        orderId: string
+        productName: string
+        quantity: number
+        totalAmount: number
+        status: string
+        sellerName: string
+        sellerPhone: string
+        buyerName: string
+    }
+) {
+    // Status-specific styling and messages
+    const statusConfig: Record<string, { color: string; bgColor: string; emoji: string; message: string; title: string }> = {
+        pending: {
+            color: '#f59e0b',
+            bgColor: '#fef3c7',
+            emoji: '⏳',
+            message: 'Your order has been received and is pending confirmation.',
+            title: 'Order Pending'
+        },
+        processing: {
+            color: '#3b82f6',
+            bgColor: '#dbeafe',
+            emoji: '🔧',
+            message: 'Your order is being prepared and processed.',
+            title: 'Order Processing'
+        },
+        shipped: {
+            color: '#7c3aed',
+            bgColor: '#ede9fe',
+            emoji: '📦',
+            message: 'Your order has been shipped and is on its way!',
+            title: 'Order Shipped'
+        },
+        delivered: {
+            color: '#10b981',
+            bgColor: '#d1fae5',
+            emoji: '✅',
+            message: 'Your order has been delivered. Enjoy your purchase!',
+            title: 'Order Delivered'
+        },
+        completed: {
+            color: '#059669',
+            bgColor: '#d1fae5',
+            emoji: '🎉',
+            message: 'Your order is complete! Thank you for shopping with us.',
+            title: 'Order Completed'
+        },
+        cancelled: {
+            color: '#ef4444',
+            bgColor: '#fee2e2',
+            emoji: '❌',
+            message: 'Your order has been cancelled. Contact the seller for more details.',
+            title: 'Order Cancelled'
+        }
+    }
+
+    const config = statusConfig[orderDetails.status] || statusConfig.pending
+
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to: to,
+        subject: `${config.emoji} ${config.title} - Order #${orderDetails.orderId.slice(0, 8).toUpperCase()}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #1a1a1a; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">${config.emoji}</div>
+                    <h1 style="margin: 0; font-size: 24px;">${config.title}</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.8;">Order #${orderDetails.orderId.slice(0, 8).toUpperCase()}</p>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <!-- Status Banner -->
+                    <div style="background: ${config.bgColor}; border: 2px solid ${config.color}; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                        <p style="margin: 0; color: ${config.color}; font-size: 18px; font-weight: 700; text-transform: uppercase;">
+                            ${orderDetails.status}
+                        </p>
+                        <p style="margin: 8px 0 0 0; color: #666; font-size: 14px;">
+                            ${config.message}
+                        </p>
+                    </div>
+                    
+                    <!-- Order Details -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">📦 Order Details</h2>
+                        <p style="margin: 8px 0;"><strong>Order ID:</strong> #${orderDetails.orderId.slice(0, 12).toUpperCase()}</p>
+                        <p style="margin: 8px 0;"><strong>Product:</strong> ${orderDetails.productName}</p>
+                        <p style="margin: 8px 0;"><strong>Quantity:</strong> ${orderDetails.quantity}</p>
+                        <p style="margin: 8px 0;"><strong>Total Amount:</strong> ₹${orderDetails.totalAmount}</p>
+                    </div>
+                                        
+                    <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
+                        This is an automated status update from Hookit.<br>
+                        You can view your order at https://hookit.online/order/success
+                    </p>
+
                     <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
                         Questions? Reply to this email or contact the seller directly.
                     </p>

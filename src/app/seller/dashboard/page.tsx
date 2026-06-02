@@ -164,7 +164,7 @@ export default async function DashboardPage() {
                     <div className="flex-1">
                         <p className="font-medium text-amber-900">New Order Notifications</p>
                         <p className="text-sm text-amber-700">
-                            You get WhatsApp notifications for new orders on: {store.whatsapp_number || 'Not set'}
+                            You get Email notifications for new orders.
                         </p>
                     </div>
                     <Link href="/seller/settings">

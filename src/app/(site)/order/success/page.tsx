@@ -133,13 +133,6 @@ function OrderSuccessContent() {
                                     <p className="text-sm text-neutral-500 capitalize">{order.status}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <Phone className="w-5 h-5 text-neutral-400" />
-                                <div>
-                                    <p className="text-sm font-medium text-neutral-900">Seller Contact</p>
-                                    <p className="text-sm text-neutral-500">{order.products?.stores?.whatsapp_number || 'Not available'}</p>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Order Protection Badge */}

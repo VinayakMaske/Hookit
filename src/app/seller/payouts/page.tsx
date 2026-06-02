@@ -159,7 +159,7 @@ export default function PayoutsPage() {
                             Pending
                         </div>
                         <div className="text-2xl font-bold text-amber-600">₹{totalPending.toFixed(2)}</div>
-                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout (after {commissionRate}% fee)</p>
+                        <p className="text-xs text-neutral-500 mt-1">Awaiting payout (after 8% + 1.5% fee)</p>
                     </CardContent>
                 </Card>
             </div>

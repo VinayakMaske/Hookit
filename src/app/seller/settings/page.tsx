@@ -1,7 +1,7 @@
-// src/app/seller/settings/page.tsx - UPDATED WITH POLICY FIELDS
+// src/app/seller/settings/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Loader2, Save, Trash2, Store, AlertTriangle, Truck, RotateCcw, Shield, Globe } from 'lucide-react'
+import { Loader2, Save, Trash2, Store, AlertTriangle, Truck, RotateCcw, Upload, X, ImageIcon } from 'lucide-react'
 
 export default function SettingsPage() {
     const router = useRouter()
@@ -30,6 +30,15 @@ export default function SettingsPage() {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
     const [storeId, setStoreId] = useState('')
+
+    // Image upload states
+    const [logoPreview, setLogoPreview] = useState<string | null>(null)
+    const [bannerPreview, setBannerPreview] = useState<string | null>(null)
+    const [uploadingLogo, setUploadingLogo] = useState(false)
+    const [uploadingBanner, setUploadingBanner] = useState(false)
+    const logoInputRef = useRef<HTMLInputElement>(null)
+    const bannerInputRef = useRef<HTMLInputElement>(null)
+
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
@@ -82,7 +91,6 @@ export default function SettingsPage() {
                 logoUrl: data.logo_url || '',
                 bannerUrl: data.banner_url || '',
                 isActive: data.is_active,
-                // Policies
                 returnPolicy: data.return_policy || '',
                 returnWindowDays: data.return_window_days?.toString() || '7',
                 acceptsReturns: data.accepts_returns ?? true,
@@ -93,9 +101,95 @@ export default function SettingsPage() {
                 freeShippingAbove: data.free_shipping_above?.toString() || '',
                 shippingFee: data.shipping_fee?.toString() || '0',
             })
+            // Set previews from existing URLs
+            if (data.logo_url) setLogoPreview(data.logo_url)
+            if (data.banner_url) setBannerPreview(data.banner_url)
         }
 
         setLoading(false)
+    }
+
+    const uploadImage = async (file: File, type: 'logo' | 'banner') => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            setError('You must be logged in to upload images')
+            return null
+        }
+
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`
+
+        if (type === 'logo') setUploadingLogo(true)
+        else setUploadingBanner(true)
+
+        const { data, error: uploadError } = await supabase.storage
+            .from('store-assets')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            })
+
+        if (uploadError) {
+            setError(`Failed to upload ${type}: ${uploadError.message}`)
+            if (type === 'logo') setUploadingLogo(false)
+            else setUploadingBanner(false)
+            return null
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('store-assets')
+            .getPublicUrl(fileName)
+
+        if (type === 'logo') setUploadingLogo(false)
+        else setUploadingBanner(false)
+
+        return publicUrl
+    }
+
+    const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Show preview immediately
+        const reader = new FileReader()
+        reader.onloadend = () => setLogoPreview(reader.result as string)
+        reader.readAsDataURL(file)
+
+        // Upload to Supabase
+        const url = await uploadImage(file, 'logo')
+        if (url) {
+            setFormData(prev => ({ ...prev, logoUrl: url }))
+        }
+    }
+
+    const handleBannerSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Show preview immediately
+        const reader = new FileReader()
+        reader.onloadend = () => setBannerPreview(reader.result as string)
+        reader.readAsDataURL(file)
+
+        // Upload to Supabase
+        const url = await uploadImage(file, 'banner')
+        if (url) {
+            setFormData(prev => ({ ...prev, bannerUrl: url }))
+        }
+    }
+
+    const removeLogo = () => {
+        setLogoPreview(null)
+        setFormData(prev => ({ ...prev, logoUrl: '' }))
+        if (logoInputRef.current) logoInputRef.current.value = ''
+    }
+
+    const removeBanner = () => {
+        setBannerPreview(null)
+        setFormData(prev => ({ ...prev, bannerUrl: '' }))
+        if (bannerInputRef.current) bannerInputRef.current.value = ''
     }
 
     const handleUpdate = async (e: React.FormEvent) => {
@@ -119,7 +213,6 @@ export default function SettingsPage() {
                 logo_url: formData.logoUrl,
                 banner_url: formData.bannerUrl,
                 is_active: formData.isActive,
-                // Policies
                 return_policy: formData.returnPolicy,
                 return_window_days: parseInt(formData.returnWindowDays) || 7,
                 accepts_returns: formData.acceptsReturns,
@@ -221,11 +314,12 @@ export default function SettingsPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="contactEmail">Contact Email</Label>
+                                <Label htmlFor="contactEmail">Contact Email (for order notifications)</Label>
                                 <Input
                                     id="contactEmail"
                                     type="email"
                                     value={formData.contactEmail}
+                                    required
                                     onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                                 />
                             </div>
@@ -241,7 +335,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber">WhatsApp Number (for order notifications)</Label>
+                            <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
                             <Input
                                 id="whatsappNumber"
                                 type="tel"
@@ -250,24 +344,119 @@ export default function SettingsPage() {
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="logoUrl">Logo URL</Label>
-                            <Input
-                                id="logoUrl"
-                                type="url"
-                                value={formData.logoUrl}
-                                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                            />
+                        {/* ===== LOGO UPLOAD ===== */}
+                        <div className="space-y-3">
+                            <Label>Store Logo</Label>
+                            <div className="flex items-center gap-4">
+                                {logoPreview ? (
+                                    <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-neutral-200 shrink-0">
+                                        <img
+                                            src={logoPreview}
+                                            alt="Logo preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={removeLogo}
+                                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-24 h-24 bg-neutral-100 rounded-xl flex items-center justify-center border border-dashed border-neutral-300 shrink-0">
+                                        <ImageIcon className="w-8 h-8 text-neutral-400" />
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <input
+                                        type="file"
+                                        ref={logoInputRef}
+                                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                                        onChange={handleLogoSelect}
+                                        className="hidden"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => logoInputRef.current?.click()}
+                                        disabled={uploadingLogo}
+                                        className="w-full gap-2"
+                                    >
+                                        {uploadingLogo ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-4 h-4" />
+                                                {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                                            </>
+                                        )}
+                                    </Button>
+                                    <p className="text-xs text-neutral-500 mt-1">
+                                        PNG, JPG or WebP. Max 5MB. Recommended: 400x400px.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="bannerUrl">Banner URL</Label>
-                            <Input
-                                id="bannerUrl"
-                                type="url"
-                                value={formData.bannerUrl}
-                                onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })}
-                            />
+                        {/* ===== BANNER UPLOAD ===== */}
+                        <div className="space-y-3">
+                            <Label>Store Banner</Label>
+                            <div className="space-y-3">
+                                {bannerPreview ? (
+                                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-neutral-200">
+                                        <img
+                                            src={bannerPreview}
+                                            alt="Banner preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={removeBanner}
+                                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-40 bg-neutral-100 rounded-xl flex flex-col items-center justify-center border border-dashed border-neutral-300 gap-2">
+                                        <ImageIcon className="w-10 h-10 text-neutral-400" />
+                                        <p className="text-sm text-neutral-500">Banner preview will appear here</p>
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={bannerInputRef}
+                                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                                    onChange={handleBannerSelect}
+                                    className="hidden"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => bannerInputRef.current?.click()}
+                                    disabled={uploadingBanner}
+                                    className="w-full gap-2"
+                                >
+                                    {uploadingBanner ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="w-4 h-4" />
+                                            {bannerPreview ? 'Change Banner' : 'Upload Banner'}
+                                        </>
+                                    )}
+                                </Button>
+                                <p className="text-xs text-neutral-500">
+                                    Recommended: 1200x400 pixels. PNG, JPG or WebP. Max 5MB.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
@@ -432,7 +621,7 @@ export default function SettingsPage() {
                             </p>
                         )}
 
-                        <Button type="submit" className="w-full gap-2" disabled={saving} size="lg">
+                        <Button type="submit" className="w-full gap-2" disabled={saving || uploadingLogo || uploadingBanner} size="lg">
                             {saving ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />

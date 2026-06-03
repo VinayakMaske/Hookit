@@ -142,35 +142,40 @@ export default function NewProductPage() {
     }, [])
 
     const uploadSingleImage = async (imageFile: ImageFile) => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) {
-            updateImageStatus(imageFile.id, { error: 'Not logged in', uploading: false })
-            return
-        }
-
-        const fileExt = imageFile.file.name.split('.').pop()
-        const fileName = `${user.id}/product-${Date.now()}-${imageFile.id}.${fileExt}`
-
-        const { error: uploadError } = await supabase.storage
-            .from('product-images')
-            .upload(fileName, imageFile.file, {
-                cacheControl: '3600',
-                upsert: false
-            })
-
-        if (uploadError) {
-            updateImageStatus(imageFile.id, { error: uploadError.message, uploading: false })
-            return
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(fileName)
-
-        updateImageStatus(imageFile.id, { url: publicUrl, uploading: false, error: null })
+    if (!user) {
+        updateImageStatus(imageFile.id, { error: 'Not logged in', uploading: false })
+        return
     }
+
+    const fileExt = imageFile.file.name.split('.').pop()
+    const fileName = `${user.id}/product-${Date.now()}-${imageFile.id}.${fileExt}`
+
+    const formData = new FormData()
+    formData.append('file', imageFile.file)
+    formData.append('folder', 'products')
+    formData.append('fileName', fileName)
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        })
+
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+            updateImageStatus(imageFile.id, { error: result.error || 'Upload failed', uploading: false })
+            return
+        }
+
+        updateImageStatus(imageFile.id, { url: result.url, uploading: false, error: null })
+    } catch (err: any) {
+        updateImageStatus(imageFile.id, { error: err.message || 'Upload failed', uploading: false })
+    }
+}
 
     const updateImageStatus = (id: string, updates: Partial<ImageFile>) => {
         setImages(prev => prev.map(img => 

@@ -29,7 +29,7 @@ const ALL_CATEGORIES = [
     { name: 'Custom & Personalized', slug: 'custom-and-personalized', tagline: 'Create something uniquely yours' },
 ]
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 
 // Product card with stock badges
 function CategoryProductCard({ product }: { product: any }) {
@@ -121,7 +121,7 @@ export default async function CategoryPage({
         .order('created_at', { ascending: false })
 
     // Build category image URL
-    const categoryImageUrl = `${SUPABASE_URL}/storage/v1/object/public/landing-images/categories/${slug}.jpg`
+    const categoryImageUrl = `${R2_PUBLIC_URL}/landing-images/categories/${slug}.jpg.jpeg`
 
     return (
         <div className="min-h-screen bg-white pt-20">

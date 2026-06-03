@@ -22,10 +22,9 @@ const LANDING_CATEGORIES = [
     { name: 'Photography', slug: 'photography' },
 ]
 
-// Build image URL from Supabase bucket
 const getImageUrl = (path: string) => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    return `${supabaseUrl}/storage/v1/object/public/landing-images/${path}`
+    const r2PublicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+    return `${r2PublicUrl}/landing-images/${path}.jpeg`
 }
 
 export default async function LandingPage() {

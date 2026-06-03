@@ -34,7 +34,7 @@ const ALL_CATEGORIES = [
 
 const INITIAL_CATEGORIES_COUNT = 10
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 
 // Product card with stock badges
 function ProductCard({ product }: { product: any }) {
@@ -114,8 +114,8 @@ function ExploreContent() {
     const hiddenCount = ALL_CATEGORIES.length - INITIAL_CATEGORIES_COUNT
 
     const getCategoryImage = (slug: string) => {
-        return `${SUPABASE_URL}/storage/v1/object/public/landing-images/categories/${slug}.jpg`
-    }
+    return `${R2_PUBLIC_URL}/landing-images/categories/${slug}.jpg.jpeg`
+}
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()

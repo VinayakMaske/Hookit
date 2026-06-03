@@ -119,43 +119,51 @@ export default function SettingsPage() {
     }
 
     const uploadImage = async (file: File, type: 'logo' | 'banner') => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) {
-            setError('You must be logged in to upload images')
-            return null
-        }
+    if (!user) {
+        setError('You must be logged in to upload images')
+        return null
+    }
 
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`
 
-        if (type === 'logo') setUploadingLogo(true)
-        else setUploadingBanner(true)
+    if (type === 'logo') setUploadingLogo(true)
+    else setUploadingBanner(true)
 
-        const { data, error: uploadError } = await supabase.storage
-            .from('store-assets')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: false
-            })
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', 'store-assets')
+    formData.append('fileName', fileName)
 
-        if (uploadError) {
-            setError(`Failed to upload ${type}: ${uploadError.message}`)
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        })
+
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+            setError(`Failed to upload ${type}: ${result.error || 'Upload failed'}`)
             if (type === 'logo') setUploadingLogo(false)
             else setUploadingBanner(false)
             return null
         }
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('store-assets')
-            .getPublicUrl(fileName)
-
         if (type === 'logo') setUploadingLogo(false)
         else setUploadingBanner(false)
 
-        return publicUrl
+        return result.url
+    } catch (err: any) {
+        setError(`Failed to upload ${type}: ${err.message || 'Upload failed'}`)
+        if (type === 'logo') setUploadingLogo(false)
+        else setUploadingBanner(false)
+        return null
     }
+}
 
     const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]

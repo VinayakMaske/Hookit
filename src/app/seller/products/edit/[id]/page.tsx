@@ -107,54 +107,60 @@ export default function EditProductPage() {
     }
 
     const uploadImages = async (files: FileList) => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) {
-            setError('You must be logged in to upload images')
-            return
-        }
+    if (!user) {
+        setError('You must be logged in to upload images')
+        return
+    }
 
-        setUploadingImages(true)
-        const newUrls: string[] = []
-        const newPreviews: string[] = []
+    setUploadingImages(true)
+    const newUrls: string[] = []
+    const newPreviews: string[] = []
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i]
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${user.id}/product-${Date.now()}-${i}.${fileExt}`
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${user.id}/product-${Date.now()}-${i}.${fileExt}`
 
-            const reader = new FileReader()
-            reader.onloadend = () => {
-                newPreviews.push(reader.result as string)
-                if (newPreviews.length === files.length) {
-                    setImagePreviews(prev => [...prev, ...newPreviews])
-                }
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            newPreviews.push(reader.result as string)
+            if (newPreviews.length === files.length) {
+                setImagePreviews(prev => [...prev, ...newPreviews])
             }
-            reader.readAsDataURL(file)
+        }
+        reader.readAsDataURL(file)
 
-            const { data, error: uploadError } = await supabase.storage
-                .from('product-images')
-                .upload(fileName, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                })
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folder', 'products')
+        formData.append('fileName', fileName)
 
-            if (uploadError) {
-                setError(`Failed to upload image: ${uploadError.message}`)
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            })
+
+            const result = await response.json()
+
+            if (!response.ok || !result.success) {
+                setError(`Failed to upload image: ${result.error || 'Upload failed'}`)
                 continue
             }
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('product-images')
-                .getPublicUrl(fileName)
-
-            newUrls.push(publicUrl)
+            newUrls.push(result.url)
+        } catch (err: any) {
+            setError(`Failed to upload image: ${err.message || 'Upload failed'}`)
+            continue
         }
-
-        setUploadedUrls(prev => [...prev, ...newUrls])
-        setUploadingImages(false)
     }
+
+    setUploadedUrls(prev => [...prev, ...newUrls])
+    setUploadingImages(false)
+}
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files

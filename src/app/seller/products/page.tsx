@@ -50,13 +50,13 @@ export default async function ProductsPage({
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-neutral-900">Products</h1>
-                    <p className="text-neutral-500 mt-1">Manage your products and affiliate links</p>
+                    <h1 className="text-3xl font-bold text-neutral-900">Hooks</h1>
+                    <p className="text-neutral-500 mt-1">Manage your hooks and affiliate links</p>
                 </div>
                 <Link href="/seller/products/new">
                     <Button className="gap-2">
                         <Plus className="w-4 h-4" />
-                        Add Product
+                        Add Hook
                     </Button>
                 </Link>
             </div>
@@ -78,7 +78,7 @@ export default async function ProductsPage({
                                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                             }`}
                         >
-                            All Products
+                            All Hooks
                         </Link>
 
                         {collections.map((collection) => (

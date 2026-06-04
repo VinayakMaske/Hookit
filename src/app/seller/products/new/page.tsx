@@ -370,8 +370,8 @@ export default function NewProductPage() {
     return (
         <div className="max-w-3xl mx-auto">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-neutral-900">Add New Product</h1>
-                <p className="text-neutral-500 mt-1">Add a product with pricing, fees, and GST to your store</p>
+                <h1 className="text-3xl font-bold text-neutral-900">Add New Hook</h1>
+                <p className="text-neutral-500 mt-1">Add a hook with pricing, fees, and GST to your store</p>
             </div>
 
             <Card className="border-0 shadow-sm">

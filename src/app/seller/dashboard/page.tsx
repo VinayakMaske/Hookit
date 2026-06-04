@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Package, ShoppingCart, DollarSign, TrendingUp, Bell, ExternalLink, ArrowLeft, Store, Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
+import { Package, ShoppingCart, DollarSign, TrendingUp, Bell, ExternalLink, ArrowLeft, Store, Shield, CheckCircle, AlertTriangle, XCircle, Copy, Check } from 'lucide-react'
+import CopyStoreLinkButton from '@/components/copy-store-link-button'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -56,7 +57,7 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-8">
-            {/* Header with Back to Marketplace + Visit Store */}
+            {/* Header with Back to Marketplace + Visit Store + Copy Link */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-neutral-900">{store.name}</h1>
@@ -76,6 +77,19 @@ export default async function DashboardPage() {
                         </Button>
                     </Link>
                 </div>
+            </div>
+
+            {/* Store Link Copy Section - NEW */}
+            <div className="bg-white rounded-xl border border-neutral-200 p-4 flex items-center gap-4">
+                <div className="p-3 bg-neutral-100 rounded-lg shrink-0">
+                    <Store className="w-5 h-5 text-neutral-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-900 text-sm">Your Store Link</p>
+                    <p className="text-sm text-neutral-500 truncate">hookit.online/store/{store.slug}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">Copy this link and paste it in your Instagram bio, WhatsApp status, or any social media</p>
+                </div>
+                <CopyStoreLinkButton slug={store.slug} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

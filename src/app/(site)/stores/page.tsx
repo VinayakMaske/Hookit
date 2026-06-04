@@ -163,7 +163,7 @@ export default async function StoresPage() {
         .order('created_at', { ascending: false })
 
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* Hero */}
             <div className="bg-[#f8f7fb] py-16">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

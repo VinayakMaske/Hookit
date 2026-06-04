@@ -161,7 +161,7 @@ export default async function StorePage({
     const hasShippingPolicy = store.shipping_policy
 
     return (
-        <div className="min-h-screen bg-[#f8f7fb] pt-20">
+        <div className="min-h-screen bg-[#f8f7fb]">
             {/* Store Banner */}
             <div className="relative h-48 md:h-72 bg-neutral-900 overflow-hidden">
                 {store.banner_url ? (

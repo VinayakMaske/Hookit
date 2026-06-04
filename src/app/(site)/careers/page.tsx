@@ -109,7 +109,7 @@ const openPositions = [
 
 export default function CareersPage() {
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* Hero */}
             <div className="bg-[#f8f7fb] py-20">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

@@ -179,19 +179,19 @@ function ExploreContent() {
     }
 
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* Search Bar */}
             <div className="bg-neutral-50 border-b border-neutral-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                     <h1 className="text-4xl font-bold text-neutral-900 mb-2 text-center">Explore</h1>
-                    <p className="text-neutral-500 text-center mb-6">Discover unique products from creators</p>
+                    <p className="text-neutral-500 text-center mb-6">Discover unique hooks from creators</p>
                     
                     <form className="max-w-2xl mx-auto" onSubmit={handleSearch}>
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                             <Input
                                 name="q"
-                                placeholder="Search products, creators, categories..."
+                                placeholder="Search hooks, creators, categories..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-12 h-14 bg-white border-neutral-200 text-base rounded-full shadow-sm"

@@ -128,7 +128,7 @@ export default async function CategoryPage({
     const categoryImageUrl = `${R2_PUBLIC_URL}/landing-images/categories/${slug}.jpg.jpeg`
 
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* ========== HERO BANNER ========== */}
             <div className="relative h-72 md:h-96 overflow-hidden">
                 <img

@@ -61,7 +61,7 @@ export default async function LandingPage() {
                             </h1>
 
                             <p className="text-lg text-neutral-500 mb-8 leading-relaxed max-w-md">
-                                Discover unique products from Instagram creators, artists, and small businesses. 
+                                Discover unique hooks from Instagram creators, artists, and small businesses. 
                                 No account needed to shop.
                             </p>
 
@@ -72,7 +72,7 @@ export default async function LandingPage() {
                                         className="gap-2 text-lg px-8 h-14 rounded-full shadow-lg shadow-[#7C3AED]/20 hover:shadow-xl hover:shadow-[#7C3AED]/30 transition-all"
                                         style={{ backgroundColor: '#7C3AED' }}
                                     >
-                                        Explore Products
+                                        Explore Hooks
                                         <ArrowRight className="w-5 h-5" />
                                     </Button>
                                 </Link>
@@ -203,7 +203,7 @@ export default async function LandingPage() {
                                 <span className="text-[#7C3AED]">you'll love</span>
                             </h2>
                             <p className="text-lg text-neutral-500 mb-8 leading-relaxed">
-                                Browse through thousands of unique products from independent creators. 
+                                Browse through thousands of unique hooks from independent creators. 
                                 From handmade jewelry to digital art — find something that speaks to you.
                             </p>
                             <Link href="/explore">
@@ -356,7 +356,7 @@ export default async function LandingPage() {
                                 size="lg" 
                                 className="bg-[#7C3AED] hover:bg-[#6d28d9] text-white text-lg px-10 h-14 rounded-full shadow-lg shadow-[#7C3AED]/30"
                             >
-                                Explore Products
+                                Explore Hooks
                             </Button>
                         </Link>
                         <Link href="/signup">

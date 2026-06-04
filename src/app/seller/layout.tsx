@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils'
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/seller/dashboard' },
-    { icon: Package, label: 'Products', href: '/seller/products' },
+    { icon: Package, label: 'Hooks', href: '/seller/products' },
     { icon: ShoppingCart, label: 'Orders', href: '/seller/orders' },
     { icon: CreditCard, label: 'Payments', href: '/seller/payments' },
     { icon: Wallet, label: 'Payouts', href: '/seller/payouts' },

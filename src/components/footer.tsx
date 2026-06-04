@@ -28,7 +28,7 @@ export default function Footer() {
                             <a href="mailto:hello@hookit.online" className="p-2.5 bg-neutral-800 rounded-xl hover:bg-[#7C3AED] transition-colors">
                                 <Mail className="w-5 h-5" />
                             </a>
-                            <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-neutral-800 rounded-xl hover:bg-green-600 transition-colors">
+                            <a href="https://wa.me/918459444524" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-neutral-800 rounded-xl hover:bg-green-600 transition-colors">
                                 <Phone className="w-5 h-5" />
                             </a>
                         </div>

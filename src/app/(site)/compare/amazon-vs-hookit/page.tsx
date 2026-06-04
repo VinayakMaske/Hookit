@@ -221,7 +221,7 @@ const prosCons = {
 
 export default function AmazonVsHookitPage() {
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* ComparisonPage Schema */}
             <script
                 type="application/ld+json"

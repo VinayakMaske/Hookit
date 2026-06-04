@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Store, ShoppingBag, Shield, Star, Package, Users, Heart, ExternalLink, Truck, RotateCcw, Clock, CheckCircle, XCircle, Info } from 'lucide-react'
+import { Store, ShoppingBag, Shield, Star, Package, Users, Heart, ExternalLink, Truck, RotateCcw, Clock, CheckCircle, XCircle, Info, Tag, Grid3X3, LayoutList } from 'lucide-react'
 
 // Product card component with stock badges
 function StoreProductCard({ product }: { product: any }) {
@@ -92,6 +92,13 @@ function StoreProductCard({ product }: { product: any }) {
                             </span>
                         )}
                     </div>
+                    {/* Collection tag */}
+                    {product.collection && (
+                        <Badge className="mt-2 bg-[#7C3AED]/10 text-[#7C3AED] border-0 text-[10px]">
+                            <Tag className="w-2.5 h-2.5 mr-1" />
+                            {product.collection}
+                        </Badge>
+                    )}
                 </div>
             </div>
         </Link>
@@ -100,10 +107,15 @@ function StoreProductCard({ product }: { product: any }) {
 
 export default async function StorePage({
     params,
+    searchParams,
 }: {
     params: Promise<{ slug: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
     const { slug } = await params
+    const queryParams = await searchParams
+    const selectedCollection = typeof queryParams.collection === 'string' ? queryParams.collection : 'all'
+
     const supabase = await createClient()
 
     const { data: store } = await supabase
@@ -117,7 +129,19 @@ export default async function StorePage({
         notFound()
     }
 
-    const activeProducts = store.products?.filter((p: any) => p.is_active) || []
+    let activeProducts = store.products?.filter((p: any) => p.is_active) || []
+
+    // Get unique collections from products
+    const collections = [...new Set(
+        activeProducts
+            .map((p: any) => p.collection)
+            .filter(Boolean)
+    )].sort() as string[]
+
+    // Filter products by collection if selected
+    if (selectedCollection !== 'all' && selectedCollection) {
+        activeProducts = activeProducts.filter((p: any) => p.collection === selectedCollection)
+    }
 
     // Fetch store reviews
     const { data: reviews } = await supabase
@@ -341,11 +365,52 @@ export default async function StorePage({
                     </div>
                 </div>
 
+                {/* Collections Filter Bar */}
+                {collections.length > 0 && (
+                    <div className="mb-6">
+                        <div className="bg-white rounded-xl shadow-sm p-4">
+                            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                                <span className="text-sm font-medium text-neutral-500 flex items-center gap-1.5 shrink-0">
+                                    <Tag className="w-4 h-4" />
+                                    Collections:
+                                </span>
+                                
+                                <Link
+                                    href={`/store/${slug}`}
+                                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                        selectedCollection === 'all' || !selectedCollection
+                                            ? 'bg-[#7C3AED] text-white shadow-md'
+                                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                    }`}
+                                >
+                                    All Products
+                                </Link>
+
+                                {collections.map((collection) => (
+                                    <Link
+                                        key={collection}
+                                        href={`/store/${slug}?collection=${encodeURIComponent(collection)}`}
+                                        className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                            selectedCollection === collection
+                                                ? 'bg-[#7C3AED] text-white shadow-md'
+                                                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                        }`}
+                                    >
+                                        {collection}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Products Grid */}
                 <div className="mb-16">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-xl font-bold text-neutral-900">All Products</h2>
+                            <h2 className="text-xl font-bold text-neutral-900">
+                                {selectedCollection !== 'all' ? selectedCollection : 'All Products'}
+                            </h2>
                             <p className="text-sm text-neutral-500">{activeProducts.length} items available</p>
                         </div>
                     </div>
@@ -358,6 +423,20 @@ export default async function StorePage({
         </div>
     ))}
 </div>
+                    ) : selectedCollection !== 'all' ? (
+                        <Card className="border-0 shadow-sm bg-white">
+                            <CardContent className="py-20 text-center">
+                                <Tag className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-neutral-900 mb-2">No products in "{selectedCollection}"</h3>
+                                <p className="text-neutral-500 mb-4">This collection doesn't have any products yet</p>
+                                <Link href={`/store/${slug}`}>
+                                    <Button variant="outline" className="gap-2">
+                                        <Grid3X3 className="w-4 h-4" />
+                                        View All Products
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                     ) : (
                         <Card className="border-0 shadow-sm bg-white">
                             <CardContent className="py-20 text-center">

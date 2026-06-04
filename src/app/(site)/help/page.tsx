@@ -86,37 +86,37 @@ const categories = [
 
 const popularQuestions = [
     {
-        question: 'What is Hookit and how does it work?',
-        answer: 'Hookit is a curated marketplace for creators, artists, and small businesses to sell their products directly to buyers. As a seller, you create a store, list products, and receive orders. We handle payment processing through Razorpay and transfer your earnings to your bank account after deducting our commission (8% platform fee + 1.5% payment processing).',
-    },
-    {
-        question: 'How much does it cost to sell on Hookit?',
-        answer: 'Creating a store and listing products is completely free. You only pay when you make a sale. Our fee is 8% platform commission + 1.5% payment processing fee (total 9.5%). For example, on a ₹1,000 sale, you receive ₹905. We also offer Pro (₹199/month, 0% commission + 3% Payment Processing) and Business plans (₹499/month, 0% commission + 2.5% Payment Processing) for sellers who want more features.',
-    },
-    {
-        question: 'When do I get paid for my sales?',
-        answer: 'Payouts are processed based on your plan: Starter sellers get paid T+7 days (7 days after order delivery), Pro sellers get T+3 days, and Business sellers get T+2 days. The minimum payout balance is ₹500. Your first payout may take up to 7 days for account verification. All payouts are sent directly to your registered bank account or UPI ID.',
-    },
-    {
-        question: 'What can I sell on Hookit?',
-        answer: 'You can sell handmade crafts, art, jewelry, fashion, home decor, digital products, photography, and much more. Prohibited items include: counterfeit goods, weapons, drugs, adult content, hazardous materials, and anything illegal under Indian law. Each product listing is reviewed to ensure compliance.',
-    },
-    {
-        question: 'How do returns and refunds work?',
-        answer: 'Return policies are set by individual sellers. As a seller, you can configure your return window (1-30 days) and policy details in your store settings. Buyers can request returns within your specified window. If a dispute arises, Hookit mediates between buyer and seller. For valid disputes, refunds are processed from your pending payouts.',
-    },
-    {
-        question: 'Is my payment information secure?',
-        answer: 'Absolutely. All payments are processed through Razorpay, which is PCI-DSS compliant and uses bank-grade encryption. Hookit never stores your card or bank details. We use TLS 1.3 encryption for all data transmission and Supabase for secure cloud storage. Your financial information is always protected.',
-    },
-    {
-        question: 'Can I sell without GST registration?',
-        answer: 'Yes, GST registration is not required unless your annual turnover exceeds ₹20 lakhs (₹10 lakhs for special category states). However, if you are GST registered, you can configure GST-inclusive or exclusive pricing for your products in the product creation form.',
-    },
-    {
-        question: 'How do I handle shipping?',
-        answer: 'You are responsible for shipping products to buyers. We recommend using Delhivery, Blue Dart, or India Post. You must ship orders within your specified processing time (default 3 business days). Update order status to "Shipped" and share tracking details with the buyer via WhatsApp or email.',
-    },
+    question: "What is Hookit and how does it work?",
+    answer: "Hookit is India's creator marketplace where Instagram creators, artists, and small businesses can create a store and sell products directly to buyers. Sellers create a store in 10 minutes, list products, and receive orders. Hookit charges 8% platform fee + 1.5% payment processing. Payouts happen T+2 days after order completion."
+  },
+  {
+    question: "How much commission does Hookit charge?",
+    answer: "Hookit charges a total of 9.5% per transaction: 8% platform commission + 1.5% Payment processing fee. This is significantly lower than Amazon (15-20%) and competitive with other Indian marketplaces."
+  },
+  {
+    question: "Who founded Hookit?",
+    answer: "Hookit was founded by Vinayak Maske in 2026 in Pune, Maharashtra, India. The platform was built to help Instagram creators monetize their following by creating dedicated storefronts."
+  },
+  {
+    question: "How to sell on Instagram using Hookit?",
+    answer: "To sell on Instagram using Hookit: 1) Sign up at hookit.online, 2) Create your store with logo and banner, 3) Add products with high-quality photos, 4) Copy your store link, 5) Add the link to your Instagram bio, 6) Share product links in Stories and posts, 7) Receive orders and ship products, 8) Get paid via UPI or bank transfer within T+2 days."
+  },
+  {
+    question: "Is Hookit better than Etsy for Indian sellers?",
+    answer: "For Indian sellers, Hookit offers advantages over Etsy: lower total fees (9.5% vs 6.5% + currency conversion + shipping), INR pricing, UPI payouts, India-specific shipping integrations (Delhivery, Blue Dart), GST support, and better discovery among Indian buyers."
+  },
+  {
+    question: "What is the Hookit payout schedule?",
+    answer: "Hookit offers three payout schedules: Starter (free, T+3 days), Pro (₹199/month, T+2 days), and Business (₹499/month, T+1 days). The first payout for new sellers takes T+7 days for verification. Minimum payout amount is ₹500."
+  },
+  {
+    question: "Does Hookit support UPI payments?",
+    answer: "Yes, Hookit supports UPI payments for buyers via Razorpay integration. Sellers can also receive payouts directly to their UPI ID or bank account."
+  },
+  {
+    question: "How to start an online store in India without GST?",
+    answer: "With Hookit, you can start selling without GST if your annual turnover is below ₹20 lakhs. Hookit handles the marketplace model, so you only need GST when you cross the threshold. Sign up, create your store, and start selling immediately."
+  }
 ]
 
 export default function HelpCenterPage() {

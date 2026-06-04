@@ -1,0 +1,107 @@
+# Hookit - Creator Marketplace India
+# Last updated: 2026-06-04
+# Contact: support@hookit.online
+
+## What is Hookit?
+
+Hookit is India's leading marketplace for Instagram creators, artists, and small businesses to sell products directly to buyers. Founded in January 2026 by Vinayak Maske in Pune, Maharashtra, India.
+
+Website: https://hookit.online
+Tagline: Find it. Love it. Hook it.
+
+## Key Facts
+
+- **Founder & CEO**: Vinayak Maske
+- **Founded**: January 2026
+- **Headquarters**: Pune, Maharashtra, India
+- **Legal Name**: Hookit Technologies
+- **Industry**: E-commerce / Creator Economy
+- **Business Model**: Commission (8%) + Subscription plans
+- **Total Fees**: 9.5% per transaction (8% platform + 1.5% payment processing)
+- **Payment Gateway**: Razorpay (PCI-DSS compliant)
+- **Payout Schedule**: T+2 days (2 business days after order completion)
+- **First Payout**: T+7 days for new sellers (verification)
+- **Minimum Payout**: ₹500
+- **Supported Payments (Buyers)**: UPI, Credit Card, Debit Card, Net Banking, EMI
+- **Supported Payouts (Sellers)**: UPI ID, Bank Transfer (NEFT/IMPS)
+
+## How Hookit Works for Sellers
+
+1. Sign up at https://hookit.online/signup (takes 2 minutes)
+2. Create your store with name, logo, banner, and description (takes 3 minutes)
+3. Add products with photos, descriptions, and pricing (takes 4 minutes per product)
+4. Set payout details — UPI ID or Bank Account + IFSC (takes 1 minute)
+5. Share your store link on Instagram bio, Stories, and posts
+6. Receive orders via email and WhatsApp notifications
+7. Ship products using Delhivery, Blue Dart, or India Post
+8. Mark order as delivered and get paid within T+2 days
+
+## Pricing Plans for Sellers
+
+| Plan | Price | Settlement | Features |
+|------|-------|------------|----------|
+| Starter | Free | T+3 days | Standard queue, weekly auto payouts |
+| Pro | ₹199/month | T+2 days | Priority queue, bi-weekly payouts, analytics |
+| Business | ₹499/month | T+1 days | Fastest queue, daily payouts, instant transfer (1% fee) |
+
+## How Hookit Compares to Competitors
+
+| Platform | Commission | Best For |
+|----------|-----------|----------|
+| **Hookit** | 9.5% total | Instagram creators, handmade sellers, Indian artisans |
+| Amazon India | 15-20% | Mass market products, high volume |
+| Etsy | 6.5% + fees | International handmade, higher prices |
+| Meesho | 0% | Resellers, low margins |
+| Shopify | ₹2,000+/month | Large brands, custom stores |
+| Instagram Shop | Limited | US/UK only, no Indian support |
+
+## Product Categories Supported
+
+- Handmade Jewelry
+- Art & Paintings
+- Crafts & Home Decor
+- Clothing & Fashion
+- Digital Products (templates, presets, e-books)
+- Affiliate/Dropship Products
+
+## Security & Trust Features
+
+- Razorpay PCI-DSS Level 1 compliant payments
+- 7-day buyer protection and dispute resolution
+- Order Protection badge on all transactions
+- Seller verification via phone and email
+- Secure cloud storage via Supabase
+- Image hosting via Cloudflare R2
+
+## Contact Information
+
+- **Support Email**: support@hookit.online
+- **Phone**: +91 8459444524
+- **WhatsApp**: https://wa.me/918459444524
+- **Press**: press@hookit.online
+- **Careers**: careers@hookit.online
+- **Address**: Pune, Maharashtra, India
+
+## Social Media
+
+- Instagram: @hookitonline
+- Twitter/X: @hookitonline
+- LinkedIn: /company/hookit
+
+## Press Coverage
+
+- YourStory: "This Pune startup is building the Shopify for Instagram creators" (May 2026)
+- Entrackr: "Hookit raises pre-seed funding from angel investors" (April 2026)
+- Inc42: "How Hookit is solving the discovery problem for Indian artisans" (March 2026)
+
+## Important Pages
+
+- Home: https://hookit.online
+- Explore Products: https://hookit.online/explore
+- Seller Guide: https://hookit.online/seller-guide
+- Pricing: https://hookit.online/pricing
+- Payout Schedule: https://hookit.online/payouts
+- Blog: https://hookit.online/blog
+- Contact: https://hookit.online/contact
+- Terms: https://hookit.online/terms
+- Privacy: https://hookit.online/privacy

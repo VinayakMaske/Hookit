@@ -1,6 +1,7 @@
+// src/app/seller/products/new/page.tsx
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import {
     Select,
     SelectContent,
@@ -16,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Loader2, X, Upload, ImageIcon, Truck, Shield, Plus, Receipt, Percent } from 'lucide-react'
+import { Loader2, X, Upload, ImageIcon, Truck, Shield, Plus, Receipt, Percent, Tag } from 'lucide-react'
 
 const PRODUCT_CATEGORIES = [
     'Art & Illustration',
@@ -67,6 +69,11 @@ export default function NewProductPage() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [hasAffiliate, setHasAffiliate] = useState(false)
 
+    // Collection state
+    const [collections, setCollections] = useState<string[]>([])
+    const [collectionInput, setCollectionInput] = useState('')
+    const [showCollectionInput, setShowCollectionInput] = useState(false)
+
     // Fee toggles
     const [hasDeliveryFee, setHasDeliveryFee] = useState(false)
     const [hasPlatformFee, setHasPlatformFee] = useState(false)
@@ -83,6 +90,7 @@ export default function NewProductPage() {
         price: '',
         comparePrice: '',
         category: '',
+        collection: '',
         stockQuantity: '1',
         affiliateLink: '',
         isActive: true,
@@ -92,6 +100,39 @@ export default function NewProductPage() {
         additionalFee: '',
         additionalFeeName: '',
     })
+
+    // Fetch existing collections on mount
+    useEffect(() => {
+        fetchCollections()
+    }, [])
+
+    const fetchCollections = async () => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) return
+
+        const { data: store } = await supabase
+            .from('stores')
+            .select('id')
+            .eq('owner_id', user.id)
+            .single()
+
+        if (!store) return
+
+        // Get unique collections from this store's products
+        const { data } = await supabase
+            .from('products')
+            .select('collection')
+            .eq('store_id', store.id)
+            .not('collection', 'is', null)
+            .not('collection', 'eq', '')
+
+        if (data) {
+            const uniqueCollections = [...new Set(data.map(p => p.collection).filter(Boolean))]
+            setCollections(uniqueCollections)
+        }
+    }
 
     // Generate unique ID
     const generateId = () => Math.random().toString(36).substring(2, 9)
@@ -142,40 +183,40 @@ export default function NewProductPage() {
     }, [])
 
     const uploadSingleImage = async (imageFile: ImageFile) => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
-        updateImageStatus(imageFile.id, { error: 'Not logged in', uploading: false })
-        return
-    }
-
-    const fileExt = imageFile.file.name.split('.').pop()
-    const fileName = `${user.id}/product-${Date.now()}-${imageFile.id}.${fileExt}`
-
-    const formData = new FormData()
-    formData.append('file', imageFile.file)
-    formData.append('folder', 'products')
-    formData.append('fileName', fileName)
-
-    try {
-        const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-        })
-
-        const result = await response.json()
-
-        if (!response.ok || !result.success) {
-            updateImageStatus(imageFile.id, { error: result.error || 'Upload failed', uploading: false })
+        if (!user) {
+            updateImageStatus(imageFile.id, { error: 'Not logged in', uploading: false })
             return
         }
 
-        updateImageStatus(imageFile.id, { url: result.url, uploading: false, error: null })
-    } catch (err: any) {
-        updateImageStatus(imageFile.id, { error: err.message || 'Upload failed', uploading: false })
+        const fileExt = imageFile.file.name.split('.').pop()
+        const fileName = `${user.id}/product-${Date.now()}-${imageFile.id}.${fileExt}`
+
+        const formData = new FormData()
+        formData.append('file', imageFile.file)
+        formData.append('folder', 'products')
+        formData.append('fileName', fileName)
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            })
+
+            const result = await response.json()
+
+            if (!response.ok || !result.success) {
+                updateImageStatus(imageFile.id, { error: result.error || 'Upload failed', uploading: false })
+                return
+            }
+
+            updateImageStatus(imageFile.id, { url: result.url, uploading: false, error: null })
+        } catch (err: any) {
+            updateImageStatus(imageFile.id, { error: err.message || 'Upload failed', uploading: false })
+        }
     }
-}
 
     const updateImageStatus = (id: string, updates: Partial<ImageFile>) => {
         setImages(prev => prev.map(img => 
@@ -283,6 +324,9 @@ export default function NewProductPage() {
 
         const gstPercent = getGstPercentage()
 
+        // Save collection if it's new
+        const collectionValue = formData.collection?.trim() || null
+
         const { error: insertError } = await supabase
             .from('products')
             .insert({
@@ -293,6 +337,7 @@ export default function NewProductPage() {
                 compare_price: formData.comparePrice ? parseFloat(formData.comparePrice) : null,
                 images: validUrls,
                 category: formData.category,
+                collection: collectionValue,
                 affiliate_link: hasAffiliate ? formData.affiliateLink : null,
                 stock_quantity: parseInt(formData.stockQuantity) || 0,
                 is_active: formData.isActive,
@@ -416,6 +461,113 @@ export default function NewProductPage() {
                                         onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            {/* ===== COLLECTION ===== */}
+                            <div className="space-y-2">
+                                <Label htmlFor="collection" className="flex items-center gap-2">
+                                    <Tag className="w-4 h-4 text-[#7C3AED]" />
+                                    Collection
+                                </Label>
+                                
+                                {showCollectionInput ? (
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="collection"
+                                            placeholder="e.g., Summer Collection, Wedding Special, New Arrivals"
+                                            value={collectionInput}
+                                            onChange={(e) => setCollectionInput(e.target.value)}
+                                            className="flex-1"
+                                            autoFocus
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => {
+                                                if (collectionInput.trim()) {
+                                                    setFormData({ ...formData, collection: collectionInput.trim() })
+                                                    if (!collections.includes(collectionInput.trim())) {
+                                                        setCollections([...collections, collectionInput.trim()])
+                                                    }
+                                                }
+                                                setShowCollectionInput(false)
+                                                setCollectionInput('')
+                                            }}
+                                            className="shrink-0"
+                                        >
+                                            Save
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setShowCollectionInput(false)
+                                                setCollectionInput('')
+                                            }}
+                                            className="shrink-0"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Select
+                                            value={formData.collection}
+                                            onValueChange={(value) => {
+                                                if (value === '__new__') {
+                                                    setShowCollectionInput(true)
+                                                    setCollectionInput('')
+                                                } else {
+                                                    setFormData({ ...formData, collection: value })
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select or create a collection" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="__new__">
+                                                    <span className="flex items-center gap-2 text-[#7C3AED] font-medium">
+                                                        <Plus className="w-4 h-4" />
+                                                        + Create New Collection
+                                                    </span>
+                                                </SelectItem>
+                                                {collections.length > 0 && (
+                                                    <>
+                                                        <div className="px-2 py-1.5 text-xs text-neutral-400 font-medium border-t mt-1">
+                                                            Your Collections
+                                                        </div>
+                                                        {collections.map((col) => (
+                                                            <SelectItem key={col} value={col}>
+                                                                {col}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                
+                                {formData.collection && !showCollectionInput && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <Badge className="bg-[#7C3AED]/10 text-[#7C3AED] border-0">
+                                            <Tag className="w-3 h-3 mr-1" />
+                                            {formData.collection}
+                                        </Badge>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, collection: '' })}
+                                            className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                )}
+                                
+                                <p className="text-xs text-neutral-500">
+                                    Group products into collections like "Summer 2026", "Wedding Collection", or "Best Sellers" for better organization
+                                </p>
                             </div>
                         </div>
 

@@ -93,6 +93,28 @@ export default function Footer() {
                         </ul>
                     </div>
 
+                    {/* Compare Hookit */}
+<div>
+    <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-neutral-300">Compare Hookit</h4>
+    <ul className="space-y-3 text-neutral-400">
+        <li>
+            <Link href="/compare/etsy-vs-hookit" className="hover:text-white transition-colors flex items-center gap-2">
+                Hookit vs Etsy
+            </Link>
+        </li>
+        <li>
+            <Link href="/compare/amazon-vs-hookit" className="hover:text-white transition-colors flex items-center gap-2">
+                Hookit vs Amazon
+            </Link>
+        </li>
+        <li>
+            <Link href="/compare/meesho-vs-hookit" className="hover:text-white transition-colors flex items-center gap-2">
+                Hookit vs Meesho
+            </Link>
+        </li>
+    </ul>
+</div>
+
                     {/* Legal */}
                     <div>
                         <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-neutral-300">Legal</h4>

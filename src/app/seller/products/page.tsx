@@ -42,58 +42,60 @@ export default async function ProductsPage() {
             </div>
 
             {products && products.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="columns-2 md:columns-3 xl:columns-4 gap-4 space-y-4">
                     {products.map((product) => (
-                        <Card key={product.id} className="border-0 shadow-sm overflow-hidden group">
-                            <div className="aspect-square bg-neutral-100 relative overflow-hidden">
-                                {product.images && product.images[0] ? (
-                                    <img
-                                        src={product.images[0]}
-                                        alt={product.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                                        <Plus className="w-12 h-12" />
+                        <div key={product.id} className="break-inside-avoid mb-4">
+                            <Card className="border-0 shadow-sm overflow-hidden group">
+                                <div className="bg-neutral-100 relative overflow-hidden">
+                                    {product.images && product.images[0] ? (
+                                        <img
+                                            src={product.images[0]}
+                                            alt={product.name}
+                                            className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    ) : (
+                                        <div className="w-full aspect-square flex items-center justify-center text-neutral-400">
+                                            <Plus className="w-12 h-12" />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-2 right-2 flex gap-2">
+                                        <Badge variant={product.is_active ? 'default' : 'secondary'}>
+                                            {product.is_active ? 'Active' : 'Inactive'}
+                                        </Badge>
                                     </div>
-                                )}
-                                <div className="absolute top-2 right-2 flex gap-2">
-                                    <Badge variant={product.is_active ? 'default' : 'secondary'}>
-                                        {product.is_active ? 'Active' : 'Inactive'}
-                                    </Badge>
                                 </div>
-                            </div>
-                            <CardContent className="p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                    <h3 className="font-semibold text-neutral-900 line-clamp-1">{product.name}</h3>
-                                    <span className="font-bold text-neutral-900">₹{product.price}</span>
-                                </div>
-                                <p className="text-sm text-neutral-500 line-clamp-2 mb-3">{product.description}</p>
-                                
-                                {product.affiliate_link && (
-                                    <div className="flex items-center gap-1 text-xs text-blue-600 mb-3">
-                                        <ExternalLink className="w-3 h-3" />
-                                        Affiliate link enabled
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h3 className="font-semibold text-neutral-900 line-clamp-1">{product.name}</h3>
+                                        <span className="font-bold text-neutral-900">₹{product.price}</span>
                                     </div>
-                                )}
+                                    <p className="text-sm text-neutral-500 line-clamp-2 mb-3">{product.description}</p>
+                                    
+                                    {product.affiliate_link && (
+                                        <div className="flex items-center gap-1 text-xs text-blue-600 mb-3">
+                                            <ExternalLink className="w-3 h-3" />
+                                            Affiliate link enabled
+                                        </div>
+                                    )}
 
-                                <div className="flex gap-2">
-                                    <Link href={`/seller/products/edit/${product.id}`} className="flex-1">
-                                        <Button variant="outline" size="sm" className="w-full gap-2">
-                                            <Pencil className="w-3 h-3" />
-                                            Edit
-                                        </Button>
-                                    </Link>
-                                    <form action={`/api/products/delete`} method="POST" className="flex-1">
-                                        <input type="hidden" name="productId" value={product.id} />
-                                        <Button variant="outline" size="sm" className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50" type="submit">
-                                            <Trash2 className="w-3 h-3" />
-                                            Delete
-                                        </Button>
-                                    </form>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    <div className="flex gap-2">
+                                        <Link href={`/seller/products/edit/${product.id}`} className="flex-1">
+                                            <Button variant="outline" size="sm" className="w-full gap-2">
+                                                <Pencil className="w-3 h-3" />
+                                                Edit
+                                            </Button>
+                                        </Link>
+                                        <form action={`/api/products/delete`} method="POST" className="flex-1">
+                                            <input type="hidden" name="productId" value={product.id} />
+                                            <Button variant="outline" size="sm" className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50" type="submit">
+                                                <Trash2 className="w-3 h-3" />
+                                                Delete
+                                            </Button>
+                                        </form>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     ))}
                 </div>
             ) : (

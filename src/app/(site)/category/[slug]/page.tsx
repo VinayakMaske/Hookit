@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ShoppingBag, ArrowLeft } from 'lucide-react'
+import { ShoppingBag, ArrowLeft, ExternalLink } from 'lucide-react'
 
 const ALL_CATEGORIES = [
     { name: 'Art & Illustration', slug: 'art-and-illustration', tagline: 'Discover unique art that speaks to your soul' },
@@ -42,15 +42,15 @@ function CategoryProductCard({ product }: { product: any }) {
             href={`/product/${product.id}`}
             className="group block"
         >
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
+            <div className="relative rounded-2xl overflow-hidden bg-neutral-100">
                 {product.images?.[0] ? (
                     <img
                         src={product.images[0]}
                         alt={product.name}
-                        className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
+                        className={`w-full h-auto object-contain transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full aspect-[3/4] flex items-center justify-center">
                         <ShoppingBag className="w-8 h-8 text-neutral-300" />
                     </div>
                 )}
@@ -73,19 +73,13 @@ function CategoryProductCard({ product }: { product: any }) {
                     </div>
                 )}
 
-                {/* Hover overlay (only if not sold out) */}
+                {/* Hover overlay - shows "View Product" button */}
                 {!isSoldOut && (
-                    <>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
-                                {product.name}
-                            </p>
-                            <p className="text-white/70 text-xs mt-1">
-                                by {product.stores?.name || 'Unknown'}
-                            </p>
-                        </div>
-                    </>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <span className="bg-white text-neutral-900 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                            View Hook <ExternalLink className="w-3 h-3" />
+                        </span>
+                    </div>
                 )}
 
                 {product.affiliate_link && (
@@ -93,6 +87,16 @@ function CategoryProductCard({ product }: { product: any }) {
                         Affiliate
                     </Badge>
                 )}
+            </div>
+
+            {/* Text below image - separate from card, Pinterest-style */}
+            <div className="mt-2 px-1">
+                <h3 className="font-medium text-neutral-900 text-sm line-clamp-2 group-hover:text-[#7C3AED] transition-colors">
+                    {product.name}
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                    {product.stores?.name || 'Unknown'}
+                </p>
             </div>
         </Link>
     )
@@ -157,13 +161,16 @@ export default async function CategoryPage({
                 </div>
 
                 {/* ========== PRODUCTS GRID ========== */}
-                {products && products.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {products.map((product) => (
-                            <CategoryProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
-                ) : (
+                {/* ========== PRODUCTS GRID ========== */}
+{products && products.length > 0 ? (
+    <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
+    {products.map((product) => (
+        <div key={product.id} className="break-inside-avoid mb-4">
+            <CategoryProductCard product={product} />
+        </div>
+    ))}
+</div>
+) : (
                     <div className="text-center py-20">
                         <ShoppingBag className="w-16 h-16 text-neutral-200 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-neutral-900 mb-2">

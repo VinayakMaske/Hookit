@@ -152,15 +152,15 @@ export default function ProductPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
                     {/* Images */}
                     <div className="space-y-4">
-                        <div className="aspect-square bg-neutral-100 rounded-2xl overflow-hidden relative group">
-                            {hasImages ? (
-                                <img
-                                    src={mainImage}
-                                    alt={product.name}
-                                    className={`w-full h-full object-cover transition-transform duration-300 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center">
+                        <div className="bg-neutral-100 rounded-2xl overflow-hidden relative group">
+    {hasImages ? (
+        <img
+            src={mainImage}
+            alt={product.name}
+            className={`w-full h-auto object-contain transition-transform duration-300 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
+        />
+    ) : (
+        <div className="w-full aspect-square flex items-center justify-center">
                                     <ShoppingBag className="w-16 h-16 text-neutral-300" />
                                 </div>
                             )}
@@ -172,20 +172,21 @@ export default function ProductPage() {
                             <div className="grid grid-cols-4 gap-3">
                                 {allImages.slice(0, 5).map((img: string, i: number) => (
                                     <button
-                                        key={i}
-                                        onClick={() => handleThumbnailClick(i)}
-                                        className={`aspect-square bg-neutral-100 rounded-lg overflow-hidden border-2 transition-all ${
-                                            mainImageIndex === i
-                                                ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/20'
-                                                : 'border-transparent hover:border-neutral-300'
-                                        }`}
-                                    >
-                                        <img
-                                            src={img}
-                                            alt={`${product.name} ${i + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </button>
+    key={i}
+    onClick={() => handleThumbnailClick(i)}
+    className={`bg-neutral-100 rounded-lg overflow-hidden border-2 transition-all ${
+        mainImageIndex === i
+            ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/20'
+            : 'border-transparent hover:border-neutral-300'
+    }`}
+>
+    <img
+        src={img}
+        alt={`${product.name} ${i + 1}`}
+        className="w-full h-auto object-contain"
+        style={{ maxHeight: '80px' }}
+    />
+</button>
                                 ))}
                             </div>
                         )}
@@ -470,57 +471,58 @@ export default function ProductPage() {
 
                 {/* Related Products */}
                 {relatedProducts && relatedProducts.length > 0 && (
-                    <div className="mt-16">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-8">More from this Creator</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedProducts.map((item) => (
-                                <Link
-                                    key={item.id}
-                                    href={`/product/${item.id}`}
-                                    className="group block"
-                                >
-                                    <div className="bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-neutral-300 hover:shadow-lg transition-all duration-300">
-                                        <div className="aspect-square bg-neutral-100 relative overflow-hidden">
-                                            {item.images?.[0] ? (
-                                                <img
-                                                    src={item.images[0]}
-                                                    alt={item.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <ShoppingBag className="w-8 h-8 text-neutral-300" />
-                                                </div>
-                                            )}
-                                            {/* Low stock / sold out on related products */}
-                                            {item.stock_quantity <= 0 && !item.affiliate_link && (
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <span className="text-white font-bold text-sm">SOLD OUT</span>
-                                                </div>
-                                            )}
-                                            {item.stock_quantity > 0 && item.stock_quantity <= 5 && !item.affiliate_link && (
-                                                <div className="absolute top-2 right-2">
-                                                    <Badge className="bg-red-500 text-white border-0 text-xs">
-                                                        Only {item.stock_quantity} left
-                                                    </Badge>
-                                                </div>
-                                            )}
-                                            {item.affiliate_link && (
-                                                <Badge className="absolute top-2 left-2 bg-blue-600 text-white text-xs">
-                                                    Affiliate
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-medium text-neutral-900 line-clamp-1">{item.name}</h3>
-                                            <p className="font-bold text-neutral-900 mt-1">₹{item.price}</p>
-                                        </div>
+    <div className="mt-16">
+        <h2 className="text-2xl font-bold text-neutral-900 mb-8">More from this Creator</h2>
+        <div className="columns-2 sm:columns-2 lg:columns-4 gap-6 space-y-6">
+            {relatedProducts.map((item) => (
+                <div key={item.id} className="break-inside-avoid mb-6">
+                    <Link
+                        href={`/product/${item.id}`}
+                        className="group block"
+                    >
+                        <div className="bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-neutral-300 hover:shadow-lg transition-all duration-300">
+                            <div className="bg-neutral-100 relative overflow-hidden">
+                                {item.images?.[0] ? (
+                                    <img
+                                        src={item.images[0]}
+                                        alt={item.name}
+                                        className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                ) : (
+                                    <div className="w-full aspect-square flex items-center justify-center">
+                                        <ShoppingBag className="w-8 h-8 text-neutral-300" />
                                     </div>
-                                </Link>
-                            ))}
+                                )}
+                                {/* Low stock / sold out on related products */}
+                                {item.stock_quantity <= 0 && !item.affiliate_link && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                        <span className="text-white font-bold text-sm">SOLD OUT</span>
+                                    </div>
+                                )}
+                                {item.stock_quantity > 0 && item.stock_quantity <= 5 && !item.affiliate_link && (
+                                    <div className="absolute top-2 right-2">
+                                        <Badge className="bg-red-500 text-white border-0 text-xs">
+                                            Only {item.stock_quantity} left
+                                        </Badge>
+                                    </div>
+                                )}
+                                {item.affiliate_link && (
+                                    <Badge className="absolute top-2 left-2 bg-blue-600 text-white text-xs">
+                                        Affiliate
+                                    </Badge>
+                                )}
+                            </div>
+                            <div className="p-4">
+                                <h3 className="font-medium text-neutral-900 line-clamp-1">{item.name}</h3>
+                                <p className="font-bold text-neutral-900 mt-1">₹{item.price}</p>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    </Link>
+                </div>
+            ))}
+        </div>
+    </div>
+)}
             </div>
         </div>
     )

@@ -20,15 +20,15 @@ function StoreProductCard({ product }: { product: any }) {
             className="group block"
         >
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="aspect-[3/4] bg-neutral-100 relative overflow-hidden">
-                    {product.images?.[0] ? (
-                        <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                <div className="bg-neutral-100 relative overflow-hidden">
+    {product.images?.[0] ? (
+        <img
+            src={product.images[0]}
+            alt={product.name}
+            className={`w-full h-auto object-contain transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
+        />
+    ) : (
+        <div className="w-full aspect-[3/4] flex items-center justify-center">
                             <ShoppingBag className="w-8 h-8 text-neutral-300" />
                         </div>
                     )}
@@ -351,11 +351,13 @@ export default async function StorePage({
                     </div>
 
                     {activeProducts.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {activeProducts.map((product: any) => (
-                                <StoreProductCard key={product.id} product={product} />
-                            ))}
-                        </div>
+                       <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
+    {activeProducts.map((product: any) => (
+        <div key={product.id} className="break-inside-avoid mb-4">
+            <StoreProductCard product={product} />
+        </div>
+    ))}
+</div>
                     ) : (
                         <Card className="border-0 shadow-sm bg-white">
                             <CardContent className="py-20 text-center">

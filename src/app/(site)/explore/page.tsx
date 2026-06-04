@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Search, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, ShoppingBag, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
 const ALL_CATEGORIES = [
     { name: 'Art & Illustration', slug: 'art-and-illustration', tagline: 'Discover unique art that speaks to your soul' },
@@ -36,26 +36,25 @@ const INITIAL_CATEGORIES_COUNT = 10
 
 const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 
-// Product card with stock badges
+// Product card - Pinterest style
 function ProductCard({ product }: { product: any }) {
     const stockQty = product.stock_quantity || 0
     const isSoldOut = stockQty <= 0 && !product.affiliate_link
-    const isLowStock = stockQty > 0 && stockQty <= 5 && !product.affiliate_link
 
     return (
         <Link
             href={`/product/${product.id}`}
             className="group block"
         >
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
+            <div className="relative rounded-2xl overflow-hidden bg-neutral-100">
                 {product.images?.[0] ? (
                     <img
                         src={product.images[0]}
                         alt={product.name}
-                        className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
+                        className={`w-full h-auto object-contain transition-transform duration-500 ${isSoldOut ? '' : 'group-hover:scale-105'}`}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full aspect-[3/4] flex items-center justify-center">
                         <ShoppingBag className="w-8 h-8 text-neutral-300" />
                     </div>
                 )}
@@ -69,36 +68,56 @@ function ProductCard({ product }: { product: any }) {
                     </div>
                 )}
 
-                {/* Low Stock Badge */}
-                {isLowStock && (
-                    <div className="absolute top-2 right-2 z-10">
-                        <Badge className="bg-red-500 text-white border-0 text-xs animate-pulse">
-                            Only {stockQty} left!
-                        </Badge>
+                {/* Hover overlay - shows "View Product" button */}
+                {!isSoldOut && (
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <span className="bg-white text-neutral-900 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                            View Hook <ExternalLink className="w-3 h-3" />
+                        </span>
                     </div>
                 )}
 
-                {/* Affiliate Badge */}
                 {product.affiliate_link && (
                     <Badge className="absolute top-2 left-2 bg-[#7C3AED] text-white text-xs border-0 z-10">
                         Affiliate
                     </Badge>
                 )}
+            </div>
 
-                {/* Hover overlay (only if not sold out) */}
-                {!isSoldOut && (
-                    <>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                            <p className="text-white font-medium text-sm line-clamp-2 drop-shadow-lg">
-                                {product.name}
-                            </p>
-                            <p className="text-white/70 text-xs mt-1">
-                                by {product.stores?.name || 'Unknown'}
-                            </p>
-                        </div>
-                    </>
-                )}
+            {/* Text below image - Pinterest style */}
+            <div className="mt-2 px-1">
+                <h3 className="font-medium text-neutral-900 text-sm line-clamp-2 group-hover:text-[#7C3AED] transition-colors">
+                    {product.name}
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                    {product.stores?.name || 'Unknown'}
+                </p>
+            </div>
+        </Link>
+    )
+}
+
+// Category card
+function CategoryCard({ cat }: { cat: any }) {
+    const getCategoryImage = (slug: string) => {
+        return `${R2_PUBLIC_URL}/landing-images/categories/${slug}.jpg.jpeg`
+    }
+
+    return (
+        <Link
+            href={`/category/${cat.slug}`}
+            className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 block"
+        >
+            <img
+                src={getCategoryImage(cat.slug)}
+                alt={cat.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                <h3 className="text-lg font-bold text-center text-white drop-shadow-lg">
+                    {cat.name}
+                </h3>
             </div>
         </Link>
     )
@@ -109,13 +128,31 @@ function ExploreContent() {
     const [products, setProducts] = useState<any[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [isSearching, setIsSearching] = useState(false)
+    const [loadingProducts, setLoadingProducts] = useState(true)
 
     const visibleCategories = showAll ? ALL_CATEGORIES : ALL_CATEGORIES.slice(0, INITIAL_CATEGORIES_COUNT)
     const hiddenCount = ALL_CATEGORIES.length - INITIAL_CATEGORIES_COUNT
 
-    const getCategoryImage = (slug: string) => {
-    return `${R2_PUBLIC_URL}/landing-images/categories/${slug}.jpg.jpeg`
-}
+    // Fetch random products on mount
+    const fetchRandomProducts = async () => {
+        const supabase = createClient()
+        const { data } = await supabase
+            .from('products')
+            .select('*, stores(name, slug, logo_url)')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false }) // You can change this to random
+            .limit(30)
+
+        // Shuffle array for randomness
+        const shuffled = (data || []).sort(() => Math.random() - 0.5)
+        setProducts(shuffled)
+        setLoadingProducts(false)
+    }
+
+    // Load products on mount
+    useState(() => {
+        fetchRandomProducts()
+    })
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -138,7 +175,7 @@ function ExploreContent() {
 
     const clearSearch = () => {
         setSearchQuery('')
-        setProducts([])
+        fetchRandomProducts()
     }
 
     return (
@@ -174,52 +211,13 @@ function ExploreContent() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Search Results */}
-                {searchQuery && (
-                    <div className="mb-12">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-6">
-                            {isSearching ? 'Searching...' : `${products.length} results for "${searchQuery}"`}
-                        </h2>
-
-                        {products.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {products.map((product) => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
-                            </div>
-                        ) : !isSearching && (
-                            <div className="text-center py-20">
-                                <ShoppingBag className="w-16 h-16 text-neutral-200 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-neutral-900 mb-2">No products found</h3>
-                                <p className="text-neutral-500 mb-6">Try a different search term</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Category Grid */}
+                {/* Category Grid - Pinterest style top section */}
                 {!searchQuery && (
                     <div className="mb-16">
                         <h2 className="text-2xl font-bold text-neutral-900 mb-6">Browse by Category</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {visibleCategories.map((cat) => (
-                                <Link
-                                    key={cat.name}
-                                    href={`/category/${cat.slug}`}
-                                    className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300"
-                                >
-                                    <img
-                                        src={getCategoryImage(cat.slug)}
-                                        alt={cat.name}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                        <h3 className="text-lg font-bold text-center text-white drop-shadow-lg">
-                                            {cat.name}
-                                        </h3>
-                                    </div>
-                                </Link>
+                                <CategoryCard key={cat.name} cat={cat} />
                             ))}
                         </div>
 
@@ -248,17 +246,32 @@ function ExploreContent() {
                     </div>
                 )}
 
-                {/* Trending Products */}
-                {!searchQuery && products.length > 0 && (
-                    <div>
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-6">Trending Now</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {/* Products Grid - Pinterest masonry style */}
+                <div className="mb-16">
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-6">
+                        {searchQuery ? `Results for "${searchQuery}"` : 'Discover'}
+                    </h2>
+                    
+                    {loadingProducts && !searchQuery ? (
+                        <div className="flex justify-center py-20">
+                            <div className="animate-spin w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full" />
+                        </div>
+                    ) : products.length > 0 ? (
+                        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
                             {products.map((product) => (
-                                <ProductCard key={product.id} product={product} />
+                                <div key={product.id} className="break-inside-avoid mb-4">
+                                    <ProductCard product={product} />
+                                </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="text-center py-20">
+                            <ShoppingBag className="w-16 h-16 text-neutral-200 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-neutral-900 mb-2">No products found</h3>
+                            <p className="text-neutral-500 mb-6">Try a different search term</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

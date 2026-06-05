@@ -98,7 +98,7 @@ export default function ProductPage() {
             .eq('is_active', true)
             .gt('stock_quantity', 0)
             .neq('id', id)
-            .or(`store_id.eq.${productData.store_id},category.eq.${productData.category}`)
+            .or(`store_id.eq.${productData.store_id}`)
             .limit(4)
 
         setRelatedProducts(related || [])

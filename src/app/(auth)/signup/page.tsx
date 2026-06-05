@@ -202,7 +202,6 @@ export default function SignupPage() {
                                     placeholder="+91 98765 43210"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    required
                                     className="h-12 rounded-xl border-neutral-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20"
                                 />
                             </div>

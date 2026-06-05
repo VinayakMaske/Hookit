@@ -120,6 +120,9 @@ export default function PayoutsPage() {
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Payouts</h1>
                 <p className="text-neutral-500 mt-1">Track payments received from the platform</p>
+                <p className="text-red-900 mt-1">Your earnings are processed every Friday for orders which are marked as delivered. Minimum payout balance is ₹500.</p>
+                <p className="text-red-900 mt-1">For payment related queries please contact on +918459444524 or storeapp2026@gmail.com.</p>
+    
             </div>
 
             {/* Stats Cards */}

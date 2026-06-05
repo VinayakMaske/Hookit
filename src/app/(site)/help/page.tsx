@@ -87,7 +87,7 @@ const categories = [
 const popularQuestions = [
     {
     question: "What is Hookit and how does it work?",
-    answer: "Hookit is India's creator marketplace where Instagram creators, artists, and small businesses can create a store and sell products directly to buyers. Sellers create a store in 10 minutes, list products, and receive orders. Hookit charges 8% platform fee + 1.5% payment processing. Payouts happen T+2 days after order completion."
+    answer: "Hookit is India's creator marketplace where Instagram creators, artists, and small businesses can create a store and sell products directly to buyers. Sellers create a store in 10 minutes, list products, and receive orders. Hookit charges 8% platform fee + 1.5% payment processing. Your earnings are processed every Friday for orders that are marked as Delivered. Minimum payout balance is ₹500."
   },
   {
     question: "How much commission does Hookit charge?",
@@ -99,7 +99,7 @@ const popularQuestions = [
   },
   {
     question: "How to sell on Instagram using Hookit?",
-    answer: "To sell on Instagram using Hookit: 1) Sign up at hookit.online, 2) Create your store with logo and banner, 3) Add products with high-quality photos, 4) Copy your store link, 5) Add the link to your Instagram bio, 6) Share product links in Stories and posts, 7) Receive orders and ship products, 8) Get paid via UPI or bank transfer within T+2 days."
+    answer: "To sell on Instagram using Hookit: 1) Sign up at hookit.online, 2) Create your store with logo and banner, 3) Add products with high-quality photos, 4) Copy your store link, 5) Add the link to your Instagram bio, 6) Share product links in Stories and posts, 7) Receive orders and ship products, 8) Get paid via UPI or bank transfer every Friday."
   },
   {
     question: "Is Hookit better than Etsy for Indian sellers?",
@@ -107,7 +107,7 @@ const popularQuestions = [
   },
   {
     question: "What is the Hookit payout schedule?",
-    answer: "Hookit offers three payout schedules: Starter (free, T+3 days), Pro (₹199/month, T+2 days), and Business (₹499/month, T+1 days). The first payout for new sellers takes T+7 days for verification. Minimum payout amount is ₹500."
+    answer: "Your earnings are processed every Friday for orders that are marked as Delivered. Minimum payout balance is ₹500."
   },
   {
     question: "Does Hookit support UPI payments?",

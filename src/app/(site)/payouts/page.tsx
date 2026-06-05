@@ -15,9 +15,9 @@ const payoutSchedules = [
         plan: 'Starter',
         planColor: 'bg-neutral-100 text-neutral-700',
         price: 'Free',
-        settlement: 'T+3',
+        settlement: 'Every Friday',
         settlementDays: 3,
-        description: '3 business days after order delivery/completion',
+        description: 'For the order marked as Delivered.',
         minPayout: '₹500',
         methods: ['UPI', 'Bank Transfer'],
         features: [
@@ -149,7 +149,7 @@ export default function PayoutSchedulePage() {
                         </div>
                         <div className="w-px h-10 bg-neutral-200" />
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-[#7C3AED]">T+3</p>
+                            <p className="text-2xl font-bold text-[#7C3AED]">Every Friday</p>
                             <p className="text-xs text-neutral-500">Hookit Starter</p>
                         </div>
                         <div className="w-px h-10 bg-neutral-200" />

@@ -301,26 +301,24 @@ export default function CreateStorePage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="contactPhone">Contact Phone *</Label>
+                                <Label htmlFor="contactPhone">Contact Phone (optional)</Label>
                                 <Input
                                     id="contactPhone"
                                     type="tel"
                                     placeholder="+91 98765 43210"
                                     value={formData.contactPhone}
-                                    required
                                     onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber">WhatsApp Number *</Label>
+                            <Label htmlFor="whatsappNumber">WhatsApp Number (optional) </Label> 
                             <Input
                                 id="whatsappNumber"
                                 type="tel"
                                 placeholder="+91 98765 43210"
                                 value={formData.whatsappNumber}
-                                required
                                 onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
                             />
                         </div>

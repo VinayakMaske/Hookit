@@ -26,7 +26,7 @@ const plans = [
             'Basic store page',
             'Standard analytics',
             'Email support',
-            'Weekly payouts (T+7)',
+            'Payouts every Friday',
         ],
         notIncluded: [
             'Featured listings',
@@ -381,7 +381,7 @@ export default function PricingPage() {
                         {[
                             {
                                 q: 'When do I get paid?',
-                                a: 'Starter plan: T+7 days after order delivery. Pro plan: T+3 days. Business plan: T+2 days. Minimum payout balance is ₹500.',
+                                a: 'Your earnings are processed every Friday for orders that are marked as Delivered. Minimum payout balance is ₹500.',
                             },
                             {
                                 q: 'Are there any setup or listing fees?',

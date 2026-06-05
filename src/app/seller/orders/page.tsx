@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Phone, Mail, MapPin, ShoppingCart, Calendar, MessageCircle, Send, Loader2, CheckCircle } from 'lucide-react'
+import { Phone, Mail, MapPin, ShoppingCart, Calendar, MessageCircle, Loader2, CheckCircle, Info } from 'lucide-react'
 
 interface Order {
     id: string
@@ -29,10 +29,9 @@ interface Order {
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
-    const [sendingEmail, setSendingEmail] = useState<Record<string, boolean>>({})
+    const [updating, setUpdating] = useState<Record<string, boolean>>({})
     const [emailSent, setEmailSent] = useState<Record<string, boolean>>({})
     const [selectedStatuses, setSelectedStatuses] = useState<Record<string, string>>({})
-    const [updating, setUpdating] = useState<Record<string, boolean>>({})
 
     const fetchOrders = async () => {
         const supabase = createClient()
@@ -62,7 +61,6 @@ export default function OrdersPage() {
 
         if (ordersData) {
             setOrders(ordersData as Order[])
-            // Initialize selected statuses from current order status
             const statuses: Record<string, string> = {}
             ordersData.forEach((order: any) => {
                 statuses[order.id] = order.status
@@ -88,7 +86,7 @@ export default function OrdersPage() {
         const currentOrder = orders.find(o => o.id === orderId)
         
         if (!newStatus || !currentOrder || newStatus === currentOrder.status) {
-            return // Don't update if same status
+            return
         }
 
         setUpdating(prev => ({ ...prev, [orderId]: true }))
@@ -101,7 +99,25 @@ export default function OrdersPage() {
             })
 
             if (response.ok) {
-                // Refresh orders to get updated data
+                if (currentOrder.buyer_email) {
+                    try {
+                        const emailResponse = await fetch('/api/orders/send-status-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId, status: newStatus })
+                        })
+                        
+                        if (emailResponse.ok) {
+                            setEmailSent(prev => ({ ...prev, [orderId]: true }))
+                            setTimeout(() => {
+                                setEmailSent(prev => ({ ...prev, [orderId]: false }))
+                            }, 5000)
+                        }
+                    } catch (emailError) {
+                        console.error('Error sending status email:', emailError)
+                    }
+                }
+
                 await fetchOrders()
             } else {
                 const data = await response.json()
@@ -112,38 +128,6 @@ export default function OrdersPage() {
             alert('Failed to update status')
         } finally {
             setUpdating(prev => ({ ...prev, [orderId]: false }))
-        }
-    }
-
-    const sendStatusEmail = async (orderId: string) => {
-        const status = selectedStatuses[orderId]
-        if (!status) return
-
-        setSendingEmail(prev => ({ ...prev, [orderId]: true }))
-        setEmailSent(prev => ({ ...prev, [orderId]: false }))
-
-        try {
-            const response = await fetch('/api/orders/send-status-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, status })
-            })
-
-            const data = await response.json()
-
-            if (response.ok) {
-                setEmailSent(prev => ({ ...prev, [orderId]: true }))
-                setTimeout(() => {
-                    setEmailSent(prev => ({ ...prev, [orderId]: false }))
-                }, 3000)
-            } else {
-                alert(data.error || 'Failed to send email')
-            }
-        } catch (error) {
-            console.error('Error sending status email:', error)
-            alert('Failed to send status email')
-        } finally {
-            setSendingEmail(prev => ({ ...prev, [orderId]: false }))
         }
     }
 
@@ -169,19 +153,18 @@ export default function OrdersPage() {
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Orders</h1>
                 <p className="text-neutral-500 mt-1">Manage and track all your orders</p>
+                <p className="text-red-900 mt-1">Your earnings are processed every Friday for orders which are marked as delivered. Minimum payout balance is ₹500.</p>
             </div>
 
             {orders && orders.length > 0 ? (
                 <div className="space-y-4">
                     {orders.map((order) => {
-                        // Check if selected status is different from current
                         const hasStatusChanged = selectedStatuses[order.id] !== order.status
                         
                         return (
                             <Card key={order.id} className="border-0 shadow-sm">
                                 <CardContent className="p-6">
                                     <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                                        {/* Product Image */}
                                         <div className="w-24 h-24 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
                                             {order.products?.images?.[0] ? (
                                                 <img
@@ -196,7 +179,6 @@ export default function OrdersPage() {
                                             )}
                                         </div>
 
-                                        {/* Order Details */}
                                         <div className="flex-1 space-y-3">
                                             <div className="flex items-start justify-between">
                                                 <div>
@@ -255,92 +237,80 @@ export default function OrdersPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Actions */}
-                                            <div className="flex flex-wrap items-center gap-3 pt-2">
-                                                {/* Status Select */}
-                                                <Select 
-                                                    value={selectedStatuses[order.id] || order.status} 
-                                                    onValueChange={(value) => handleStatusChange(order.id, value)}
-                                                >
-                                                    <SelectTrigger className="w-40">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="pending">Pending</SelectItem>
-                                                        <SelectItem value="processing">Processing</SelectItem>
-                                                        <SelectItem value="shipped">Shipped</SelectItem>
-                                                        <SelectItem value="delivered">Delivered</SelectItem>
-                                                        <SelectItem value="completed">Completed</SelectItem>
-                                                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-
-                                                {/* Update Status Button - Only enabled when status changed */}
-                                                <Button 
-                                                    size="sm" 
-                                                    onClick={() => updateStatus(order.id)}
-                                                    disabled={!hasStatusChanged || updating[order.id]}
-                                                >
-                                                    {updating[order.id] ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                                    ) : (
-                                                        'Update'
-                                                    )}
-                                                </Button>
-
-                                                {/* Send Status Email Button */}
-                                                {order.buyer_email && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800"
-                                                        onClick={() => sendStatusEmail(order.id)}
-                                                        disabled={sendingEmail[order.id] || emailSent[order.id]}
+                                            <div className="space-y-3 pt-2">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <Select 
+                                                        value={selectedStatuses[order.id] || order.status} 
+                                                        onValueChange={(value) => handleStatusChange(order.id, value)}
                                                     >
-                                                        {sendingEmail[order.id] ? (
-                                                            <>
-                                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                                Sending...
-                                                            </>
+                                                        <SelectTrigger className="w-40">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pending">Pending</SelectItem>
+                                                            <SelectItem value="processing">Processing</SelectItem>
+                                                            <SelectItem value="shipped">Shipped</SelectItem>
+                                                            <SelectItem value="delivered">Delivered</SelectItem>
+                                                            <SelectItem value="completed">Completed</SelectItem>
+                                                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+
+                                                    <Button 
+                                                        size="sm" 
+                                                        onClick={() => updateStatus(order.id)}
+                                                        disabled={!hasStatusChanged || updating[order.id]}
+                                                    >
+                                                        {updating[order.id] ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
                                                         ) : emailSent[order.id] ? (
                                                             <>
-                                                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                                                Sent!
+                                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                                                Updated
                                                             </>
                                                         ) : (
-                                                            <>
-                                                                <Send className="w-4 h-4" />
-                                                                Send Status Email
-                                                            </>
+                                                            'Update'
                                                         )}
                                                     </Button>
+
+                                                    {order.buyer_phone && (
+                                                        <>
+                                                            <a
+                                                                href={`https://wa.me/${order.buyer_phone.replace(/[^0-9]/g, '')}?text=Hi ${order.buyer_name}, this is regarding your order #${order.id.slice(0, 8)} from our store.`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <Button variant="outline" size="sm" className="gap-2">
+                                                                    <Phone className="w-4 h-4" />
+                                                                    WhatsApp Buyer
+                                                                </Button>
+                                                            </a>
+
+                                                            <a
+                                                                href={`https://wa.me/${order.buyer_phone.replace(/[^0-9]/g, '')}?text=Hi ${order.buyer_name}, your order #${order.id.slice(0, 8)} has been confirmed! We'll update you on delivery.`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <Button variant="outline" size="sm" className="gap-2 text-green-600 border-green-200 hover:bg-green-50">
+                                                                    <MessageCircle className="w-4 h-4" />
+                                                                    Message Buyer
+                                                                </Button>
+                                                            </a>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                {hasStatusChanged && order.buyer_email && (
+                                                    <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md">
+                                                        <Info className="w-4 h-4 shrink-0" />
+                                                        <span>On update, status will change and an automated email will be sent to the buyer.</span>
+                                                    </div>
                                                 )}
-
-                                                {/* WhatsApp Buttons */}
-                                                {order.buyer_phone && (
-                                                    <>
-                                                        <a
-                                                            href={`https://wa.me/${order.buyer_phone.replace(/[^0-9]/g, '')}?text=Hi ${order.buyer_name}, this is regarding your order #${order.id.slice(0, 8)} from our store.`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            <Button variant="outline" size="sm" className="gap-2">
-                                                                <Phone className="w-4 h-4" />
-                                                                WhatsApp Buyer
-                                                            </Button>
-                                                        </a>
-
-                                                        <a
-                                                            href={`https://wa.me/${order.buyer_phone.replace(/[^0-9]/g, '')}?text=Hi ${order.buyer_name}, your order #${order.id.slice(0, 8)} has been confirmed! We'll update you on delivery.`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            <Button variant="outline" size="sm" className="gap-2 text-green-600 border-green-200 hover:bg-green-50">
-                                                                <MessageCircle className="w-4 h-4" />
-                                                                Message Buyer
-                                                            </Button>
-                                                        </a>
-                                                    </>
+                                                {hasStatusChanged && !order.buyer_email && (
+                                                    <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
+                                                        <Info className="w-4 h-4 shrink-0" />
+                                                        <span>On update, status will change. No buyer email available for automated notification.</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

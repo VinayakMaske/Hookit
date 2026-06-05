@@ -105,6 +105,7 @@ export default function PaymentsPage() {
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Payment Details</h1>
                 <p className="text-neutral-500 mt-1">Add your payout information to receive payments</p>
+                <p className="text-red-900 mt-1">Your earnings are processed every Friday for orders which are marked as delivered. Minimum payout balance is ₹500.</p>
             </div>
 
             <Card className="border-0 shadow-sm">

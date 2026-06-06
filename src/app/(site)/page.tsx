@@ -348,7 +348,7 @@ export default async function LandingPage() {
                                 <Flame className="w-5 h-5 text-[#7C3AED]" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-neutral-900">Product of the Day</h2>
+                                <h2 className="text-2xl font-bold text-neutral-900">Hook of the Day</h2>
                                 <p className="text-sm text-neutral-500">Handpicked fresh every day</p>
                             </div>
                         </div>
@@ -370,7 +370,7 @@ export default async function LandingPage() {
                                     )}
                                     <div className="absolute top-4 left-4">
                                         <Badge className="bg-[#7C3AED] text-white border-0 text-sm px-4 py-1.5">
-                                            <Crown className="w-3.5 h-3.5 mr-1.5" /> Product of the Day
+                                            <Crown className="w-3.5 h-3.5 mr-1.5" /> Hook of the Day
                                         </Badge>
                                     </div>
                                 </div>

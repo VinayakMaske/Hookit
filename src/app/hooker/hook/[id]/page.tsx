@@ -526,7 +526,7 @@ export default function HookDetailPage() {
           <div className="space-y-4">
             {/* Main Image with Blur Overlay */}
             <div 
-              className="relative rounded-3xl overflow-hidden bg-neutral-100 aspect-[4/5] lg:aspect-[3/4] group cursor-pointer"
+              className="relative rounded-3xl overflow-hidden bg-neutral-100 group cursor-pointer"
               onClick={handleImageClick}
             >
               <img
@@ -887,7 +887,7 @@ export default function HookDetailPage() {
                   {categoryRelatedHooks.map((item) => (
                     <Link key={item.id} href={`/hooker/hook/${item.id}`}>
                       <div
-                        className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-neutral-100 cursor-pointer"
+                        className="group relative rounded-2xl overflow-hidden bg-neutral-100 cursor-pointer"
                         onMouseEnter={() => setHoveredRelated(item.id)}
                         onMouseLeave={() => setHoveredRelated(null)}
                       >
@@ -949,7 +949,7 @@ export default function HookDetailPage() {
               {moreFromCreator.map((item) => (
                 <Link key={item.id} href={`/hooker/hook/${item.id}`}>
                   <div
-                    className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-neutral-100 cursor-pointer"
+                    className="group relative rounded-2xl overflow-hidden bg-neutral-100 cursor-pointer"
                     onMouseEnter={() => setHoveredRelated(item.id)}
                     onMouseLeave={() => setHoveredRelated(null)}
                   >

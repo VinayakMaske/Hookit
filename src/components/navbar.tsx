@@ -64,13 +64,13 @@ export function Navbar() {
                 Create Hook
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="hooker/login">
               <Button variant="ghost" className="text-neutral-600 hover:text-purple-600 rounded-full gap-2">
                 <LogIn className="w-4 h-4" />
                 Log in
               </Button>
             </Link>
-            <Link href="/signup">
+            <Link href="hooker/signup">
               <Button className="bg-neutral-900 hover:bg-neutral-800 text-white rounded-full gap-2">
                 <User className="w-4 h-4" />
                 Sign up

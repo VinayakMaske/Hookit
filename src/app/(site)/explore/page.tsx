@@ -1,7 +1,7 @@
 // src/app/(site)/explore/page.tsx
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,9 @@ import {
   ExternalLink,
   X,
   TrendingUp,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 // Icon mapping for categories
@@ -98,10 +100,11 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Natural height image - no forced aspect ratio */}
       <img
         src={imageUrl}
         alt={hook.title || hook.name}
-        className="w-full object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
+        className="w-full h-auto object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
       />
 
@@ -186,39 +189,119 @@ function CategoryPill({ category, isActive, onClick, count }: { category: any; i
   )
 }
 
-// Featured hook card (larger, for top section)
-function FeaturedHookCard({ hook }: { hook: any }) {
+// Netflix-style Featured Card
+function FeaturedCard({ hook }: { hook: any }) {
   return (
-    <div className="group relative rounded-3xl overflow-hidden bg-neutral-100 aspect-[4/3] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500">
-      <img
-        src={hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop'}
-        alt={hook.title}
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-      
-      <div className="absolute top-4 left-4">
-        <Badge className="bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0 shadow-lg">
-          <Sparkles className="w-3 h-3 mr-1" />
-          Featured
-        </Badge>
+    <Link href={hook.id ? `/hook/${hook.id}` : '#'} className="block flex-shrink-0">
+      <div className="group relative rounded-2xl overflow-hidden bg-neutral-100 aspect-[16/10] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 w-[320px] sm:w-[380px] md:w-[420px]">
+        <img
+          src={hook.images?.[0] || hook.image_url || hook.src || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop'}
+          alt={hook.title || hook.name}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        
+        <div className="absolute top-3 left-3">
+          <Badge className="bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0 shadow-lg text-xs">
+            <Sparkles className="w-3 h-3 mr-1" />
+            Featured
+          </Badge>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">{hook.title || hook.name}</h3>
+          <p className="text-white/70 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{(hook.creator_name || hook.creator || 'A')[0]}</span>
+              </div>
+              <span className="text-white/80 text-sm">{hook.creator_name || hook.creator || 'Anonymous'}</span>
+            </div>
+            <div className="flex items-center gap-3 text-white/70 text-sm">
+              <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {hook.likes || hook.like_count || 0}</span>
+              <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {hook.view_count || hook.views || 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+// Netflix-style horizontal scroll row
+// Netflix-style horizontal scroll row
+function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const checkScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10)
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkScroll)
+    checkScroll()
+    return () => el.removeEventListener('scroll', checkScroll)
+  }, [])
+
+  const scroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current
+    if (!el) return
+    const scrollAmount = direction === 'left' ? -400 : 400
+    el.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+  }
+
+  if (hooks.length === 0) return null
+
+  return (
+    <div className="relative group/row max-w-7xl mx-auto">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-purple-600" />
+          <h2 className="text-xl sm:text-2xl font-bold text-neutral-900">{title}</h2>
+        </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-6">
-        <h3 className="text-white font-bold text-xl mb-2">{hook.title}</h3>
-        <p className="text-white/80 text-sm mb-3 line-clamp-2">{hook.description}</p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <span className="text-white text-xs font-bold">{hook.creator_name?.[0] || 'A'}</span>
-            </div>
-            <span className="text-white/90 text-sm">{hook.creator_name || 'Anonymous'}</span>
-          </div>
-          <div className="flex items-center gap-3 text-white/70 text-sm">
-            <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {hook.likes || 0}</span>
-            <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {hook.view_count || 0}</span>
-          </div>
+      {/* Scroll Container */}
+      <div className="relative">
+        {/* Left Arrow */}
+        <button
+          onClick={() => scroll('left')}
+          className={`absolute left-2 sm:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+            canScrollLeft ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5 text-neutral-700" />
+        </button>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => scroll('right')}
+          className={`absolute right-2 sm:right-6 lg:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+            canScrollRight ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <ChevronRight className="w-5 h-5 text-neutral-700" />
+        </button>
+
+        {/* Cards Row - aligned with page padding */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-4 px-4 sm:px-6 lg:px-8 scrollbar-hide scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {hooks.map((hook, i) => (
+            <FeaturedCard key={hook.id || i} hook={hook} />
+          ))}
         </div>
       </div>
     </div>
@@ -264,7 +347,7 @@ function ExploreContent() {
       .eq('is_published', true)
       .eq('is_featured', true)
       .order('created_at', { ascending: false })
-      .limit(3)
+      .limit(10)
 
     setFeaturedHooks(featured || [])
 
@@ -322,12 +405,12 @@ function ExploreContent() {
     selectedCategory === 'all' ? true : h.category.toLowerCase() === selectedCategory
   )
 
-  const displayFeatured = featuredHooks.length > 0 ? featuredHooks : DEMO_HOOKS.slice(0, 3)
+  const displayFeatured = featuredHooks.length > 0 ? featuredHooks : DEMO_HOOKS.slice(0, 8)
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section - Gradient like landing page */}
-      <section className="relative pt-24 pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50">
+      <section className="relative pt-24 pb-8 lg:pt-32 lg:pb-12 overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <Badge className="mb-4 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0 px-4 py-1.5 text-sm font-medium">
@@ -394,22 +477,10 @@ function ExploreContent() {
         <div className="absolute bottom-0 right-0 w-72 h-72 bg-pink-200/20 rounded-full blur-3xl -z-10" />
       </section>
 
-      {/* Featured Hooks Section (only when not filtering) */}
+      {/* Featured Hooks - Netflix Style Horizontal Scroll */}
       {selectedCategory === 'all' && !searchQuery && (
         <section className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2 mb-6">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              <h2 className="text-2xl font-bold text-neutral-900">Featured Hooks</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {displayFeatured.map((hook, i) => (
-                <Link key={hook.id || i} href={hook.id ? `/hook/${hook.id}` : '#'}>
-                  <FeaturedHookCard hook={hook} />
-                </Link>
-              ))}
-            </div>
-          </div>
+          <FeaturedRow hooks={displayFeatured} title="Featured Hooks" />
         </section>
       )}
 

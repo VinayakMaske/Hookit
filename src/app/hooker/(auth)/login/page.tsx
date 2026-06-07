@@ -38,7 +38,7 @@ export default function HookerLoginPage() {
             return
         }
 
-        router.push('/explore')
+        router.push('/hooker/home')
         router.refresh()
         setLoading(false)
     }

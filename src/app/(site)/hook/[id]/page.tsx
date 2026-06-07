@@ -391,14 +391,14 @@ export default function HookDetailPage() {
           <div className="space-y-4">
             {/* Main Image with Blur Overlay */}
             <div 
-              className="relative rounded-3xl overflow-hidden bg-neutral-100 aspect-[4/5] lg:aspect-[3/4] group cursor-pointer"
-              onClick={handleImageClick}
-            >
+  className="relative rounded-3xl overflow-hidden bg-neutral-100 group cursor-pointer"
+  onClick={handleImageClick}
+>
               <img
-                src={currentImage}
-                alt={hook.title}
-                className={`w-full h-full object-cover transition-all duration-500 ${imageBlurred ? 'blur-xl scale-105' : ''}`}
-              />
+  src={currentImage}
+  alt={hook.title}
+  className={`w-full h-auto object-cover transition-all duration-500 ${imageBlurred ? 'blur-xl scale-105' : ''}`}
+/>
 
               {/* Blur Overlay with Know More Button */}
               {imageBlurred && knowMoreLink && (
@@ -758,16 +758,16 @@ export default function HookDetailPage() {
               {moreFromCreator.map((item) => (
                 <Link key={item.id} href={`/hook/${item.id}`}>
                   <div
-                    className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-neutral-100 cursor-pointer"
-                    onMouseEnter={() => setHoveredRelated(item.id)}
-                    onMouseLeave={() => setHoveredRelated(null)}
-                  >
-                    <img
-                      src={item.image_url || (item.images?.[0]) || ''}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                    />
+  className="group relative rounded-2xl overflow-hidden bg-neutral-100 cursor-pointer"
+  onMouseEnter={() => setHoveredRelated(item.id)}
+  onMouseLeave={() => setHoveredRelated(null)}
+>
+  <img
+    src={item.image_url || (item.images?.[0]) || ''}
+    alt={item.title}
+    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+    loading="lazy"
+  />
                     <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
                       hoveredRelated === item.id ? 'opacity-100' : 'opacity-0'
                     }`}>

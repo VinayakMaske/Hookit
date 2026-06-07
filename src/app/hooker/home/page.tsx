@@ -266,7 +266,7 @@ export default function HookerHomePage() {
                   key={hook.id}
                   className="break-inside-avoid group relative rounded-2xl overflow-hidden cursor-pointer mb-2"
                 >
-                  <Link href={`/hook/${hook.id}`}>
+                  <Link href={`/hooker/hook/${hook.id}`}>
                     <div className="relative">
                       <img
                         src={hook.image_url}

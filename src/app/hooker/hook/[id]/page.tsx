@@ -589,7 +589,7 @@ export default function HookDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8 pb-20 sm:pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
         <div className="grid lg:grid-cols-[1fr_420px] gap-6 lg:gap-10">
           
           {/* LEFT: Image Gallery */}
@@ -817,12 +817,12 @@ export default function HookDetailPage() {
 
       {/* Related Hooks - Masonry Grid (fills the page) */}
       {related.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 sm:pb-6">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-500" />
             More to explore
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
             {related.map((item) => (
               <Link key={item.id} href={`/hooker/hook/${item.id}`} className="block break-inside-avoid">
                 <div

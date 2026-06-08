@@ -52,9 +52,15 @@ export default function HookerLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen bg-white">
       {/* Main Content */}
-      <main className={!isAuthPage ? 'lg:pl-20' : ''}>
-        {children}
-      </main>
+      <main
+  className={
+    !isAuthPage
+      ? 'lg:pl-20 pb-[100px] lg:pb-0'
+      : ''
+  }
+>
+  {children}
+</main>
 
       {/* Desktop Left Sidebar */}
       {!isAuthPage && (

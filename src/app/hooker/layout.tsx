@@ -112,7 +112,7 @@ export default function HookerLayout({ children }: { children: React.ReactNode }
           </nav>
 
           {/* Mobile Bottom Navigation */}
-          <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-neutral-100 z-50 safe-area-pb">
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-neutral-100 z-40 safe-area-pb">
             <div className="flex items-center justify-around px-2 py-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')

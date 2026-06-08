@@ -1,14 +1,13 @@
 // src/app/hooker/hook/[id]/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Heart,
   Bookmark,
@@ -20,7 +19,6 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
   Sparkles,
   CheckCircle2,
   Loader2,
@@ -32,7 +30,8 @@ import {
   ShoppingBag,
   Trash2,
   Pencil,
-  AlertTriangle
+  AlertTriangle,
+  Copy
 } from 'lucide-react'
 
 // Custom SVG Icons
@@ -51,6 +50,30 @@ function YoutubeIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.06c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
       <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+    </svg>
+  )
+}
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  )
+}
+
+function MessengerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.373 0 0 4.975 0 11.111c0 3.497 1.744 6.616 4.472 8.652V24l4.086-2.242c1.09.301 2.246.464 3.442.464 6.627 0 12-4.975 12-11.111C24 4.975 18.627 0 12 0zm1.193 14.963l-3.056-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.559 6.963z"/>
+    </svg>
+  )
+}
+
+function TwitterIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
   )
 }
@@ -113,8 +136,8 @@ interface RelatedHook {
 interface Comment {
   id: string
   hook_id: string
-  author_name: string
-  author_email: string
+  user_name: string
+  user_email: string
   content: string
   created_at: string
   user_id: string | null
@@ -125,10 +148,10 @@ export default function HookDetailPage() {
   const router = useRouter()
   const hookId = params.id as string
   const supabase = createClient()
+  const commentsScrollRef = useRef<HTMLDivElement>(null)
 
   const [hook, setHook] = useState<Hook | null>(null)
   const [related, setRelated] = useState<RelatedHook[]>([])
-  const [moreFromCreator, setMoreFromCreator] = useState<RelatedHook[]>([])
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -148,20 +171,13 @@ export default function HookDetailPage() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const [hoveredRelated, setHoveredRelated] = useState<string | null>(null)
-
-  // Image blur state
   const [imageBlurred, setImageBlurred] = useState(false)
-
-  // Login prompt modal
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [loginPromptAction, setLoginPromptAction] = useState('')
-
-  // Delete confirm
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  // Related hooks in same category (below comments)
-  const [categoryRelatedHooks, setCategoryRelatedHooks] = useState<RelatedHook[]>([])
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showMobileComments, setShowMobileComments] = useState(false)
 
   useEffect(() => {
     fetchHook()
@@ -172,7 +188,6 @@ export default function HookDetailPage() {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     if (user) {
-      // Fetch user profile name from hooker_profiles or user_metadata
       const { data: profile } = await supabase
         .from('hooker_profiles')
         .select('full_name')
@@ -205,19 +220,16 @@ export default function HookDetailPage() {
       if (!res.ok) throw new Error('Hook not found')
       const data = await res.json()
       setHook(data.hook)
-      setRelated(data.related)
-      setMoreFromCreator(data.moreFromCreator)
-      setComments(data.comments)
+      setRelated(data.related || [])
+      setComments(data.comments || [])
       setLikeCount(data.hook.likes || 0)
       setSaveCount(data.hook.saves || 0)
 
-      // Check ownership
       const { data: { user } } = await supabase.auth.getUser()
       if (user && data.hook.user_id === user.id) {
         setIsOwner(true)
       }
 
-      // Check if user has liked/saved
       if (user) {
         const { data: likeData } = await supabase
           .from('hook_likes')
@@ -235,20 +247,6 @@ export default function HookDetailPage() {
 
         setLiked(!!likeData)
         setSaved(!!saveData)
-      }
-
-      // Fetch related hooks in same category (excluding current hook)
-      if (data.hook.category || data.hook.category_slug) {
-        const { data: catRelated } = await supabase
-          .from('hooks')
-          .select('id, title, images, image_url, creator_name, category, likes, views')
-          .eq('is_published', true)
-          .or(`category.eq.${data.hook.category},category_slug.eq.${data.hook.category_slug}`)
-          .neq('id', hookId)
-          .order('created_at', { ascending: false })
-          .limit(8)
-
-        setCategoryRelatedHooks(catRelated || [])
       }
     } catch (err: any) {
       setError(err.message)
@@ -285,20 +283,36 @@ export default function HookDetailPage() {
     }
   }
 
-  const handleShare = async () => {
-    const url = `https://hookit.online/hook/${hookId}`
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: hook?.title, url })
-      } else {
-        await navigator.clipboard.writeText(url)
-        setShowShareToast(true)
-        setTimeout(() => setShowShareToast(false), 2000)
-      }
-    } catch {
-      // ignore
-    }
+  const handleShare = () => {
+    setShowShareModal(true)
   }
+
+  const shareOptions = [
+    { name: 'Copy Link', icon: Copy, color: 'bg-neutral-100 text-neutral-700', action: () => {
+      navigator.clipboard.writeText(`https://hookit.online/hook/${hookId}`)
+      setShowShareToast(true)
+      setTimeout(() => setShowShareToast(false), 2000)
+      setShowShareModal(false)
+    }},
+    { name: 'WhatsApp', icon: WhatsAppIcon, color: 'bg-green-500 text-white', action: () => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Check out this hook on Hookit: https://hookit.online/hook/${hookId}`)}`, '_blank')
+      setShowShareModal(false)
+    }},
+    { name: 'Instagram', icon: InstagramIcon, color: 'bg-gradient-to-br from-purple-500 to-pink-500 text-white', action: () => {
+      navigator.clipboard.writeText(`https://hookit.online/hook/${hookId}`)
+      setShowShareToast(true)
+      setTimeout(() => setShowShareToast(false), 2000)
+      setShowShareModal(false)
+    }},
+    { name: 'Twitter', icon: TwitterIcon, color: 'bg-sky-500 text-white', action: () => {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this hook on Hookit!`)}&url=${encodeURIComponent(`https://hookit.online/hook/${hookId}`)}`, '_blank')
+      setShowShareModal(false)
+    }},
+    { name: 'Messenger', icon: MessengerIcon, color: 'bg-blue-600 text-white', action: () => {
+      window.open(`https://www.facebook.com/dialog/send?link=${encodeURIComponent(`https://hookit.online/hook/${hookId}`)}&app_id=YOUR_APP_ID&redirect_uri=${encodeURIComponent(window.location.href)}`, '_blank')
+      setShowShareModal(false)
+    }},
+  ]
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -341,17 +355,14 @@ export default function HookDetailPage() {
     }
   }
 
-  // Get know_more link
   const knowMoreLink = hook?.external_links?.find(link => link.icon === 'know_more' || link.label === 'Know More')
 
-  // Handle image click - blur and show know more
   const handleImageClick = () => {
     if (knowMoreLink) {
       setImageBlurred(true)
     }
   }
 
-  // Handle know more click
   const handleKnowMoreClick = () => {
     if (knowMoreLink?.url) {
       window.open(knowMoreLink.url, '_blank', 'noopener,noreferrer')
@@ -362,13 +373,11 @@ export default function HookDetailPage() {
   const images = hook?.images?.length ? hook.images : hook?.image_url ? [hook.image_url] : []
   const currentImage = images[currentImageIndex] || ''
 
-  // Format date
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  // Time ago
   const timeAgo = (dateStr: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000)
     if (seconds < 60) return 'Just now'
@@ -425,17 +434,10 @@ export default function HookDetailPage() {
               You need to be logged in to {loginPromptAction}. Join the community to interact with hooks!
             </p>
             <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowLoginPrompt(false)}
-                className="flex-1 rounded-full border-neutral-300"
-              >
+              <Button variant="outline" onClick={() => setShowLoginPrompt(false)} className="flex-1 rounded-full border-neutral-300">
                 Cancel
               </Button>
-              <Button 
-                onClick={redirectToLogin}
-                className="flex-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white gap-2"
-              >
+              <Button onClick={redirectToLogin} className="flex-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white gap-2">
                 <LogIn className="w-4 h-4" />
                 Log In
               </Button>
@@ -456,22 +458,97 @@ export default function HookDetailPage() {
               This action cannot be undone. Your Hook will be permanently removed.
             </p>
             <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-full border-neutral-300"
-              >
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="flex-1 rounded-full border-neutral-300">
                 Cancel
               </Button>
-              <Button 
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 rounded-full bg-red-500 hover:bg-red-600 text-white gap-2"
-              >
+              <Button onClick={handleDelete} disabled={deleting} className="flex-1 rounded-full bg-red-500 hover:bg-red-600 text-white gap-2">
                 {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 Delete
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-md mx-auto shadow-2xl animate-in slide-in-from-bottom-10 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 sm:hidden" />
+            <h3 className="text-lg font-bold text-neutral-900 text-center mb-6">Share to</h3>
+            <div className="grid grid-cols-5 gap-3 mb-6">
+              {shareOptions.map((option) => (
+                <button key={option.name} onClick={option.action} className="flex flex-col items-center gap-2 group">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${option.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                    <option.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-neutral-600 text-center">{option.name}</span>
+                </button>
+              ))}
+            </div>
+            <Button variant="outline" onClick={() => setShowShareModal(false)} className="w-full rounded-full border-neutral-300">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Comments Bottom Sheet */}
+      {showMobileComments && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:hidden" onClick={() => setShowMobileComments(false)}>
+          <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-neutral-100">
+              <div className="w-8" />
+              <h3 className="font-bold text-neutral-900">Comments ({comments.length})</h3>
+              <button onClick={() => setShowMobileComments(false)} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {comments.length === 0 ? (
+                <div className="text-center py-8 text-neutral-400">
+                  <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No comments yet. Be the first!</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      {(comment.user_name || 'A')[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2 mb-0.5">
+                        <span className="font-semibold text-sm text-neutral-900">{comment.user_name}</span>
+                        <span className="text-xs text-neutral-400">{timeAgo(comment.created_at)}</span>
+                      </div>
+                      <p className="text-sm text-neutral-700 leading-relaxed">{comment.content}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {currentUser ? (
+              <div className="p-4 border-t border-neutral-100">
+                <form onSubmit={handleSubmitComment} className="flex gap-2">
+                  <Input
+                    placeholder="Add a comment..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="flex-1 rounded-full border-neutral-200 h-10 text-sm"
+                  />
+                  <Button type="submit" disabled={submittingComment || !commentText.trim()} className="rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white h-10 w-10 p-0 disabled:opacity-40">
+                    {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </Button>
+                </form>
+              </div>
+            ) : (
+              <div className="p-4 border-t border-neutral-100 text-center">
+                <Button onClick={() => { setShowMobileComments(false); redirectToLogin() }} className="rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white gap-2">
+                  <LogIn className="w-4 h-4" />
+                  Log In to Comment
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -503,104 +580,62 @@ export default function HookDetailPage() {
                   <Pencil className="w-4 h-4 text-neutral-600 group-hover:text-purple-600" />
                 </button>
               </Link>
-              <button 
-                onClick={() => setShowDeleteConfirm(true)}
-                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-red-100 flex items-center justify-center transition-colors group"
-              >
+              <button onClick={() => setShowDeleteConfirm(true)} className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-red-100 flex items-center justify-center transition-colors group">
                 <Trash2 className="w-4 h-4 text-neutral-600 group-hover:text-red-600" />
               </button>
             </>
           )}
-
-          <button onClick={handleShare} className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-purple-100 flex items-center justify-center transition-colors group">
-            <Share2 className="w-4 h-4 text-neutral-600 group-hover:text-purple-600" />
-          </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-10">
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="grid lg:grid-cols-[1fr_420px] gap-6 lg:gap-10">
+          
           {/* LEFT: Image Gallery */}
           <div className="space-y-4">
-            {/* Main Image with Blur Overlay */}
-            <div 
-              className="relative rounded-3xl overflow-hidden bg-neutral-100 group cursor-pointer"
-              onClick={handleImageClick}
-            >
+            <div className="relative rounded-3xl overflow-hidden bg-neutral-100 group cursor-pointer" onClick={handleImageClick}>
               <img
                 src={currentImage}
                 alt={hook.title}
-                className={`w-full h-full object-cover transition-all duration-500 ${imageBlurred ? 'blur-xl scale-105' : ''}`}
+                className={`w-full h-auto object-cover transition-all duration-500 ${imageBlurred ? 'blur-xl scale-105' : ''}`}
               />
 
-              {/* Blur Overlay with Know More Button */}
               {imageBlurred && knowMoreLink && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in duration-300">
                   <p className="text-white/80 text-sm mb-4">Want to see more?</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleKnowMoreClick()
-                    }}
-                    className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); handleKnowMoreClick() }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2">
                     <ExternalLink className="w-5 h-5" />
                     Know More
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setImageBlurred(false)
-                    }}
-                    className="mt-4 text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); setImageBlurred(false) }} className="mt-4 text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors">
                     <X className="w-4 h-4" />
                     Close
                   </button>
                 </div>
               )}
 
-              {/* Image Navigation Arrows */}
               {images.length > 1 && (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentImageIndex((prev: number) => prev === 0 ? images.length - 1 : prev - 1)
-                      setImageBlurred(false)
-                    }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev: number) => prev === 0 ? images.length - 1 : prev - 1); setImageBlurred(false) }} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10">
                     <ChevronLeft className="w-5 h-5 text-neutral-700" />
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentImageIndex((prev: number) => prev === images.length - 1 ? 0 : prev + 1)
-                      setImageBlurred(false)
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev: number) => prev === images.length - 1 ? 0 : prev + 1); setImageBlurred(false) }} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10">
                     <ChevronRight className="w-5 h-5 text-neutral-700" />
                   </button>
                 </>
               )}
 
-              {/* Image Counter */}
               {images.length > 1 && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full z-10">
                   {currentImageIndex + 1} / {images.length}
                 </div>
               )}
 
-              {/* Category Badge */}
               <Badge className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-neutral-700 border-0 shadow-lg text-xs font-medium z-10">
                 {hook.category}
               </Badge>
 
-              {/* Click hint */}
               {!imageBlurred && knowMoreLink && (
                 <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   Click to reveal
@@ -608,22 +643,10 @@ export default function HookDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail Strip */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {images.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setCurrentImageIndex(i)
-                      setImageBlurred(false)
-                    }}
-                    className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${
-                      i === currentImageIndex 
-                        ? 'ring-2 ring-purple-500 ring-offset-2' 
-                        : 'opacity-60 hover:opacity-100'
-                    }`}
-                  >
+                  <button key={i} onClick={() => { setCurrentImageIndex(i); setImageBlurred(false) }} className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${i === currentImageIndex ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`}>
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -631,393 +654,201 @@ export default function HookDetailPage() {
             )}
           </div>
 
-          {/* RIGHT: Details Panel */}
-          <div className="space-y-6 lg:pt-4">
+          {/* RIGHT: Details Panel - Pinterest Style */}
+<div className="space-y-4 lg:pt-2">
 
-            {/* Title & Actions Row */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 leading-tight">
-                  {hook.title}
-                </h1>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={handleSave}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                    saved 
-                      ? 'bg-neutral-900 text-white' 
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  <Bookmark className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
-                </button>
-                <button
-                  onClick={handleLike}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                    liked 
-                      ? 'bg-red-500 text-white' 
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-red-50 hover:text-red-500'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-                </button>
-              </div>
+  {/* Creator Info - Instagram style, compact */}
+  <div className="flex items-center gap-2.5">
+    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+      {(hook.creator_name || 'A')[0].toUpperCase()}
+    </div>
+    <div>
+      <p className="font-semibold text-m text-neutral-900 leading-tight">{hook.creator_name || 'Anonymous'}</p>
+      <p className="text-sm text-neutral-500">Creator</p>
+    </div>
+    {isOwner && (
+      <Badge className="bg-purple-100 text-purple-700 border-0 text-xs ml-auto">You</Badge>
+    )}
+  </div>
+
+  {/* Title + Action Icons Row */}
+  <div className="flex items-start justify-between gap-3">
+    <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 leading-tight flex-1">
+      {hook.title}
+    </h1>
+    <div className="flex items-center gap-1 shrink-0 pt-1">
+      <button onClick={handleLike} className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500 hover:bg-red-50'}`}>
+        <Heart className={`w-5.5 h-5.5 ${liked ? 'fill-current' : ''}`} />
+      </button>
+      <button onClick={handleSave} className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${saved ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'}`}>
+        <Bookmark className={`w-5.5 h-5.5 ${saved ? 'fill-current' : ''}`} />
+      </button>
+      <button onClick={handleShare} className="w-9 h-9 rounded-full flex items-center justify-center transition-all text-neutral-500 hover:text-purple-600 hover:bg-purple-50">
+        <Share2 className="w-5.5 h-5.5" />
+      </button>
+    </div>
+  </div>
+
+  {/* Description */}
+  {hook.description && (
+    <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
+      {hook.description}
+    </p>
+  )}
+
+  {/* Tags */}
+  {hook.tags && hook.tags.length > 0 && (
+    <div className="flex flex-wrap gap-1.5">
+      {hook.tags.map((tag) => (
+        <Link key={tag} href={`/hooker/explore?tag=${tag}`}>
+          <span className="text-m text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full hover:bg-purple-100 transition-colors">
+            #{tag}
+          </span>
+        </Link>
+      ))}
+    </div>
+  )}
+
+  {/* Stats Row - Compact */}
+  <div className="flex items-center gap-4 text-m text-neutral-500">
+    <span className="flex items-center gap-1">
+      <Heart className="w-5.5 h-5.5" />
+      <span className="font-medium text-neutral-700">{likeCount.toLocaleString()}</span> likes
+    </span>
+    <span className="flex items-center gap-1">
+      <Bookmark className="w-5.5 h-5.5" />
+      <span className="font-medium text-neutral-700">{saveCount.toLocaleString()}</span> saves
+    </span>
+    <span className="flex items-center gap-1">
+      <Eye className="w-5.5 h-5.5" />
+      <span className="font-medium text-neutral-700">{(hook.views || 0).toLocaleString()}</span> views
+    </span>
+    <span className="flex items-center gap-1">
+      <Clock className="w-5.5 h-5.5" />
+      {timeAgo(hook.created_at)}
+    </span>
+  </div>
+
+  {/* External Links */}
+  {hook.external_links && hook.external_links.length > 0 && (
+    <div className="flex flex-wrap gap-2">
+      {hook.external_links.map((link, i) => {
+        const Icon = LINK_ICONS[link.icon] || ExternalLink
+        const color = LINK_COLORS[link.icon] || 'from-neutral-500 to-neutral-600'
+        return (
+          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-m font-medium text-white bg-gradient-to-r ${color} shadow-sm hover:shadow-md transition-shadow`}>
+            <Icon className="w-5.5 h-5.5" />
+          </a>
+        )
+      })}
+    </div>
+  )}
+
+  {/* Desktop Comments Section - Instagram style */}
+  <div className="hidden sm:block border-t border-neutral-100 pt-4">
+    <div className="flex items-center gap-2 mb-3">
+      <MessageCircle className="w-4 h-4 text-purple-500" />
+      <h3 className="text-sm font-semibold text-neutral-900">Comments ({comments.length})</h3>
+    </div>
+
+    {currentUser ? (
+      <form onSubmit={handleSubmitComment} className="mb-4">
+        <div className="flex gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
+            {(currentUserName || 'U')[0].toUpperCase()}
+          </div>
+          <div className="flex-1 flex gap-2">
+            <Input
+              placeholder="Add a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="flex-1 rounded-full border-neutral-200 h-9 text-sm"
+            />
+            <Button type="submit" disabled={submittingComment || !commentText.trim()} className="rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white h-9 w-9 p-0 disabled:opacity-40">
+              {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+      </form>
+    ) : (
+      <div className="mb-4 p-3 bg-neutral-50 rounded-xl text-center">
+        <p className="text-xs text-neutral-500 mb-2">Log in to comment</p>
+        <Button onClick={redirectToLogin} size="sm" className="rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white h-8 text-xs">
+          Log In
+        </Button>
+      </div>
+    )}
+
+    <div ref={commentsScrollRef} className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+      {comments.length === 0 && (
+        <div className="text-center py-6 text-neutral-400">
+          <MessageCircle className="w-6 h-6 mx-auto mb-1 opacity-50" />
+          <p className="text-xs">No comments yet. Be the first!</p>
+        </div>
+      )}
+      {comments.map((comment) => (
+        <div key={comment.id} className="flex gap-2">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
+            {(comment.user_name || 'A')[0].toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-baseline gap-1.5 mb-0.5">
+              <span className="font-semibold text-xs text-neutral-900">{comment.user_name}</span>
+              <span className="text-[10px] text-neutral-400">{timeAgo(comment.created_at)}</span>
             </div>
+            <p className="text-xs text-neutral-700 leading-relaxed">{comment.content}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
 
-            {/* Stats Row */}
-            <div className="flex items-center gap-6 text-sm text-neutral-500">
-              <div className="flex items-center gap-1.5">
-                <Heart className="w-4 h-4" />
-                <span className="font-medium text-neutral-700">{likeCount.toLocaleString()}</span>
-                <span>likes</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Bookmark className="w-4 h-4" />
-                <span className="font-medium text-neutral-700">{saveCount.toLocaleString()}</span>
-                <span>saves</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Eye className="w-4 h-4" />
-                <span className="font-medium text-neutral-700">{(hook.views || 0).toLocaleString()}</span>
-                <span>views</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                <span>{timeAgo(hook.created_at)}</span>
-              </div>
-            </div>
-
-            {/* Creator Card */}
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-50 border border-neutral-100">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                {(hook.creator_name || 'A')[0].toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-neutral-900">{hook.creator_name || 'Anonymous'}</p>
-                <p className="text-sm text-neutral-500">Creator</p>
-              </div>
-              {isOwner && (
-                <Badge className="bg-purple-100 text-purple-700 border-0">You</Badge>
-              )}
-            </div>
-
-            {/* Description */}
-            {hook.description && (
-              <div>
-                <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                  {hook.description}
-                </p>
-              </div>
-            )}
-
-            {/* Tags */}
-            {hook.tags && hook.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {hook.tags.map((tag) => (
-                  <Link key={tag} href={`/hooker/explore?tag=${tag}`}>
-                    <span className="text-sm text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100 hover:bg-purple-100 transition-colors">
-                      #{tag}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* External Links */}
-            {hook.external_links && hook.external_links.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-neutral-900 flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-purple-500" />
-                  Links
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {hook.external_links.map((link, i) => {
-                    const Icon = LINK_ICONS[link.icon] || ExternalLink
-                    const color = LINK_COLORS[link.icon] || 'from-neutral-500 to-neutral-600'
-                    return (
-                      <a
-                        key={i}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r ${color} shadow-md hover:shadow-lg transition-shadow`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {link.label}
-                        <ExternalLink className="w-3 h-3 opacity-70" />
-                      </a>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
-              <Button
-                onClick={handleLike}
-                className={`flex-1 rounded-full h-12 gap-2 text-base transition-all ${
-                  liked
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-neutral-100 hover:bg-red-50 text-neutral-700 hover:text-red-500'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-                {liked ? 'Liked' : 'Like'}
-              </Button>
-              <Button
-                onClick={handleSave}
-                className={`flex-1 rounded-full h-12 gap-2 text-base transition-all ${
-                  saved
-                    ? 'bg-neutral-900 hover:bg-neutral-800 text-white'
-                    : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
-                }`}
-              >
-                <Bookmark className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
-                {saved ? 'Saved' : 'Save'}
-              </Button>
-              <Button
-                onClick={handleShare}
-                variant="outline"
-                className="rounded-full h-12 px-6 border-neutral-300 hover:border-purple-300 hover:bg-purple-50 gap-2"
-              >
-                <Share2 className="w-5 h-5" />
-                Share
-              </Button>
-            </div>
-
-            {/* Comments Section */}
-            <div className="border-t border-neutral-100 pt-6 space-y-6">
+            {/* Mobile Comments Trigger */}
+            <button onClick={() => setShowMobileComments(true)} className="sm:hidden flex items-center justify-between w-full py-3 border-t border-neutral-100">
               <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-purple-500" />
-                <h3 className="text-lg font-semibold text-neutral-900">
-                  Comments ({comments.length})
-                </h3>
+                <MessageCircle className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-semibold text-neutral-900">Comments ({comments.length})</span>
               </div>
-
-              {/* Comment Form */}
-              {currentUser ? (
-                <form onSubmit={handleSubmitComment} className="space-y-3">
-                  <div className="flex gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold shrink-0">
-                      {(currentUserName || 'U')[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-neutral-900">{currentUserName}</p>
-                        <p className="text-xs text-neutral-400">Posting as verified user</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="Add a comment..."
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          className="rounded-xl border-neutral-200 focus:border-purple-300 min-h-[80px] resize-none text-sm"
-                          required
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          type="submit"
-                          disabled={submittingComment || !commentText.trim()}
-                          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-9 px-6 gap-2 disabled:opacity-40"
-                        >
-                          {submittingComment ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                          Comment
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              ) : (
-                <div className="bg-neutral-50 rounded-2xl p-6 text-center border border-neutral-100">
-                  <Lock className="w-8 h-8 text-neutral-400 mx-auto mb-3" />
-                  <p className="text-neutral-600 font-medium mb-1">Want to join the conversation?</p>
-                  <p className="text-neutral-400 text-sm mb-4">Log in to leave a comment</p>
-                  <Button 
-                    onClick={() => redirectToLogin()}
-                    className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full gap-2"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Log In to Comment
-                  </Button>
-                </div>
-              )}
-
-              {/* Comments List */}
-              <div className="space-y-4">
-                {comments.length === 0 && (
-                  <div className="text-center py-8 text-neutral-400">
-                    <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No comments yet. Be the first!</p>
-                  </div>
-                )}
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                      {(comment.author_name || 'A')[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-neutral-900">{comment.author_name}</span>
-                        <span className="text-xs text-neutral-400">{timeAgo(comment.created_at)}</span>
-                      </div>
-                      <p className="text-sm text-neutral-700 leading-relaxed">{comment.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Related Hooks Section - Below Comments */}
-            {categoryRelatedHooks.length > 0 && (
-              <div className="border-t border-neutral-100 pt-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-500" />
-                  <h3 className="text-lg font-semibold text-neutral-900">
-                    Related Hooks in {hook.category}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {categoryRelatedHooks.map((item) => (
-                    <Link key={item.id} href={`/hooker/hook/${item.id}`}>
-                      <div
-                        className="group relative rounded-2xl overflow-hidden bg-neutral-100 cursor-pointer"
-                        onMouseEnter={() => setHoveredRelated(item.id)}
-                        onMouseLeave={() => setHoveredRelated(null)}
-                      >
-                        <img
-                          src={item.image_url || (item.images?.[0]) || ''}
-                          alt={item.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
-                          hoveredRelated === item.id ? 'opacity-100' : 'opacity-0'
-                        }`}>
-                          <div className="absolute bottom-3 left-3 right-3">
-                            <p className="text-white font-medium text-sm line-clamp-2">{item.title}</p>
-                            <div className="flex items-center gap-3 mt-1 text-white/80 text-xs">
-                              <span className="flex items-center gap-1">
-                                <Heart className="w-3 h-3" /> {item.likes || 0}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Eye className="w-3 h-3" /> {item.views || 0}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Badge className="absolute top-2 left-2 bg-white/90 text-neutral-700 border-0 text-[10px]">
-                          {item.category}
-                        </Badge>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <div className="text-center pt-2">
-                  <Link href={`/hooker/explore?category=${hook.category_slug || hook.category.toLowerCase()}`}>
-                    <Button variant="outline" className="rounded-full gap-2 border-neutral-200 hover:border-purple-300 hover:bg-purple-50 text-sm">
-                      View All in {hook.category}
-                      <ArrowLeft className="w-3 h-3 rotate-180" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
+              <ChevronRight className="w-4 h-4 text-neutral-400" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* More From This Creator */}
-      {moreFromCreator.length > 0 && (
-        <section className="border-t border-neutral-100 bg-neutral-50/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                {(hook.creator_name || 'A')[0].toUpperCase()}
-              </div>
-              <h2 className="text-xl font-bold text-neutral-900">
-                More from {hook.creator_name || 'this creator'}
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {moreFromCreator.map((item) => (
-                <Link key={item.id} href={`/hooker/hook/${item.id}`}>
-                  <div
-                    className="group relative rounded-2xl overflow-hidden bg-neutral-100 cursor-pointer"
-                    onMouseEnter={() => setHoveredRelated(item.id)}
-                    onMouseLeave={() => setHoveredRelated(null)}
-                  >
-                    <img
-                      src={item.image_url || (item.images?.[0]) || ''}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
-                      hoveredRelated === item.id ? 'opacity-100' : 'opacity-0'
-                    }`}>
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <p className="text-white font-medium text-sm line-clamp-2">{item.title}</p>
-                        <div className="flex items-center gap-3 mt-1 text-white/80 text-xs">
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3" /> {item.likes || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" /> {item.views || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Related Hooks - Masonry */}
+      {/* Related Hooks - Masonry Grid (fills the page) */}
       {related.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <h2 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-purple-500" />
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" />
             More to explore
           </h2>
-          <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
             {related.map((item) => (
               <Link key={item.id} href={`/hooker/hook/${item.id}`} className="block break-inside-avoid">
                 <div
-                  className="group relative rounded-2xl overflow-hidden cursor-pointer"
+                  className="group relative rounded-2xl overflow-hidden cursor-pointer bg-neutral-100"
                   onMouseEnter={() => setHoveredRelated(item.id)}
                   onMouseLeave={() => setHoveredRelated(null)}
                 >
                   <img
                     src={item.image_url || (item.images?.[0]) || ''}
                     alt={item.title}
-                    className="w-full object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-auto object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
-                    hoveredRelated === item.id ? 'opacity-100' : 'opacity-0'
-                  }`}>
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">{item.title}</h3>
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${hoveredRelated === item.id ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <h3 className="text-white font-semibold text-xs mb-1 line-clamp-2">{item.title}</h3>
                       <div className="flex items-center justify-between">
-                        <span className="text-white/80 text-xs">{item.creator_name}</span>
-                        <div className="flex items-center gap-1 text-white/80 text-xs">
+                        <span className="text-white/80 text-[10px]">{item.creator_name}</span>
+                        <div className="flex items-center gap-1 text-white/80 text-[10px]">
                           <Heart className="w-3 h-3" />
                           {item.likes || 0}
                         </div>
                       </div>
                     </div>
                   </div>
-                  <Badge className="absolute top-3 left-3 bg-white/90 text-neutral-700 border-0 text-xs">
+                  <Badge className="absolute top-2 left-2 bg-white/90 text-neutral-700 border-0 text-[10px]">
                     {item.category}
                   </Badge>
                 </div>

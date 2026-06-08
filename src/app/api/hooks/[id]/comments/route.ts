@@ -9,7 +9,7 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
-    const { content, author_name, author_email } = body
+    const { content, author_name, author_email, user_id } = body
 
     if (!content?.trim() || !author_name?.trim()) {
       return NextResponse.json({ error: 'Content and name required' }, { status: 400 })
@@ -22,8 +22,9 @@ export async function POST(
       .insert({
         hook_id: id,
         content: content.trim(),
-        author_name: author_name.trim(),
-        author_email: author_email || 'anonymous@hookit.online',
+        user_name: author_name.trim(),        // <-- changed from author_name
+        user_email: author_email || 'anonymous@hookit.online', // <-- changed from author_email
+        user_id: user_id || null,
       })
       .select()
       .single()

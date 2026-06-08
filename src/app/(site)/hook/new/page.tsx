@@ -327,7 +327,7 @@ export default function CreateHookPage() {
       <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center px-4 py-20">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           {FLOATING_IMAGES.slice(0, 10).map((img, i) => (
-            <div key={i} className="absolute rounded-2xl overflow-hidden shadow-lg opacity-40" style={{ 
+            <div key={i} className="absolute rounded-2xl overflow-hidden shadow-lg opacity-80" style={{ 
               top: img.top, left: img.left, width: img.size, height: img.size * 1.3, 
               animation: `float ${6 + i * 0.5}s ease-in-out infinite`, 
               animationDelay: `${img.delay}s`,

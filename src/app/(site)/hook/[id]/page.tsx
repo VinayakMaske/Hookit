@@ -413,7 +413,7 @@ export default function HookDetailPage() {
       {/* Mobile Comments Bottom Sheet */}
       {showMobileComments && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:hidden" onClick={() => setShowMobileComments(false)}>
-          <div className="bg-white rounded-t-3xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-t-3xl w-full max-h-[calc(85vh-80px)] mb-20 flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300"onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-neutral-100">
               <div className="w-8" />
               <h3 className="font-bold text-neutral-900">Comments ({comments.length})</h3>

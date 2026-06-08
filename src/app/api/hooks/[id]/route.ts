@@ -1,19 +1,17 @@
 // src/app/api/hooks/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
+    const { id: hookId } = await params
     const supabase = await createClient()
 
+    // Fetch the hook
     const { data: hook, error: hookError } = await supabase
       .from('hooks')
       .select('*')
-      .eq('id', id)
+      .eq('id', hookId)
       .eq('is_published', true)
       .single()
 
@@ -21,44 +19,21 @@ export async function GET(
       return NextResponse.json({ error: 'Hook not found' }, { status: 404 })
     }
 
-    // Increment views
-    await supabase
+    // Fetch related hooks (same category, different id, limit 24)
+    const { data: related, error: relatedError } = await supabase
       .from('hooks')
-      .update({ views: (hook.views || 0) + 1 })
-      .eq('id', id)
-
-    const { data: related } = await supabase
-      .from('hooks')
-      .select('id, title, images, image_url, creator_name, category, likes, views')
+      .select('id, title, images, image_url, creator_name, category, views, view_count, clicks, click_count, type, product_price, price')
+      .eq('is_published', true)
       .eq('category', hook.category)
-      .eq('is_published', true)
-      .neq('id', id)
+      .neq('id', hookId)
       .order('created_at', { ascending: false })
-      .limit(12)
-
-    const { data: moreFromCreator } = await supabase
-      .from('hooks')
-      .select('id, title, images, image_url, creator_name, category, likes, views')
-      .eq('creator_email', hook.creator_email)
-      .eq('is_published', true)
-      .neq('id', id)
-      .order('created_at', { ascending: false })
-      .limit(6)
-
-    const { data: comments } = await supabase
-      .from('hook_comments')
-      .select('*')
-      .eq('hook_id', id)
-      .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(24)
 
     return NextResponse.json({
       hook,
-      related: related || [],
-      moreFromCreator: moreFromCreator || [],
-      comments: comments || [],
+      related: related || []
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch hook' }, { status: 500 })
   }
 }

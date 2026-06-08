@@ -1,7 +1,7 @@
 // src/app/(site)/explore/page.tsx
 'use client'
 
-import { useState, useEffect, Suspense, useRef } from 'react'
+import { useState, useEffect, Suspense, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,10 +9,6 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
   Search,
-  Heart,
-  Share2,
-  Bookmark,
-  MessageCircle,
   ArrowRight,
   Sparkles,
   Globe,
@@ -25,14 +21,25 @@ import {
   Laptop,
   Gamepad2,
   ExternalLink,
+  FileText,
+  ShoppingBag as ShoppingBagIcon,
   X,
   TrendingUp,
   Eye,
+  MousePointerClick,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Zap,
+  Flame,
+  Clock,
+  Loader2,
+  Shuffle
 } from 'lucide-react'
 
-// Icon mapping for categories
+// ============================================
+// ICON MAPPING
+// ============================================
 const ICON_MAP: Record<string, React.ElementType> = {
   Plane,
   Palette,
@@ -45,7 +52,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Globe,
 }
 
-// Category color mapping (matches landing page)
+// ============================================
+// CATEGORY COLOR MAPPING
+// ============================================
 const CATEGORY_COLORS: Record<string, string> = {
   travel: 'from-purple-500 to-pink-500',
   art: 'from-pink-500 to-rose-500',
@@ -57,31 +66,66 @@ const CATEGORY_COLORS: Record<string, string> = {
   gaming: 'from-violet-600 to-fuchsia-500',
 }
 
-// Demo masonry images for when no hooks exist yet
-const DEMO_HOOKS = [
-  { id: 'demo-1', src: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop', title: 'Minimal Watch', creator: 'Alex Design', category: 'Products', likes: 234, saves: 45, comments: 12, views: 1200 },
-  { id: 'demo-2', src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop', title: 'Portrait Photography', creator: 'Sarah Clicks', category: 'Photography', likes: 567, saves: 89, comments: 23, views: 3400 },
-  { id: 'demo-3', src: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=450&fit=crop', title: 'Abstract Art', creator: 'Maya Arts', category: 'Art', likes: 891, saves: 156, comments: 34, views: 5600 },
-  { id: 'demo-4', src: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&h=550&fit=crop', title: 'Swiss Alps', creator: 'Travel Bug', category: 'Travel', likes: 1234, saves: 234, comments: 56, views: 8900 },
-  { id: 'demo-5', src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=480&fit=crop', title: 'Street Fashion', creator: 'Style Icon', category: 'Fashion', likes: 445, saves: 67, comments: 18, views: 2100 },
-  { id: 'demo-6', src: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=520&fit=crop', title: 'Coding Setup', creator: 'Dev Life', category: 'Technology', likes: 678, saves: 123, comments: 45, views: 4500 },
-  { id: 'demo-7', src: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=470&fit=crop', title: 'Pizza Recipe', creator: 'Chef Mike', category: 'Food', likes: 890, saves: 198, comments: 67, views: 6700 },
-  { id: 'demo-8', src: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=580&fit=crop', title: 'Modern Art', creator: 'Gallery X', category: 'Art', likes: 334, saves: 56, comments: 14, views: 1800 },
-  { id: 'demo-9', src: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&h=490&fit=crop', title: 'Mountain Lake', creator: 'Nature Lover', category: 'Travel', likes: 1567, saves: 345, comments: 89, views: 12000 },
-  { id: 'demo-10', src: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=510&fit=crop', title: 'Polaroid Camera', creator: 'Retro Vibes', category: 'Products', likes: 223, saves: 34, comments: 8, views: 900 },
-  { id: 'demo-11', src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=460&fit=crop', title: 'Sunset Vibes', creator: 'Golden Hour', category: 'Photography', likes: 789, saves: 145, comments: 32, views: 4300 },
-  { id: 'demo-12', src: 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=400&h=540&fit=crop', title: 'Colorful Art', creator: 'Art Studio', category: 'Art', likes: 556, saves: 89, comments: 21, views: 3200 },
-  { id: 'demo-13', src: 'https://images.unsplash.com/photo-1511376777868-611b54f68947?w=400&h=440&fit=crop', title: 'Music Studio', creator: 'Beat Maker', category: 'Art', likes: 432, saves: 78, comments: 19, views: 2800 },
-  { id: 'demo-14', src: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=500&fit=crop', title: 'Retro Gaming', creator: 'Pixel Pro', category: 'Gaming', likes: 665, saves: 134, comments: 43, views: 5100 },
-  { id: 'demo-15', src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=420&fit=crop', title: 'Data Dashboard', creator: 'Tech Ninja', category: 'Technology', likes: 312, saves: 45, comments: 12, views: 1500 },
-  { id: 'demo-16', src: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=560&fit=crop', title: 'Healthy Bowl', creator: 'Fit Chef', category: 'Food', likes: 876, saves: 167, comments: 54, views: 7200 },
-  { id: 'demo-17', src: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=480&fit=crop', title: 'Boutique Store', creator: 'Shop Owner', category: 'Products', likes: 543, saves: 98, comments: 27, views: 3600 },
-  { id: 'demo-18', src: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=530&fit=crop', title: 'Runway Model', creator: 'Fashion Week', category: 'Fashion', likes: 987, saves: 234, comments: 76, views: 8900 },
-  { id: 'demo-19', src: 'https://images.unsplash.com/photo-1470071459604-3b98c0f71b9d?w=400&h=470&fit=crop', title: 'Foggy Forest', creator: 'Wanderlust', category: 'Travel', likes: 1123, saves: 289, comments: 65, views: 9500 },
-  { id: 'demo-20', src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=510&fit=crop', title: 'Model Shoot', creator: 'Lens Master', category: 'Photography', likes: 678, saves: 123, comments: 34, views: 4100 },
+// ============================================
+// HOOK TYPE CONFIG
+// ============================================
+const HOOK_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bgColor: string; textColor: string }> = {
+  link: { icon: ExternalLink, label: 'Link', color: 'bg-blue-500', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
+  blog: { icon: FileText, label: 'Blog', color: 'bg-purple-500', bgColor: 'bg-purple-50', textColor: 'text-purple-700' },
+  product: { icon: ShoppingBagIcon, label: 'Product', color: 'bg-emerald-500', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700' },
+}
+
+// ============================================
+// FILTER TABS
+// ============================================
+const FILTER_TABS = [
+  { id: 'all', label: 'All', icon: Layers },
+  { id: 'link', label: 'Links', icon: ExternalLink },
+  { id: 'blog', label: 'Blogs', icon: FileText },
+  { id: 'product', label: 'Products', icon: ShoppingBagIcon },
 ]
 
-// Hook card component
+// ============================================
+// DEMO HOOKS - All 3 types mixed
+// ============================================
+const DEMO_HOOKS = [
+  { id: 'demo-1', type: 'link', src: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop', title: 'Minimal Watch Design', creator: 'alexdesign', category: 'Products', views: 234, clicks: 89 },
+  { id: 'demo-2', type: 'blog', src: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=450&fit=crop', title: 'The Future of Abstract Art', creator: 'mayaarts', category: 'Art', views: 891, clicks: 445 },
+  { id: 'demo-3', type: 'product', src: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=510&fit=crop', title: 'Vintage Polaroid Camera', creator: 'retrovibes', category: 'Products', price: 129, views: 223, clicks: 98 },
+  { id: 'demo-4', type: 'link', src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop', title: 'Portrait Photography Guide', creator: 'sarahclicks', category: 'Photography', views: 567, clicks: 234 },
+  { id: 'demo-5', type: 'blog', src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=480&fit=crop', title: 'Street Fashion Trends 2026', creator: 'styleicon', category: 'Fashion', views: 445, clicks: 234 },
+  { id: 'demo-6', type: 'product', src: 'https://images.unsplash.com/photo-1472120435266-53107fd0c44a?w=400&h=460&fit=crop', title: 'Sunset Photography Prints', creator: 'goldenhour', category: 'Photography', price: 35, views: 789, clicks: 345 },
+  { id: 'demo-7', type: 'link', src: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&h=550&fit=crop', title: 'Swiss Alps Travel Guide', creator: 'travelbug', category: 'Travel', views: 1234, clicks: 567 },
+  { id: 'demo-8', type: 'blog', src: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=470&fit=crop', title: 'Authentic Pizza Recipe', creator: 'chefmike', category: 'Food', views: 890, clicks: 567 },
+  { id: 'demo-9', type: 'product', src: 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=400&h=540&fit=crop', title: 'Colorful Art Prints Set', creator: 'artstudio', category: 'Art', price: 59, views: 556, clicks: 234 },
+  { id: 'demo-10', type: 'link', src: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=520&fit=crop', title: 'Best Coding Setup 2026', creator: 'devlife', category: 'Technology', views: 678, clicks: 345 },
+  { id: 'demo-11', type: 'blog', src: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=580&fit=crop', title: 'Modern Art Movements', creator: 'galleryx', category: 'Art', views: 334, clicks: 178 },
+  { id: 'demo-12', type: 'product', src: 'https://images.unsplash.com/photo-1511376777868-611b54f68947?w=400&h=440&fit=crop', title: 'Music Production Kit', creator: 'beatmaker', category: 'Music', price: 199, views: 432, clicks: 189 },
+  { id: 'demo-13', type: 'link', src: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=500&fit=crop', title: 'Retro Gaming Collection', creator: 'pixelpro', category: 'Gaming', views: 665, clicks: 289 },
+  { id: 'demo-14', type: 'blog', src: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&h=490&fit=crop', title: 'Mountain Lake Photography', creator: 'naturelover', category: 'Travel', views: 1567, clicks: 789 },
+  { id: 'demo-15', type: 'product', src: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=480&fit=crop', title: 'Handmade Jewelry Collection', creator: 'shopowner', category: 'Products', price: 45, views: 543, clicks: 267 },
+  { id: 'demo-16', type: 'link', src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=420&fit=crop', title: 'Analytics Dashboard UI', creator: 'techninja', category: 'Technology', views: 312, clicks: 156 },
+  { id: 'demo-17', type: 'blog', src: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=560&fit=crop', title: 'Healthy Eating Guide', creator: 'fitchef', category: 'Food', views: 876, clicks: 456 },
+  { id: 'demo-18', type: 'product', src: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=530&fit=crop', title: 'Designer Fashion Pieces', creator: 'fashionweek', category: 'Fashion', price: 299, views: 987, clicks: 456 },
+  { id: 'demo-19', type: 'link', src: 'https://images.unsplash.com/photo-1470071459604-3b98c0f71b9d?w=400&h=470&fit=crop', title: 'Nature Photography Book', creator: 'wanderlust', category: 'Travel', views: 1123, clicks: 678 },
+  { id: 'demo-20', type: 'product', src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=510&fit=crop', title: 'Portrait Photography Course', creator: 'lensmaster', category: 'Photography', price: 79, views: 678, clicks: 345 },
+]
+
+// ============================================
+// SHUFFLE ARRAY (Fisher-Yates)
+// ============================================
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+// ============================================
+// HOOK CARD COMPONENT
+// ============================================
 function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -89,83 +133,96 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
     ? hook.src
     : (hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop')
 
-  const likeCount = hook.likes || hook.like_count || 0
-  const saveCount = hook.saves || hook.save_count || 0
-  const commentCount = hook.comments || 0
   const viewCount = hook.views || hook.view_count || 0
+  const clickCount = hook.clicks || hook.click_count || 0
+  const hookType = hook.type || 'link'
+  const price = hook.price || hook.product_price
 
   return (
     <div
-      className="break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden cursor-pointer bg-neutral-100 shadow-sm hover:shadow-xl transition-shadow duration-300"
+      className="break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden cursor-pointer bg-white shadow-sm hover:shadow-xl transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Natural height image - no forced aspect ratio */}
-      <img
-        src={imageUrl}
-        alt={hook.title || hook.name}
-        className="w-full h-auto object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
-        loading="lazy"
-      />
+      {/* Image Container */}
+      <div className="relative">
+        <img
+          src={imageUrl}
+          alt={hook.title || hook.name}
+          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
 
-      {/* Hover Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Top Actions */}
-        <div className="absolute top-3 right-3 flex gap-2">
-          <button className="p-2.5 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/40 transition-colors">
-            <Bookmark className="w-4 h-4 text-white" />
-          </button>
-          <button className="p-2.5 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/40 transition-colors">
-            <Share2 className="w-4 h-4 text-white" />
-          </button>
+        {/* Type Icon (top right) */}
+        <div className="absolute top-3 right-3">
+          {hookType === 'link' && (
+            <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <ExternalLink className="w-4 h-4 text-white" />
+            </div>
+          )}
+          {hookType === 'blog' && (
+            <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <FileText className="w-4 h-4 text-white" />
+            </div>
+          )}
+          {hookType === 'product' && (
+            <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <ShoppingBagIcon className="w-4 h-4 text-white" />
+            </div>
+          )}
         </div>
 
-        {/* Bottom Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">{hook.title || hook.name}</h3>
-          <div className="flex items-center justify-between">
-            <span className="text-white/80 text-xs">{hook.creator || hook.creator_name || 'Anonymous'}</span>
-          </div>
+        {/* Category Badge */}
+        <Badge className={`absolute top-3 left-3 bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 text-xs backdrop-blur-sm shadow-lg`}>
+          {hook.category}
+        </Badge>
 
-          {/* Engagement Stats */}
-          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/20">
-            <div className="flex items-center gap-1 text-white/70 text-xs">
-              <Heart className="w-3.5 h-3.5" />
-              {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(1)}K` : likeCount}
-            </div>
-            <div className="flex items-center gap-1 text-white/70 text-xs">
-              <MessageCircle className="w-3.5 h-3.5" />
-              {commentCount}
-            </div>
-            <div className="flex items-center gap-1 text-white/70 text-xs">
-              <Bookmark className="w-3.5 h-3.5" />
-              {saveCount >= 1000 ? `${(saveCount / 1000).toFixed(1)}K` : saveCount}
-            </div>
-            <div className="flex items-center gap-1 text-white/70 text-xs ml-auto">
-              <Eye className="w-3.5 h-3.5" />
+        {/* Price badge for products */}
+        {price && (
+          <div className="absolute bottom-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+            ${price}
+          </div>
+        )}
+      </div>
+
+      {/* Card Info */}
+      <div className="p-4">
+        <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title || hook.name}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-500 text-xs">@{hook.creator || hook.creator_name || hook.creator_username || 'anonymous'}</span>
+          <div className="flex items-center gap-3 text-neutral-400 text-xs">
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3" />
               {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount}
-            </div>
+            </span>
+            <span className="flex items-center gap-1">
+              <MousePointerClick className="w-3 h-3" />
+              {clickCount >= 1000 ? `${(clickCount / 1000).toFixed(1)}K` : clickCount}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Category Badge */}
-      <Badge className={`absolute top-3 left-3 bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 text-xs backdrop-blur-sm shadow-lg`}>
-        {hook.category}
-      </Badge>
-
-      {/* Trending Badge */}
-      {(likeCount > 500 || viewCount > 3000) && (
-        <Badge className="absolute top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-0 text-xs backdrop-blur-sm shadow-lg flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
-          Trending
-        </Badge>
-      )}
+      {/* Hover Overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${HOOK_TYPE_CONFIG[hookType]?.bgColor} ${HOOK_TYPE_CONFIG[hookType]?.textColor}`}>
+              {hookType === 'link' && <ExternalLink className="w-3 h-3" />}
+              {hookType === 'blog' && <FileText className="w-3 h-3" />}
+              {hookType === 'product' && <ShoppingBagIcon className="w-3 h-3" />}
+              {HOOK_TYPE_CONFIG[hookType]?.label}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-// Category pill component
+// ============================================
+// CATEGORY PILL COMPONENT
+// ============================================
 function CategoryPill({ category, isActive, onClick, count }: { category: any; isActive: boolean; onClick: () => void; count?: number }) {
   const Icon = ICON_MAP[category.icon] || Globe
 
@@ -189,8 +246,13 @@ function CategoryPill({ category, isActive, onClick, count }: { category: any; i
   )
 }
 
-// Netflix-style Featured Card
+// ============================================
+// FEATURED CARD (Netflix-style)
+// ============================================
 function FeaturedCard({ hook }: { hook: any }) {
+  const hookType = hook.type || 'link'
+  const price = hook.price || hook.product_price
+
   return (
     <Link href={hook.id ? `/hook/${hook.id}` : '#'} className="block flex-shrink-0">
       <div className="group relative rounded-2xl overflow-hidden bg-neutral-100 aspect-[16/10] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 w-[320px] sm:w-[380px] md:w-[420px]">
@@ -201,7 +263,8 @@ function FeaturedCard({ hook }: { hook: any }) {
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-        
+
+        {/* Featured Badge */}
         <div className="absolute top-3 left-3">
           <Badge className="bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0 shadow-lg text-xs">
             <Sparkles className="w-3 h-3 mr-1" />
@@ -209,19 +272,53 @@ function FeaturedCard({ hook }: { hook: any }) {
           </Badge>
         </div>
 
+        {/* Type Icon */}
+        <div className="absolute top-3 right-3">
+          {hookType === 'link' && (
+            <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <ExternalLink className="w-4 h-4 text-white" />
+            </div>
+          )}
+          {hookType === 'blog' && (
+            <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <FileText className="w-4 h-4 text-white" />
+            </div>
+          )}
+          {hookType === 'product' && (
+            <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
+              <ShoppingBagIcon className="w-4 h-4 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Price for products */}
+        {price && (
+          <div className="absolute bottom-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+            ${price}
+          </div>
+        )}
+
         <div className="absolute bottom-0 left-0 right-0 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
+              {hookType === 'link' && <ExternalLink className="w-3 h-3" />}
+              {hookType === 'blog' && <FileText className="w-3 h-3" />}
+              {hookType === 'product' && <ShoppingBagIcon className="w-3 h-3" />}
+              {HOOK_TYPE_CONFIG[hookType]?.label}
+            </span>
+          </div>
           <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">{hook.title || hook.name}</h3>
           <p className="text-white/70 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-white text-xs font-bold">{(hook.creator_name || hook.creator || 'A')[0]}</span>
+                <span className="text-white text-xs font-bold">{(hook.creator_name || hook.creator || hook.creator_username || 'A')[0]}</span>
               </div>
-              <span className="text-white/80 text-sm">{hook.creator_name || hook.creator || 'Anonymous'}</span>
+              <span className="text-white/80 text-sm">@{hook.creator_name || hook.creator || hook.creator_username || 'anonymous'}</span>
             </div>
             <div className="flex items-center gap-3 text-white/70 text-sm">
-              <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {hook.likes || hook.like_count || 0}</span>
-              <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {hook.view_count || hook.views || 0}</span>
+              <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {hook.views || hook.view_count || 0}</span>
+              <span className="flex items-center gap-1"><MousePointerClick className="w-4 h-4" /> {hook.clicks || hook.click_count || 0}</span>
             </div>
           </div>
         </div>
@@ -230,8 +327,9 @@ function FeaturedCard({ hook }: { hook: any }) {
   )
 }
 
-// Netflix-style horizontal scroll row
-// Netflix-style horizontal scroll row
+// ============================================
+// FEATURED ROW (Netflix-style horizontal scroll)
+// ============================================
 function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -263,7 +361,6 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
 
   return (
     <div className="relative group/row max-w-7xl mx-auto">
-      {/* Section Header */}
       <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-600" />
@@ -271,9 +368,7 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
         </div>
       </div>
 
-      {/* Scroll Container */}
       <div className="relative">
-        {/* Left Arrow */}
         <button
           onClick={() => scroll('left')}
           className={`absolute left-2 sm:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
@@ -283,7 +378,6 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
           <ChevronLeft className="w-5 h-5 text-neutral-700" />
         </button>
 
-        {/* Right Arrow */}
         <button
           onClick={() => scroll('right')}
           className={`absolute right-2 sm:right-6 lg:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
@@ -293,7 +387,6 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
           <ChevronRight className="w-5 h-5 text-neutral-700" />
         </button>
 
-        {/* Cards Row - aligned with page padding */}
         <div
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto pb-4 px-4 sm:px-6 lg:px-8 scrollbar-hide scroll-smooth"
@@ -308,25 +401,39 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
   )
 }
 
+// ============================================
+// MAIN EXPLORE CONTENT
+// ============================================
 function ExploreContent() {
   const [categories, setCategories] = useState<any[]>([])
   const [hooks, setHooks] = useState<any[]>([])
   const [filteredHooks, setFilteredHooks] = useState<any[]>([])
   const [featuredHooks, setFeaturedHooks] = useState<any[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedType, setSelectedType] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [isVisible, setIsVisible] = useState(false)
+  const [shuffledDemo, setShuffledDemo] = useState<any[]>([])
 
   const supabase = createClient()
 
+  // ===== SHUFFLE ON EVERY REFRESH =====
   useEffect(() => {
     setIsVisible(true)
+    // Shuffle demo hooks immediately on mount
+    setShuffledDemo(shuffleArray(DEMO_HOOKS))
     fetchCategories()
     fetchHooks()
   }, [])
 
-  // Fetch categories from DB
+  // ===== SHUFFLE REAL HOOKS WHEN LOADED =====
+  useEffect(() => {
+    if (hooks.length > 0) {
+      setHooks(prev => shuffleArray(prev))
+    }
+  }, [hooks.length]) // Only shuffle when hooks first load
+
   const fetchCategories = async () => {
     const { data } = await supabase
       .from('categories')
@@ -336,11 +443,9 @@ function ExploreContent() {
     setCategories(data || [])
   }
 
-  // Fetch hooks from DB
   const fetchHooks = async () => {
     setLoading(true)
-    
-    // Fetch featured hooks
+
     const { data: featured } = await supabase
       .from('hooks')
       .select('*')
@@ -349,9 +454,9 @@ function ExploreContent() {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    setFeaturedHooks(featured || [])
+    // Shuffle featured hooks
+    setFeaturedHooks(shuffleArray(featured || []))
 
-    // Fetch all hooks
     const { data } = await supabase
       .from('hooks')
       .select('*')
@@ -359,74 +464,107 @@ function ExploreContent() {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    setHooks(data || [])
-    setFilteredHooks(data || [])
+    // Shuffle all hooks randomly
+    const shuffled = shuffleArray(data || [])
+    setHooks(shuffled)
+    setFilteredHooks(shuffled)
     setLoading(false)
   }
 
-  // Filter by category
-  useEffect(() => {
-    if (selectedCategory === 'all') {
-      setFilteredHooks(hooks)
+  // ===== MANUAL SHUFFLE FUNCTION =====
+  const handleShuffle = useCallback(() => {
+    if (hooks.length > 0) {
+      const shuffled = shuffleArray(hooks)
+      setHooks(shuffled)
+      setFilteredHooks(shuffled)
     } else {
-      setFilteredHooks(hooks.filter((h) => h.category_slug === selectedCategory || h.category?.toLowerCase() === selectedCategory))
+      const shuffled = shuffleArray(DEMO_HOOKS)
+      setShuffledDemo(shuffled)
     }
-  }, [selectedCategory, hooks])
+  }, [hooks])
 
-  // Search
+  // Filter by category AND type
+  useEffect(() => {
+    let filtered = hooks
+
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter((h) => h.category_slug === selectedCategory || h.category?.toLowerCase() === selectedCategory)
+    }
+
+    if (selectedType !== 'all') {
+      filtered = filtered.filter((h) => h.type === selectedType)
+    }
+
+    // Shuffle filtered results too
+    setFilteredHooks(shuffleArray(filtered))
+  }, [selectedCategory, selectedType, hooks])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) {
-      setFilteredHooks(hooks)
+      setFilteredHooks(shuffleArray(hooks))
       return
     }
 
     const filtered = hooks.filter((h) =>
       (h.title || h.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (h.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (h.creator_name || h.creator || '').toLowerCase().includes(searchQuery.toLowerCase())
+      (h.creator_name || h.creator || h.creator_username || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
-    setFilteredHooks(filtered)
+    // Shuffle search results too
+    setFilteredHooks(shuffleArray(filtered))
   }
 
   const clearSearch = () => {
     setSearchQuery('')
-    setFilteredHooks(hooks)
+    setFilteredHooks(shuffleArray(hooks))
     setSelectedCategory('all')
+    setSelectedType('all')
   }
 
-  // Count hooks per category
   const getCategoryCount = (slug: string) => {
     return hooks.filter((h) => h.category_slug === slug || h.category?.toLowerCase() === slug).length
   }
 
-  // Use demo hooks if no real hooks exist yet
-  const displayHooks = hooks.length > 0 ? filteredHooks : DEMO_HOOKS.filter((h) =>
-    selectedCategory === 'all' ? true : h.category.toLowerCase() === selectedCategory
-  )
+  const getHeadingText = () => {
+    if (selectedCategory === 'all' && selectedType === 'all') return 'Discover Hooks'
+    if (selectedType !== 'all') {
+      const typeLabels: Record<string, string> = { link: 'Link', blog: 'Blog', product: 'Product' }
+      return `${typeLabels[selectedType]} Hooks`
+    }
+    return categories.find(c => c.slug === selectedCategory)?.name || 'Hooks'
+  }
 
-  const displayFeatured = featuredHooks.length > 0 ? featuredHooks : DEMO_HOOKS.slice(0, 8)
+  // Use shuffled demo hooks
+  const displayHooks = hooks.length > 0 ? filteredHooks : shuffledDemo.filter((h) => {
+    const catMatch = selectedCategory === 'all' ? true : h.category.toLowerCase() === selectedCategory
+    const typeMatch = selectedType === 'all' ? true : h.type === selectedType
+    return catMatch && typeMatch
+  })
+
+  const displayFeatured = featuredHooks.length > 0 ? featuredHooks : shuffledDemo.slice(0, 8)
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - Gradient like landing page */}
+      {/* Hero Section */}
       <section className="relative pt-24 pb-8 lg:pt-32 lg:pb-12 overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <Badge className="mb-4 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0 px-4 py-1.5 text-sm font-medium">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Discover Amazing Hooks
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5 text-sm font-medium">
+              <Layers className="w-3 h-3 mr-1" />
+              One Feed. Every Type.
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight mb-4">
               Explore{' '}
               <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
-                creator Hooks
+                Every Hook
               </span>
             </h1>
 
             <p className="text-xl text-neutral-500 mb-8 max-w-2xl mx-auto">
-              From art and photography to products and travel — find inspiration from creators around the world.
+              Blogs, products, links, videos — all in one visual feed. 
+              You never know what you will discover next.
             </p>
 
             {/* Search Bar */}
@@ -469,16 +607,37 @@ function ExploreContent() {
                 />
               ))}
             </div>
+
+            {/* Type Filter Tabs */}
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              {FILTER_TABS.map((tab) => {
+                const Icon = tab.icon
+                const isActive = selectedType === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSelectedType(tab.id)}
+                    className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-md shadow-purple-200' 
+                        : 'bg-white text-neutral-600 border border-neutral-200 hover:border-purple-300 hover:text-purple-600'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Background decoration */}
         <div className="absolute top-20 left-0 w-72 h-72 bg-purple-200/20 rounded-full blur-3xl -z-10" />
         <div className="absolute bottom-0 right-0 w-72 h-72 bg-pink-200/20 rounded-full blur-3xl -z-10" />
       </section>
 
-      {/* Featured Hooks - Netflix Style Horizontal Scroll */}
-      {selectedCategory === 'all' && !searchQuery && (
+      {/* Featured Hooks - Netflix Style */}
+      {selectedCategory === 'all' && selectedType === 'all' && !searchQuery && (
         <section className="py-8">
           <FeaturedRow hooks={displayFeatured} title="Featured Hooks" />
         </section>
@@ -487,28 +646,37 @@ function ExploreContent() {
       {/* All Hooks Masonry Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-2xl font-bold text-neutral-900">
-                {selectedCategory === 'all' ? 'All Hooks' : categories.find(c => c.slug === selectedCategory)?.name || 'Hooks'}
+                {getHeadingText()}
               </h2>
               <p className="text-neutral-500 text-sm mt-1">
                 {displayHooks.length} {displayHooks.length === 1 ? 'Hook' : 'Hooks'} found
               </p>
             </div>
 
-            {hooks.length === 0 && (
-              <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                Showing demo content — create your first Hook!
-              </Badge>
-            )}
+            <div className="flex items-center gap-3">
+              {/* Shuffle Button */}
+              <button
+                onClick={handleShuffle}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white text-neutral-600 border border-neutral-200 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 shadow-sm"
+              >
+                <Shuffle className="w-4 h-4" />
+                Shuffle
+              </button>
+
+              {hooks.length === 0 && (
+                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                  Showing demo content
+                </Badge>
+              )}
+            </div>
           </div>
 
-          {/* Loading State */}
           {loading && hooks.length === 0 ? (
             <div className="flex justify-center py-20">
-              <div className="animate-spin w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full" />
+              <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
             </div>
           ) : displayHooks.length > 0 ? (
             <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
@@ -524,7 +692,7 @@ function ExploreContent() {
                 <Search className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-lg font-medium text-neutral-900 mb-2">No hooks found</h3>
-              <p className="text-neutral-500 mb-6">Try a different category or search term</p>
+              <p className="text-neutral-500 mb-6">Try a different filter or search term</p>
               <Button
                 onClick={clearSearch}
                 variant="outline"
@@ -538,11 +706,10 @@ function ExploreContent() {
         </div>
       </section>
 
-      {/* CTA Section - Matching landing page style */}
+      {/* CTA Section */}
       <section className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl p-10 md:p-12 text-white relative overflow-hidden">
-            {/* Decorative circles */}
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
 
@@ -550,7 +717,7 @@ function ExploreContent() {
               Can't find what you're looking for?
             </h2>
             <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto relative z-10">
-              Create your own Hook and share it with the world. It only takes 30 seconds.
+              Create your own Hook and share it with the world. No signup needed.
             </p>
             <Link href="/hook/new" className="relative z-10 inline-block">
               <Button size="lg" className="bg-white text-purple-700 hover:bg-white/90 rounded-full h-14 px-10 text-lg gap-2 shadow-xl">
@@ -570,7 +737,7 @@ export default function ExplorePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full" />
+        <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
       </div>
     }>
       <ExploreContent />

@@ -73,6 +73,38 @@ export async function sendOrderNotification(
     await transporter.sendMail(mailOptions)
 }
 
+export async function sendCreatorPasscode(to: string, passcode: string) {
+  const mailOptions = {
+    from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+    to,
+    subject: 'Your Hookit Creator Passcode',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px;">Your Creator Passcode</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Welcome to Hookit</p>
+        </div>
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+          <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+            <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Use this 6-digit passcode to publish your Hook:</p>
+            <div style="font-size: 48px; font-weight: bold; color: #7C3AED; letter-spacing: 8px; margin: 20px 0;">
+              ${passcode}
+            </div>
+            <p style="margin: 0; color: #999; font-size: 14px;">This passcode expires in 24 hours.</p>
+          </div>
+          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+              <strong>Keep this passcode safe.</strong><br>
+              You'll need it to publish future Hooks under the same profile.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  }
+  await transporter.sendMail(mailOptions)
+}
+
 export async function sendBuyerConfirmation(
     to: string,
     orderDetails: {

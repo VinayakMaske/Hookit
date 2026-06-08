@@ -41,28 +41,17 @@ import {
   Utensils,
   MousePointerClick,
   Lock,
-  User
+  User,
+  FileText,
+  Tag,
+  DollarSign,
+  ExternalLink,
+  BookOpen,
+  Mail,
+  KeyRound,
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react'
-
-// Custom SVG Icons
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-    </svg>
-  )
-}
-
-function YoutubeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.06c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-    </svg>
-  )
-}
 
 // Floating background images
 const FLOATING_IMAGES = [
@@ -101,13 +90,41 @@ const QUOTES = [
   { text: "Make it unforgettable.", position: "bottom-[20%] left-[38%]", icon: Gem, color: "text-pink-500" },
 ]
 
-// Link types - know_more is free, others require login (only for guests)
-const LINK_TYPES = [
-  { id: 'know_more', label: 'Know More', icon: Link2, placeholder: 'https://anylink.com/your-page', color: 'from-purple-500 to-pink-500', requiresLogin: false },
-  { id: 'instagram', label: 'Instagram', icon: InstagramIcon, placeholder: 'https://instagram.com/yourhandle', color: 'from-purple-500 to-pink-500', requiresLogin: true },
-  { id: 'youtube', label: 'YouTube', icon: YoutubeIcon, placeholder: 'https://youtube.com/@yourchannel', color: 'from-red-500 to-red-600', requiresLogin: true },
-  { id: 'website', label: 'Website', icon: Globe, placeholder: 'https://yourwebsite.com', color: 'from-blue-500 to-indigo-500', requiresLogin: true },
-  { id: 'store', label: 'Store', icon: ShoppingBag, placeholder: 'https://yourstore.com', color: 'from-emerald-500 to-teal-500', requiresLogin: true },
+// Hook Types
+const HOOK_TYPES = [
+  { 
+    id: 'link', 
+    label: 'Link Hook', 
+    description: 'Share any external link',
+    icon: ExternalLink, 
+    color: 'from-purple-500 to-pink-500',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    textColor: 'text-purple-700',
+    examples: 'YouTube, Instagram, Portfolio, News, Affiliate links'
+  },
+  { 
+    id: 'blog', 
+    label: 'Blog Hook', 
+    description: 'Write an article on Hookit',
+    icon: BookOpen, 
+    color: 'from-blue-500 to-indigo-500',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    textColor: 'text-blue-700',
+    examples: 'Stories, Tutorials, Guides, Reviews'
+  },
+  { 
+    id: 'product', 
+    label: 'Product Hook', 
+    description: 'Showcase something to sell',
+    icon: ShoppingBag, 
+    color: 'from-emerald-500 to-teal-500',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-200',
+    textColor: 'text-emerald-700',
+    examples: 'Physical products, Digital goods, Services'
+  },
 ]
 
 // Categories
@@ -124,56 +141,44 @@ const CATEGORIES = [
 
 const POPULAR_TAGS = ['portfolio', 'art', 'design', 'photography', 'travel', 'fashion', 'food', 'tech', 'gaming', 'minimal', 'vintage', 'modern', 'creative', 'inspiration', 'diy']
 
-// Generate unique Hooker ID for guests
-function generateHookerId(): string {
-  return 'Hooker' + Math.floor(1000 + Math.random() * 9000)
-}
+// Passcode steps
+type PasscodeStep = 'email' | 'sending' | 'verify' | 'verified'
 
 export default function CreateHookPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // ===== AUTH STATE =====
-  const [user, setUser] = useState<any>(null)
-  const [authLoading, setAuthLoading] = useState(true)
-  
   // ===== FORM STATE =====
   const [images, setImages] = useState<{ preview: string; uploading: boolean; url?: string }[]>([])
+  const [hookType, setHookType] = useState<'link' | 'blog' | 'product'>('link')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [links, setLinks] = useState<{ type: string; url: string }[]>([])
+  
+  // Type-specific fields
+  const [destinationUrl, setDestinationUrl] = useState('') // For link hooks
+  const [blogContent, setBlogContent] = useState('') // For blog hooks
+  const [productPrice, setProductPrice] = useState('') // For product hooks
+  const [externalStoreUrl, setExternalStoreUrl] = useState('') // For product hooks
+  
+  // Creator / Passcode state
   const [creatorEmail, setCreatorEmail] = useState('')
-  const [hookerId] = useState(() => generateHookerId())
+  const [passcode, setPasscode] = useState('')
+  const [passcodeStep, setPasscodeStep] = useState<PasscodeStep>('email')
+  const [creatorProfile, setCreatorProfile] = useState<any>(null)
+  
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
   const [publishedHookId, setPublishedHookId] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [showLoginPrompt, setShowLoginPrompt] = useState<string | null>(null)
 
-  // Check auth on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setAuthLoading(false)
-      
-      // Pre-fill email if logged in
-      if (user?.email) {
-        setCreatorEmail(user.email)
-      }
-    }
-    checkAuth()
     setIsVisible(true)
   }, [])
-
-  // Is user logged in?
-  const isLoggedIn = !!user
 
   const uploadImageToR2 = async (file: File): Promise<string> => {
     const formData = new FormData()
@@ -234,39 +239,61 @@ export default function CreateHookPage() {
   const addTag = (tag: string) => { if (tag && !tags.includes(tag) && tags.length < 10) { setTags([...tags, tag]); setTagInput('') } }
   const removeTag = (tag: string) => setTags(tags.filter(t => t !== tag))
 
-  // ===== UPDATED: Handle link click with auth check =====
-  const handleLinkClick = (linkType: typeof LINK_TYPES[0]) => {
-    // If logged in, ALL links are free
-    if (isLoggedIn) {
-      if (!links.find(l => l.type === linkType.id)) {
-        setLinks([...links, { type: linkType.id, url: '' }])
-      }
+  // ===== PASSCODE FLOW =====
+  const handleRequestPasscode = async () => {
+    if (!creatorEmail.includes('@')) {
+      setUploadError('Please enter a valid email')
       return
     }
+    setPasscodeStep('sending')
+    setUploadError(null)
     
-    // Guest mode - only "know_more" is free
-    if (linkType.requiresLogin) {
-      setShowLoginPrompt(linkType.id)
-      setTimeout(() => {
-        router.push('/hooker/login?redirect=' + encodeURIComponent('/hook/new'))
-      }, 1500)
-      return
-    }
-    
-    if (!links.find(l => l.type === linkType.id)) {
-      setLinks([...links, { type: linkType.id, url: '' }])
+    try {
+      const res = await fetch('/api/creator/passcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail })
+      })
+      
+      if (!res.ok) throw new Error('Failed to send passcode')
+      setPasscodeStep('verify')
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to send passcode')
+      setPasscodeStep('email')
     }
   }
 
-  const addLink = (type: string) => { if (!links.find(l => l.type === type)) setLinks([...links, { type, url: '' }]) }
-  const updateLink = (type: string, url: string) => setLinks(links.map(l => l.type === type ? { ...l, url } : l))
-  const removeLink = (type: string) => setLinks(links.filter(l => l.type !== type))
+  const handleVerifyPasscode = async () => {
+    if (passcode.length !== 6) {
+      setUploadError('Enter 6-digit passcode')
+      return
+    }
+    setIsSubmitting(true)
+    setUploadError(null)
+    
+    try {
+      const res = await fetch('/api/creator/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail, passcode })
+      })
+      
+      if (!res.ok) throw new Error('Invalid passcode')
+      const data = await res.json()
+      setCreatorProfile(data.creator)
+      setPasscodeStep('verified')
+    } catch (err: any) {
+      setUploadError(err.message || 'Invalid passcode')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
-  // ===== UPDATED: Publish with user_id if logged in =====
+  // ===== PUBLISH =====
   const handlePublish = async () => {
     if (!title || !category || images.length === 0) return
-    if (!isLoggedIn && !creatorEmail) return
     if (images.some(img => img.uploading)) { setUploadError('Wait for uploads'); return }
+    if (passcodeStep !== 'verified') { setUploadError('Please verify your email first'); return }
     
     setIsSubmitting(true)
     setUploadError(null)
@@ -282,19 +309,23 @@ export default function CreateHookPage() {
         category,
         category_slug: category.toLowerCase(),
         tags,
-        external_links: links.filter(l => l.url).map(l => ({
-          label: LINK_TYPES.find(t => t.id === l.type)?.label || l.type,
-          url: l.url,
-          icon: l.type
-        })),
-        creator_name: isLoggedIn ? (user.user_metadata?.full_name || 'Anonymous') : hookerId,
-        creator_email: isLoggedIn ? user.email : creatorEmail,
+        type: hookType,
+        creator_name: creatorProfile?.username || creatorEmail.split('@')[0],
+        creator_email_ref: creatorEmail,
         is_published: true,
       }
       
-      // Add user_id if logged in
-      if (isLoggedIn && user.id) {
-        payload.user_id = user.id
+      // Type-specific fields
+      if (hookType === 'link') {
+        payload.destination_url = destinationUrl
+      } else if (hookType === 'blog') {
+        payload.blog_content = blogContent
+      } else if (hookType === 'product') {
+        payload.product_price = parseFloat(productPrice) || 0
+        payload.product_details = {
+          external_store_url: externalStoreUrl,
+          currency: 'USD'
+        }
       }
       
       const res = await fetch('/api/hooks', {
@@ -314,14 +345,23 @@ export default function CreateHookPage() {
     }
   }
 
-  const progress = [
-    images.length > 0 && !images.some(img => img.uploading),
-    title.length > 0,
-    category.length > 0,
-    isLoggedIn ? true : (creatorEmail.length > 0 && creatorEmail.includes('@')),
-  ].filter(Boolean).length
+  // Progress calculation
+  const getProgress = () => {
+    let completed = 0
+    if (images.length > 0 && !images.some(img => img.uploading)) completed++
+    if (title.length > 0) completed++
+    if (category.length > 0) completed++
+    if (hookType === 'link' && destinationUrl.length > 0) completed++
+    if (hookType === 'blog' && blogContent.length > 50) completed++
+    if (hookType === 'product' && productPrice.length > 0) completed++
+    if (passcodeStep === 'verified') completed++
+    return completed
+  }
 
-  // ===== UPDATED: Success screen shows user name if logged in =====
+  const progress = getProgress()
+  const totalSteps = 7
+
+  // ===== SUCCESS SCREEN =====
   if (step === 4 && publishedHookId) {
     return (
       <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center px-4 py-20">
@@ -347,7 +387,7 @@ export default function CreateHookPage() {
           <p className="text-lg text-neutral-500 mb-2">Your creativity is now discoverable.</p>
           <p className="text-purple-600 font-medium mb-2">"One Hook. Infinite reach."</p>
           <p className="text-sm text-neutral-400 mb-10">
-            Posted by {isLoggedIn ? (user.user_metadata?.full_name || 'You') : hookerId}
+            Posted by <span className="font-semibold text-neutral-600">@{creatorProfile?.username || creatorEmail.split('@')[0]}</span>
           </p>
           
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100 mb-8">
@@ -357,6 +397,18 @@ export default function CreateHookPage() {
               <Button variant="ghost" size="sm" className="shrink-0 text-neutral-500 hover:text-purple-600" onClick={() => navigator.clipboard.writeText(`https://hookit.online/hook/${publishedHookId}`)}>
                 <ArrowUpRight className="w-4 h-4" />
               </Button>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 text-left">
+            <div className="flex items-start gap-3">
+              <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Save your Creator Passcode</p>
+                <p className="text-xs text-amber-600 mt-1">
+                  Passcode sent to <strong>{creatorEmail}</strong>. Use it to publish more Hooks under the same profile.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -431,39 +483,40 @@ export default function CreateHookPage() {
                 <div className="text-center mb-6">
                   <Badge className="mb-3 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0 px-4 py-1.5 text-sm font-medium">
                     <Sparkles className="w-3 h-3 mr-1" />
-                    {step === 1 ? 'Create Your Hook' : step === 2 ? 'Tell Your Story' : 'Preview & Publish'}
+                    {step === 1 ? 'Upload Visuals' : step === 2 ? 'Choose Hook Type' : step === 3 ? 'Fill Details' : 'Verify & Publish'}
                   </Badge>
                   <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 leading-tight mb-2">
-                    {step === 1 ? 'Upload your' : step === 2 ? 'Tell your' : 'Preview your'}{' '}
+                    {step === 1 ? 'Upload your' : step === 2 ? 'What type of' : step === 3 ? 'Tell your' : 'Ready to'}{' '}
                     <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
-                      {step === 1 ? 'visuals' : step === 2 ? 'story' : 'creation'}
+                      {step === 1 ? 'visuals' : step === 2 ? 'Hook' : step === 3 ? 'story' : 'publish'}
                     </span>
                   </h1>
                   <p className="text-neutral-500">
                     {step === 1 ? 'Drag & drop your images. No sign-up needed.' : 
-                     step === 2 ? 'Add details that make your Hook shine.' : 
-                     'Review before sharing with the world.'}
+                     step === 2 ? 'Select what your Hook represents.' : 
+                     step === 3 ? 'Add details that make your Hook shine.' : 
+                     'Verify your email and publish to the world.'}
                   </p>
                 </div>
 
                 {/* Step Progress */}
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <div className="flex gap-1.5">
-                    {[1, 2, 3].map(i => (
+                    {[1, 2, 3, 4].map(i => (
                       <div key={i} className={`w-10 h-2.5 rounded-full transition-all duration-500 ${i <= step ? 'bg-gradient-to-r from-purple-600 to-pink-500 shadow-md shadow-purple-500/20' : 'bg-neutral-200'}`} />
                     ))}
                   </div>
-                  <span className="text-sm text-neutral-400 ml-2 font-medium">Step {step} of 3</span>
+                  <span className="text-sm text-neutral-400 ml-2 font-medium">Step {step} of 4</span>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="mb-6">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-neutral-700">{progress}/4 required</span>
-                    <span className="text-neutral-400">{Math.round((progress / 4) * 100)}%</span>
+                    <span className="font-medium text-neutral-700">{progress}/{totalSteps} completed</span>
+                    <span className="text-neutral-400">{Math.round((progress / totalSteps) * 100)}%</span>
                   </div>
                   <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 rounded-full transition-all duration-700 shadow-sm" style={{ width: `${(progress / 4) * 100}%` }} />
+                    <div className="h-full bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 rounded-full transition-all duration-700 shadow-sm" style={{ width: `${(progress / totalSteps) * 100}%` }} />
                   </div>
                 </div>
               </div>
@@ -479,21 +532,7 @@ export default function CreateHookPage() {
                 </div>
               )}
 
-              {/* Login Prompt Banner */}
-              {showLoginPrompt && (
-                <div className="mx-8 mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-amber-500 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm text-amber-700 font-medium">Login Required</p>
-                    <p className="text-xs text-amber-600">Redirecting you to login page to add {LINK_TYPES.find(t => t.id === showLoginPrompt)?.label}...</p>
-                  </div>
-                  <button onClick={() => setShowLoginPrompt(null)} className="ml-auto hover:bg-amber-100 rounded-lg p-1 transition-colors">
-                    <X className="w-4 h-4 text-amber-400" />
-                  </button>
-                </div>
-              )}
-
-              {/* STEP 1: Upload */}
+              {/* STEP 1: Upload Images */}
               {step === 1 && (
                 <div className="p-8 pt-2 space-y-6">
                   {images.length < 5 && (
@@ -562,15 +601,68 @@ export default function CreateHookPage() {
                 </div>
               )}
 
-              {/* STEP 2: Details */}
+              {/* STEP 2: Choose Hook Type */}
               {step === 2 && (
+                <div className="p-8 pt-2 space-y-6">
+                  <div className="grid gap-4">
+                    {HOOK_TYPES.map((type) => {
+                      const isSelected = hookType === type.id
+                      const Icon = type.icon
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => setHookType(type.id as 'link' | 'blog' | 'product')}
+                          className={`relative flex items-start gap-4 p-6 rounded-2xl border-2 transition-all duration-300 text-left group ${
+                            isSelected 
+                              ? `${type.bgColor} ${type.borderColor} shadow-lg scale-[1.02]` 
+                              : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                          }`}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${type.color} flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform`}>
+                            <Icon className="w-7 h-7 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className={`font-bold text-lg ${isSelected ? type.textColor : 'text-neutral-900'}`}>{type.label}</h3>
+                              {isSelected && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                            </div>
+                            <p className="text-sm text-neutral-500 mb-2">{type.description}</p>
+                            <p className="text-xs text-neutral-400">Examples: {type.examples}</p>
+                          </div>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${isSelected ? `border-current ${type.textColor}` : 'border-neutral-300'}`}>
+                            {isSelected && <div className={`w-3 h-3 rounded-full bg-current ${type.textColor}`} />}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="flex justify-between pt-4">
+                    <Button variant="outline" onClick={() => setStep(1)} className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50">
+                      <ArrowLeft className="w-4 h-4" /> Back
+                    </Button>
+                    <Button onClick={() => setStep(3)} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 hover:shadow-lg hover:shadow-purple-500/20 transition-all">
+                      Next Step <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Fill Details */}
+              {step === 3 && (
                 <div className="p-8 pt-2 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                   {/* Title */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
                       <MousePointerClick className="w-4 h-4 text-purple-500" /> Hook Title *
                     </label>
-                    <Input placeholder="e.g., My Minimalist Art Collection, Sunset in Bali..." value={title} onChange={(e) => setTitle(e.target.value)} className="h-14 rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 text-lg" maxLength={100} />
+                    <Input 
+                      placeholder="e.g., My Minimalist Art Collection, Sunset in Bali..." 
+                      value={title} 
+                      onChange={(e) => setTitle(e.target.value)} 
+                      className="h-14 rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 text-lg" 
+                      maxLength={100} 
+                    />
                     <p className="text-xs text-neutral-400 text-right">{title.length}/100</p>
                   </div>
 
@@ -579,7 +671,13 @@ export default function CreateHookPage() {
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-pink-500" /> Description
                     </label>
-                    <Textarea placeholder="Tell the world what makes your Hook special..." value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[120px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none" maxLength={500} />
+                    <Textarea 
+                      placeholder="Tell the world what makes your Hook special..." 
+                      value={description} 
+                      onChange={(e) => setDescription(e.target.value)} 
+                      className="min-h-[100px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none" 
+                      maxLength={500} 
+                    />
                     <p className="text-xs text-neutral-400 text-right">{description.length}/500</p>
                   </div>
 
@@ -590,7 +688,11 @@ export default function CreateHookPage() {
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {CATEGORIES.map((cat) => (
-                        <button key={cat.slug} onClick={() => setCategory(cat.name)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${category === cat.name ? `${cat.color} border-current scale-105 shadow-md` : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:bg-purple-50'}`}>
+                        <button 
+                          key={cat.slug} 
+                          onClick={() => setCategory(cat.name)} 
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${category === cat.name ? `${cat.color} border-current scale-105 shadow-md` : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:bg-purple-50'}`}
+                        >
                           <cat.icon className="w-4 h-4" /> {cat.name}
                         </button>
                       ))}
@@ -600,7 +702,7 @@ export default function CreateHookPage() {
                   {/* Tags */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-rose-500" /> Tags
+                      <Tag className="w-4 h-4 text-rose-500" /> Tags
                     </label>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {tags.map(tag => (
@@ -610,7 +712,13 @@ export default function CreateHookPage() {
                       ))}
                     </div>
                     <div className="flex gap-2">
-                      <Input placeholder="Add tag + Enter" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(tagInput))} className="rounded-xl border-neutral-200 focus:border-purple-300" />
+                      <Input 
+                        placeholder="Add tag + Enter" 
+                        value={tagInput} 
+                        onChange={(e) => setTagInput(e.target.value)} 
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(tagInput))} 
+                        className="rounded-xl border-neutral-200 focus:border-purple-300" 
+                      />
                       <Button type="button" variant="outline" onClick={() => addTag(tagInput)} className="rounded-xl border-neutral-200 hover:bg-purple-50 hover:border-purple-300">
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -624,139 +732,109 @@ export default function CreateHookPage() {
                     </div>
                   </div>
 
-                  {/* Links */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-blue-500" /> Link Your World
-                    </label>
-                    
-                    {/* Free links */}
-                    <div className="mb-3">
-                      <p className="text-xs text-neutral-400 mb-2">
-                        {isLoggedIn ? 'All links unlocked' : 'Free link (no login needed)'}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {LINK_TYPES.filter(l => !l.requiresLogin).map((linkType) => {
-                          const isAdded = links.find(l => l.type === linkType.id)
-                          return (
-                            <button key={linkType.id} onClick={() => isAdded ? removeLink(linkType.id) : addLink(linkType.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${isAdded ? 'bg-gradient-to-r ' + linkType.color + ' text-white border-transparent shadow-md' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'}`}>
-                              <linkType.icon className="w-4 h-4" /> {linkType.label} {isAdded && <X className="w-3 h-3 ml-1" />}
-                            </button>
-                          )
-                        })}
+                  {/* TYPE-SPECIFIC FIELDS */}
+                  
+                  {/* Link Hook: Destination URL */}
+                  {hookType === 'link' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-blue-500" /> Destination URL *
+                      </label>
+                      <div className="relative">
+                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                        <Input 
+                          placeholder="https://youtube.com/watch?v=..., https://yourportfolio.com" 
+                          value={destinationUrl} 
+                          onChange={(e) => setDestinationUrl(e.target.value)} 
+                          className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10" 
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-400">Users will be redirected to this URL when they click your Hook.</p>
+                    </div>
+                  )}
+
+                  {/* Blog Hook: Blog Content */}
+                  {hookType === 'blog' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-blue-500" /> Blog Content *
+                      </label>
+                      <Textarea 
+                        placeholder="Write your full article here. This will be displayed when users click your Hook..." 
+                        value={blogContent} 
+                        onChange={(e) => setBlogContent(e.target.value)} 
+                        className="min-h-[200px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none" 
+                      />
+                      <p className="text-xs text-neutral-400">{blogContent.length} characters. Write at least 50 characters.</p>
+                    </div>
+                  )}
+
+                  {/* Product Hook: Price & Store URL */}
+                  {hookType === 'product' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-emerald-500" /> Price (USD) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">$</span>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            placeholder="29.99" 
+                            value={productPrice} 
+                            onChange={(e) => setProductPrice(e.target.value)} 
+                            className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-8" 
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4 text-emerald-500" /> Store URL
+                        </label>
+                        <div className="relative">
+                          <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Input 
+                            placeholder="https://yourstore.com/product/..." 
+                            value={externalStoreUrl} 
+                            onChange={(e) => setExternalStoreUrl(e.target.value)} 
+                            className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10" 
+                          />
+                        </div>
+                        <p className="text-xs text-neutral-400">Optional. Users will be redirected here to purchase. Native checkout coming soon.</p>
                       </div>
                     </div>
-
-                    {/* Social/Store links */}
-                    <div>
-                      <p className="text-xs text-neutral-400 mb-2 flex items-center gap-1">
-                        {isLoggedIn ? (
-                          <><Sparkles className="w-3 h-3 text-purple-500" /> Social & Store links (unlocked)</>
-                        ) : (
-                          <><Lock className="w-3 h-3" /> Social & Store links (login required)</>
-                        )}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {LINK_TYPES.filter(l => l.requiresLogin).map((linkType) => {
-                          const isAdded = links.find(l => l.type === linkType.id)
-                          return (
-                            <button 
-                              key={linkType.id} 
-                              onClick={() => isAdded ? removeLink(linkType.id) : handleLinkClick(linkType)} 
-                              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${isAdded ? 'bg-gradient-to-r ' + linkType.color + ' text-white border-transparent shadow-md' : isLoggedIn ? 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:bg-purple-50' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'}`}
-                            >
-                              <linkType.icon className="w-4 h-4" /> 
-                              {linkType.label} 
-                              {!isLoggedIn && !isAdded && <Lock className="w-3 h-3 text-neutral-400" />}
-                              {isAdded && <X className="w-3 h-3 ml-1" />}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {links.map((link) => {
-                      const linkType = LINK_TYPES.find(t => t.id === link.type)
-                      return (
-                        <div key={link.type} className="flex gap-2">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${linkType?.color} flex items-center justify-center shrink-0 shadow-md`}>
-                            {linkType && <linkType.icon className="w-5 h-5 text-white" />}
-                          </div>
-                          <Input placeholder={linkType?.placeholder} value={link.url} onChange={(e) => updateLink(link.type, e.target.value)} className="rounded-xl border-neutral-200 focus:border-purple-300" />
-                          <button onClick={() => removeLink(link.type)} className="p-2 hover:bg-red-50 rounded-xl transition-colors">
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Creator Info */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100">
-                    <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-purple-600" /> Who created this?
-                    </h3>
-                    
-                    {/* ===== UPDATED: Show user info if logged in ===== */}
-                    {isLoggedIn ? (
-                      <div className="bg-white rounded-xl p-4 border border-purple-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-md text-lg">
-                            {(user.user_metadata?.full_name || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-bold text-neutral-900">{user.user_metadata?.full_name || 'You'}</p>
-                            <p className="text-sm text-neutral-400">{user.email}</p>
-                          </div>
-                          <Badge className="ml-auto bg-green-100 text-green-700 border-0">
-                            <User className="w-3 h-3 mr-1" /> Logged In
-                          </Badge>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="bg-white rounded-xl p-4 border border-purple-100 mb-4">
-                          <label className="text-xs text-neutral-500 mb-1 block">Your Creator ID</label>
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-md text-sm">
-                              {hookerId.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-neutral-900 text-lg">{hookerId}</p>
-                              <p className="text-xs text-neutral-400">This unique ID will be shown on your Hook</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-neutral-500 mb-1 block">Email * <span className="text-neutral-400">(to manage your Hook)</span></label>
-                          <Input type="email" placeholder="you@example.com" value={creatorEmail} onChange={(e) => setCreatorEmail(e.target.value)} className="rounded-xl border-neutral-200 bg-white focus:border-purple-300" required />
-                          <p className="text-xs text-neutral-400 mt-1">We'll send you a magic link to edit or delete your Hook.</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  )}
 
                   <div className="flex justify-between pt-4">
-                    <Button variant="outline" onClick={() => setStep(1)} className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50">
-                      Back
+                    <Button variant="outline" onClick={() => setStep(2)} className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50">
+                      <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
-                    <Button onClick={() => setStep(3)} disabled={!title || !category || (!isLoggedIn && !creatorEmail.includes('@'))} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all">
-                      Preview <ArrowRight className="w-4 h-4" />
+                    <Button 
+                      onClick={() => setStep(4)} 
+                      disabled={!title || !category || (hookType === 'link' && !destinationUrl) || (hookType === 'blog' && blogContent.length < 50) || (hookType === 'product' && !productPrice)} 
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                    >
+                      Preview & Publish <ArrowRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* STEP 3: Preview */}
-              {step === 3 && (
+              {/* STEP 4: Verify Email & Publish */}
+              {step === 4 && (
                 <div className="p-8 pt-2 space-y-6">
-                  <div className="bg-white rounded-3xl shadow-lg border border-neutral-200 overflow-hidden">
+                  {/* Preview Card */}
+                  <div className="bg-white rounded-3xl shadow-lg border border-neutral-200 overflow-hidden mb-6">
                     <div className="relative aspect-[16/10] bg-neutral-100">
                       <img src={images[0]?.url || images[0]?.preview} alt={title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <Badge className="absolute top-4 left-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0 shadow-lg">
                         <Sparkles className="w-3 h-3 mr-1" /> {category}
+                      </Badge>
+                      <Badge className="absolute top-4 right-4 bg-white/90 text-neutral-700 border-0 shadow-lg">
+                        {HOOK_TYPES.find(t => t.id === hookType)?.label}
                       </Badge>
                       <div className="absolute bottom-4 left-4 right-4">
                         <h2 className="text-2xl font-bold text-white mb-1">{title}</h2>
@@ -770,39 +848,151 @@ export default function CreateHookPage() {
                           {tags.map(tag => <span key={tag} className="text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">#{tag}</span>)}
                         </div>
                       )}
-                      {links.filter(l => l.url).length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {links.filter(l => l.url).map(link => {
-                            const linkType = LINK_TYPES.find(t => t.id === link.type)
-                            return (
-                              <a key={link.type} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white bg-gradient-to-r ${linkType?.color} shadow-md hover:shadow-lg transition-shadow`}>
-                                {linkType && <linkType.icon className="w-4 h-4" />} {linkType?.label}
-                              </a>
-                            )
-                          })}
+                      
+                      {/* Type-specific preview */}
+                      {hookType === 'link' && destinationUrl && (
+                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                          <Globe className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm text-blue-700 truncate flex-1">{destinationUrl}</span>
+                          <span className="text-xs text-blue-400">External Link</span>
                         </div>
                       )}
+                      {hookType === 'blog' && blogContent && (
+                        <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                          <BookOpen className="w-4 h-4 text-indigo-500" />
+                          <span className="text-sm text-indigo-700 flex-1">{blogContent.length} characters</span>
+                          <span className="text-xs text-indigo-400">Blog Article</span>
+                        </div>
+                      )}
+                      {hookType === 'product' && productPrice && (
+                        <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <DollarSign className="w-4 h-4 text-emerald-500" />
+                          <span className="text-sm text-emerald-700 font-bold">${productPrice}</span>
+                          {externalStoreUrl && <span className="text-xs text-emerald-400 truncate flex-1 ml-2">{externalStoreUrl}</span>}
+                          <span className="text-xs text-emerald-400">Product</span>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-3 pt-4 border-t border-neutral-100">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-md text-sm">
-                          {isLoggedIn ? (user.user_metadata?.full_name || 'U').charAt(0).toUpperCase() : hookerId.charAt(0)}
+                          {creatorProfile?.username?.charAt(0)?.toUpperCase() || creatorEmail.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="font-bold text-neutral-900">
-                            {isLoggedIn ? (user.user_metadata?.full_name || 'You') : hookerId}
+                            @{creatorProfile?.username || creatorEmail.split('@')[0]}
                           </p>
-                          <p className="text-sm text-neutral-400">
-                            {isLoggedIn ? user.email : creatorEmail}
-                          </p>
+                          <p className="text-sm text-neutral-400">{creatorEmail}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Email / Passcode Section */}
+                  {!creatorProfile ? (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
+                      <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-purple-600" /> 
+                        {passcodeStep === 'email' ? 'Enter your email' : passcodeStep === 'sending' ? 'Sending passcode...' : 'Enter your 6-digit passcode'}
+                      </h3>
+
+                      {passcodeStep === 'email' && (
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input 
+                              type="email" 
+                              placeholder="you@example.com" 
+                              value={creatorEmail} 
+                              onChange={(e) => setCreatorEmail(e.target.value)} 
+                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10" 
+                            />
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            We'll send you a 6-digit Creator Passcode. Use it to publish and manage your Hooks.
+                          </p>
+                          <Button 
+                            onClick={handleRequestPasscode} 
+                            disabled={!creatorEmail.includes('@')}
+                            className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                          >
+                            <KeyRound className="w-4 h-4" /> Send Passcode
+                          </Button>
+                        </div>
+                      )}
+
+                      {passcodeStep === 'sending' && (
+                        <div className="text-center py-8">
+                          <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
+                          <p className="text-neutral-600">Sending passcode to {creatorEmail}...</p>
+                        </div>
+                      )}
+
+                      {passcodeStep === 'verify' && (
+                        <div className="space-y-4">
+                          <div className="bg-white rounded-xl p-4 border border-purple-100 mb-4">
+                            <p className="text-sm text-neutral-600 mb-1">Passcode sent to</p>
+                            <p className="font-medium text-neutral-900">{creatorEmail}</p>
+                            <button 
+                              onClick={() => setPasscodeStep('email')} 
+                              className="text-xs text-purple-600 hover:text-purple-700 mt-1"
+                            >
+                              Change email
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input 
+                              placeholder="000000" 
+                              maxLength={6}
+                              value={passcode} 
+                              onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))} 
+                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-lg tracking-[0.5em] font-mono" 
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={handleRequestPasscode} 
+                              className="flex-1 rounded-xl border-neutral-200 hover:bg-purple-50"
+                            >
+                              Resend
+                            </Button>
+                            <Button 
+                              onClick={handleVerifyPasscode} 
+                              disabled={passcode.length !== 6 || isSubmitting}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                            >
+                              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                              Verify
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
+                      <div className="flex items-center gap-3 mb-4">
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        <div>
+                          <p className="font-semibold text-green-800">Email Verified</p>
+                          <p className="text-sm text-green-600">@{creatorProfile.username} • {creatorEmail}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-green-600">
+                        Your Creator Passcode is saved. Use it to publish more Hooks under this profile.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex gap-3 justify-center">
-                    <Button variant="outline" onClick={() => setStep(2)} className="rounded-full h-12 px-6 border-neutral-200 hover:bg-neutral-50">
-                      Edit
+                    <Button variant="outline" onClick={() => setStep(3)} className="rounded-full h-12 px-6 border-neutral-200 hover:bg-neutral-50">
+                      <ArrowLeft className="w-4 h-4 mr-2" /> Edit
                     </Button>
-                    <Button onClick={handlePublish} disabled={isSubmitting} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 text-lg gap-2 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all">
+                    <Button 
+                      onClick={handlePublish} 
+                      disabled={isSubmitting || !creatorProfile}
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 text-lg gap-2 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all disabled:opacity-40"
+                    >
                       {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Publishing...</> : <><Sparkles className="w-5 h-5" /> Publish Hook</>}
                     </Button>
                   </div>

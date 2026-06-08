@@ -1,7 +1,6 @@
 // src/lib/email.ts
 import nodemailer from 'nodemailer'
 
-// Create reusable transporter using Gmail
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -9,6 +8,147 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASSWORD,
     },
 })
+
+// ─────────────────────────────────────────────
+// CREATOR SYSTEM EMAILS
+// ─────────────────────────────────────────────
+
+// 1. Send OTP to new creator (first time)
+export async function sendCreatorOTP(to: string, otp: string) {
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to,
+        subject: 'Your Hookit Creator Verification Code',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">Welcome to Hookit</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Verify your email to start creating</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Your 6-digit verification code:</p>
+                        <div style="font-size: 48px; font-weight: bold; color: #7C3AED; letter-spacing: 8px; margin: 20px 0;">
+                            ${otp}
+                        </div>
+                        <p style="margin: 0; color: #999; font-size: 14px;">This code expires in 15 minutes.</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px;">
+                            <strong>Never share this code with anyone.</strong><br>
+                            Hookit will never ask for your verification code.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `,
+    }
+    await transporter.sendMail(mailOptions)
+}
+
+// 2. Send Unique Passkey to verified creator (after OTP verification)
+export async function sendCreatorPasskey(to: string, passkey: string, username: string) {
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to,
+        subject: 'Your Hookit Creator Passkey - Keep It Safe',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">Your Creator Passkey</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Welcome aboard, @${username}</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Your unique Creator Passkey:</p>
+                        <div style="font-size: 36px; font-weight: bold; color: #7C3AED; letter-spacing: 4px; margin: 20px 0; font-family: monospace;">
+                            ${passkey}
+                        </div>
+                        <p style="margin: 0; color: #999; font-size: 14px;">This is your permanent key. Save it somewhere safe.</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px;">
+                            <strong>Important:</strong><br>
+                            • Use this passkey every time you publish a Hook<br>
+                            • If you lose it, you can request a new one<br>
+                            • This passkey is tied to your email: ${to}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `,
+    }
+    await transporter.sendMail(mailOptions)
+}
+
+// 3. Send new passkey (forgot / reset request)
+export async function sendNewPasskeyReset(to: string, newPasskey: string, username: string, otp: string) {
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to,
+        subject: 'Your New Hookit Creator Passkey',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">New Creator Passkey</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">@${username}, your passkey has been reset</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Your new Creator Passkey:</p>
+                        <div style="font-size: 36px; font-weight: bold; color: #7C3AED; letter-spacing: 4px; margin: 20px 0; font-family: monospace;">
+                            ${newPasskey}
+                        </div>
+                        <p style="margin: 0; color: #999; font-size: 14px;">Your old passkey is no longer valid.</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px;">
+                            <strong>Verification Code:</strong> ${otp}<br>
+                            Use this code to confirm your new passkey.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `,
+    }
+    await transporter.sendMail(mailOptions)
+}
+
+// 4. Send OTP for returning creator (passkey verification)
+export async function sendReturningCreatorOTP(to: string, otp: string, username: string) {
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to,
+        subject: 'Hookit Creator Login Code',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">Welcome Back, @${username}</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Verify it's you</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Your 6-digit verification code:</p>
+                        <div style="font-size: 48px; font-weight: bold; color: #7C3AED; letter-spacing: 8px; margin: 20px 0;">
+                            ${otp}
+                        </div>
+                        <p style="margin: 0; color: #999; font-size: 14px;">This code expires in 15 minutes.</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px;">
+                            Enter this code along with your Creator Passkey to publish.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `,
+    }
+    await transporter.sendMail(mailOptions)
+}
+
+// ─────────────────────────────────────────────
+// ORDER EMAILS (keep existing)
+// ─────────────────────────────────────────────
 
 export async function sendOrderNotification(
     to: string,
@@ -33,7 +173,6 @@ export async function sendOrderNotification(
                     <h1 style="margin: 0; font-size: 24px;">🛒 New Order Received!</h1>
                     <p style="margin: 10px 0 0 0; opacity: 0.8;">From Hookit</p>
                 </div>
-                
                 <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
                     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">Order Details</h2>
@@ -42,7 +181,6 @@ export async function sendOrderNotification(
                         <p style="margin: 8px 0;"><strong>Quantity:</strong> ${orderDetails.quantity}</p>
                         <p style="margin: 8px 0;"><strong>Total Amount:</strong> ₹${orderDetails.totalAmount}</p>
                     </div>
-                    
                     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">Buyer Details</h2>
                         <p style="margin: 8px 0;"><strong>Name:</strong> ${orderDetails.buyerName}</p>
@@ -50,7 +188,6 @@ export async function sendOrderNotification(
                         <p style="margin: 8px 0;"><strong>Email:</strong> ${orderDetails.buyerEmail || 'Not provided'}</p>
                         <p style="margin: 8px 0;"><strong>Address:</strong> ${orderDetails.buyerAddress}</p>
                     </div>
-                    
                     <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; text-align: center;">
                         <p style="margin: 0; color: #2e7d32; font-weight: 600;">
                             ✅ Please contact the buyer to confirm the order
@@ -60,49 +197,14 @@ export async function sendOrderNotification(
                             📱 Contact Buyer on WhatsApp
                         </a>
                     </div>
-                    
                     <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
-                        This is an automated notification from Hookit.<br>
-                        You can manage your orders at https://yourdomain.com/seller/orders
+                        This is an automated notification from Hookit.
                     </p>
                 </div>
             </div>
         `,
     }
-
     await transporter.sendMail(mailOptions)
-}
-
-export async function sendCreatorPasscode(to: string, passcode: string) {
-  const mailOptions = {
-    from: `"Hookit" <${process.env.EMAIL_FROM}>`,
-    to,
-    subject: 'Your Hookit Creator Passcode',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 24px;">Your Creator Passcode</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9;">Welcome to Hookit</p>
-        </div>
-        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
-          <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-            <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Use this 6-digit passcode to publish your Hook:</p>
-            <div style="font-size: 48px; font-weight: bold; color: #7C3AED; letter-spacing: 8px; margin: 20px 0;">
-              ${passcode}
-            </div>
-            <p style="margin: 0; color: #999; font-size: 14px;">This passcode expires in 24 hours.</p>
-          </div>
-          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <p style="margin: 0; color: #92400e; font-size: 14px;">
-              <strong>Keep this passcode safe.</strong><br>
-              You'll need it to publish future Hooks under the same profile.
-            </p>
-          </div>
-        </div>
-      </div>
-    `,
-  }
-  await transporter.sendMail(mailOptions)
 }
 
 export async function sendBuyerConfirmation(
@@ -120,17 +222,8 @@ export async function sendBuyerConfirmation(
         buyerPhone?: string
     }
 ) {
-    const orderDate = new Date().toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    })
-
-    const orderTime = new Date().toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit'
-    })
-
+    const orderDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    const orderTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     const subtotal = orderDetails.totalAmount
     const platformFee = Math.round(subtotal * 0.015)
     const total = subtotal
@@ -141,16 +234,11 @@ export async function sendBuyerConfirmation(
         subject: `✅ Order Confirmed + Invoice #${orderDetails.orderId.slice(0, 8).toUpperCase()} - ${orderDetails.productName}`,
         html: `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
-                
-                <!-- Header -->
                 <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
                     <h1 style="margin: 0; font-size: 28px; font-weight: 700;">✅ Order Confirmed!</h1>
                     <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 14px;">Thank you for shopping with Hookit</p>
                 </div>
-                
                 <div style="background: white; padding: 30px;">
-                    
-                    <!-- Order Info -->
                     <div style="background: #f8f7fb; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <div>
@@ -163,10 +251,7 @@ export async function sendBuyerConfirmation(
                             </div>
                         </div>
                     </div>
-
-                    <!-- E-INVOICE SECTION -->
                     <div style="border: 2px solid #7C3AED; border-radius: 12px; overflow: hidden; margin-bottom: 25px;">
-                        <!-- Invoice Header -->
                         <div style="background: #7C3AED; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <p style="margin: 0; font-size: 12px; opacity: 0.9;">TAX INVOICE</p>
@@ -177,10 +262,7 @@ export async function sendBuyerConfirmation(
                                 <p style="margin: 2px 0 0 0; font-size: 11px; opacity: 0.9;">hookit.online</p>
                             </div>
                         </div>
-
-                        <!-- Invoice Body -->
                         <div style="padding: 20px;">
-                            <!-- Seller & Buyer Info -->
                             <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                                 <div style="flex: 1;">
                                     <p style="margin: 0 0 8px 0; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Sold By</p>
@@ -194,8 +276,6 @@ export async function sendBuyerConfirmation(
                                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #666; line-height: 1.4;">${orderDetails.buyerAddress || ''}</p>
                                 </div>
                             </div>
-
-                            <!-- Items Table -->
                             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                                 <thead>
                                     <tr style="background: #f8f7fb;">
@@ -217,8 +297,6 @@ export async function sendBuyerConfirmation(
                                     </tr>
                                 </tbody>
                             </table>
-
-                            <!-- Totals -->
                             <div style="background: #f8f7fb; padding: 20px; border-radius: 8px;">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                     <span style="font-size: 14px; color: #666;">Subtotal</span>
@@ -238,32 +316,23 @@ export async function sendBuyerConfirmation(
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Invoice Footer -->
                         <div style="background: #f8f7fb; padding: 15px 20px; text-align: center; border-top: 1px solid #e5e5e5;">
                             <p style="margin: 0; font-size: 11px; color: #666;">This is a computer generated invoice and does not require signature.</p>
                             <p style="margin: 4px 0 0 0; font-size: 11px; color: #666;">Hookit Technologies • hookit.online • support@hookit.online</p>
                         </div>
                     </div>
-
-                    <!-- Footer -->
                     <div style="border-top: 1px solid #e5e5e5; padding-top: 20px; text-align: center;">
                         <p style="margin: 0; font-size: 12px; color: #999;">
                             Questions? Reply to this email or contact us at storeapp2026@gmail.com
-                        </p>
-                        <p style="margin: 8px 0 0 0; font-size: 11px; color: #bbb;">
-                            © ${new Date().getFullYear()} Hookit. All rights reserved.
                         </p>
                     </div>
                 </div>
             </div>
         `,
     }
-
     await transporter.sendMail(mailOptions)
 }
 
-// ✅ NEW FUNCTION: Send order status update email to buyer
 export async function sendStatusUpdateEmail(
     to: string,
     orderDetails: {
@@ -277,54 +346,15 @@ export async function sendStatusUpdateEmail(
         buyerName: string
     }
 ) {
-    // Status-specific styling and messages
     const statusConfig: Record<string, { color: string; bgColor: string; emoji: string; message: string; title: string }> = {
-        pending: {
-            color: '#f59e0b',
-            bgColor: '#fef3c7',
-            emoji: '⏳',
-            message: 'Your order has been received and is pending confirmation.',
-            title: 'Order Pending'
-        },
-        processing: {
-            color: '#3b82f6',
-            bgColor: '#dbeafe',
-            emoji: '🔧',
-            message: 'Your order is being prepared and processed.',
-            title: 'Order Processing'
-        },
-        shipped: {
-            color: '#7c3aed',
-            bgColor: '#ede9fe',
-            emoji: '📦',
-            message: 'Your order has been shipped and is on its way!',
-            title: 'Order Shipped'
-        },
-        delivered: {
-            color: '#10b981',
-            bgColor: '#d1fae5',
-            emoji: '✅',
-            message: 'Your order has been delivered. Enjoy your purchase!',
-            title: 'Order Delivered'
-        },
-        completed: {
-            color: '#059669',
-            bgColor: '#d1fae5',
-            emoji: '🎉',
-            message: 'Your order is complete! Thank you for shopping with us.',
-            title: 'Order Completed'
-        },
-        cancelled: {
-            color: '#ef4444',
-            bgColor: '#fee2e2',
-            emoji: '❌',
-            message: 'Your order has been cancelled. Contact the seller for more details.',
-            title: 'Order Cancelled'
-        }
+        pending: { color: '#f59e0b', bgColor: '#fef3c7', emoji: '⏳', message: 'Your order has been received and is pending confirmation.', title: 'Order Pending' },
+        processing: { color: '#3b82f6', bgColor: '#dbeafe', emoji: '🔧', message: 'Your order is being prepared and processed.', title: 'Order Processing' },
+        shipped: { color: '#7c3aed', bgColor: '#ede9fe', emoji: '📦', message: 'Your order has been shipped and is on its way!', title: 'Order Shipped' },
+        delivered: { color: '#10b981', bgColor: '#d1fae5', emoji: '✅', message: 'Your order has been delivered. Enjoy your purchase!', title: 'Order Delivered' },
+        completed: { color: '#059669', bgColor: '#d1fae5', emoji: '🎉', message: 'Your order is complete! Thank you for shopping with us.', title: 'Order Completed' },
+        cancelled: { color: '#ef4444', bgColor: '#fee2e2', emoji: '❌', message: 'Your order has been cancelled. Contact the seller for more details.', title: 'Order Cancelled' }
     }
-
     const config = statusConfig[orderDetails.status] || statusConfig.pending
-
     const mailOptions = {
         from: `"Hookit" <${process.env.EMAIL_FROM}>`,
         to: to,
@@ -336,19 +366,11 @@ export async function sendStatusUpdateEmail(
                     <h1 style="margin: 0; font-size: 24px;">${config.title}</h1>
                     <p style="margin: 10px 0 0 0; opacity: 0.8;">Order #${orderDetails.orderId.slice(0, 8).toUpperCase()}</p>
                 </div>
-                
                 <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
-                    <!-- Status Banner -->
                     <div style="background: ${config.bgColor}; border: 2px solid ${config.color}; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                        <p style="margin: 0; color: ${config.color}; font-size: 18px; font-weight: 700; text-transform: uppercase;">
-                            ${orderDetails.status}
-                        </p>
-                        <p style="margin: 8px 0 0 0; color: #666; font-size: 14px;">
-                            ${config.message}
-                        </p>
+                        <p style="margin: 0; color: ${config.color}; font-size: 18px; font-weight: 700; text-transform: uppercase;">${orderDetails.status}</p>
+                        <p style="margin: 8px 0 0 0; color: #666; font-size: 14px;">${config.message}</p>
                     </div>
-                    
-                    <!-- Order Details -->
                     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">📦 Order Details</h2>
                         <p style="margin: 8px 0;"><strong>Order ID:</strong> #${orderDetails.orderId.slice(0, 12).toUpperCase()}</p>
@@ -356,31 +378,21 @@ export async function sendStatusUpdateEmail(
                         <p style="margin: 8px 0;"><strong>Quantity:</strong> ${orderDetails.quantity}</p>
                         <p style="margin: 8px 0;"><strong>Total Amount:</strong> ₹${orderDetails.totalAmount}</p>
                     </div>
-                    
-                    <!-- Seller Info -->
                     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <h2 style="margin: 0 0 15px 0; color: #1a1a1a; font-size: 18px;">🏪 Seller</h2>
                         <p style="margin: 8px 0;"><strong>Name:</strong> ${orderDetails.sellerName}</p>
                         <p style="margin: 8px 0;"><strong>Phone:</strong> ${orderDetails.sellerPhone || 'N/A'}</p>
                     </div>
-                    
                     <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
-                        This is an automated status update from Hookit.<br>
-                        You can view your order at https://hookit.online/order/success
-                    </p>
-
-                    <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
-                        Questions? Reply to this email or contact the seller directly.
+                        This is an automated status update from Hookit.
                     </p>
                 </div>
             </div>
         `,
     }
-
     await transporter.sendMail(mailOptions)
 }
 
-// ==================== PASSWORD RESET EMAIL ====================
 export async function sendPasswordResetEmail(
     to: string,
     data: {
@@ -402,7 +414,7 @@ export async function sendPasswordResetEmail(
                 <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
                     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                         <p style="margin: 0 0 15px 0; color: #666;">
-                            We received a request to reset your password. Click the button below to set a new password:
+                            We received a request to reset your password. Click the button below:
                         </p>
                         <div style="text-align: center; margin: 25px 0;">
                             <a href="${data.resetLink}" 
@@ -411,7 +423,7 @@ export async function sendPasswordResetEmail(
                             </a>
                         </div>
                         <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-                            Or copy and paste this link in your browser:
+                            Or copy and paste this link:
                         </p>
                         <p style="margin: 0; color: #7C3AED; font-size: 13px; word-break: break-all;">
                             ${data.resetLink}
@@ -423,13 +435,9 @@ export async function sendPasswordResetEmail(
                             If you didn't request this, you can safely ignore this email.
                         </p>
                     </div>
-                    <p style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
-                        Need help? Contact us at storeapp2026@gmail.com
-                    </p>
                 </div>
             </div>
         `,
     }
-
     await transporter.sendMail(mailOptions)
 }

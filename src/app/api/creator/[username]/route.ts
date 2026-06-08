@@ -2,9 +2,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET(request: Request, { params }: { params: { username: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
   try {
-    const username = params.username
+    const { username } = await params
     const supabase = await createClient()
 
     // Fetch creator

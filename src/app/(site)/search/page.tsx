@@ -498,7 +498,7 @@ function SearchContent() {
                 Can't find what you need?
               </h2>
               <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto relative z-10">
-                Create your own Hook and share it with the world. No signup needed.
+                Create your own Hook and share it with the world. No signup needed at all.
               </p>
               <Link href="/hook/new" className="relative z-10 inline-block">
                 <Button size="lg" className="bg-white text-purple-700 hover:bg-white/90 rounded-full h-14 px-10 text-lg gap-2 shadow-xl">

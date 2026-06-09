@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, Suspense, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -127,6 +128,7 @@ function shuffleArray<T>(array: T[]): T[] {
 // HOOK CARD COMPONENT
 // ============================================
 function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
+  const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
 
   const imageUrl = isDemo
@@ -189,7 +191,16 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
       <div className="p-4">
         <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title || hook.name}</h3>
         <div className="flex items-center justify-between">
-          <span className="text-neutral-500 text-xs">@{hook.creator || hook.creator_name || hook.creator_username || 'anonymous'}</span>
+          <span
+  onClick={(e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
+  }}
+  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
+>
+  @{hook.creator_name || hook.creator_username || 'anonymous'}
+</span>
           <div className="flex items-center gap-3 text-neutral-400 text-xs">
             <span className="flex items-center gap-1">
               <Eye className="w-3 h-3" />

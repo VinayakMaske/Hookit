@@ -101,6 +101,7 @@ function RelatedCard({ hook }: { hook: any }) {
   const price = hook.price || hook.product_price
   const viewCount = hook.views || hook.view_count || 0
   const clickCount = hook.clicks || hook.click_count || 0
+  const router = useRouter()
 
   const imageUrl = hook.src || hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop'
 
@@ -154,7 +155,13 @@ function RelatedCard({ hook }: { hook: any }) {
         <div className="p-3">
           <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title}</h3>
           <div className="flex items-center justify-between">
-            <span className="text-neutral-500 text-xs">@{hook.creator || hook.creator_name || 'anonymous'}</span>
+            <Link 
+  href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
+  onClick={(e) => e.stopPropagation()}
+  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
+>
+  @{hook.creator_name || hook.creator_username || 'anonymous'}
+</Link>
             <div className="flex items-center gap-2 text-neutral-400 text-[10px]">
               <span className="flex items-center gap-0.5">
                 <Eye className="w-3 h-3" />
@@ -385,13 +392,23 @@ export default function HookDetailPage() {
                     {(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-neutral-900">@{hook.creator_name || hook.creator || 'anonymous'}</p>
+                    <span
+  onClick={(e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
+  }}
+  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
+>
+  @{hook.creator_name || hook.creator_username || 'anonymous'}
+</span>
                     <p className="text-xs text-neutral-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {timeAgo(hook.created_at)}
                     </p>
                   </div>
                 </div>
+
 
                 {/* Title */}
                 <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 leading-tight mb-3">

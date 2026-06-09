@@ -252,23 +252,25 @@ export default function CreatorProfilePage() {
     fetchCreator()
   }, [username])
 
-  const fetchCreator = async () => {
+      const fetchCreator = async () => {
     try {
       setLoading(true)
-      // Try to fetch from API
       const res = await fetch(`/api/creator/${username}`)
-      if (!res.ok) throw new Error('Creator not found')
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Creator not found')
+      }
       const data = await res.json()
       setCreator(data.creator)
       const shuffled = shuffleArray(data.hooks || [])
       setHooks(shuffled)
       setFilteredHooks(shuffled)
-    } catch (err) {
-      // Fallback to demo
-      setCreator(DEMO_CREATOR)
-      const shuffled = shuffleArray(DEMO_HOOKS)
-      setHooks(shuffled)
-      setFilteredHooks(shuffled)
+    } catch (err: any) {
+      // NO DEMO FALLBACK - show actual error state
+      setCreator(null)
+      setHooks([])
+      setFilteredHooks([])
+      console.error('Creator fetch error:', err.message)
     } finally {
       setLoading(false)
     }
@@ -298,6 +300,7 @@ export default function CreatorProfilePage() {
   const productCount = hooks.filter(h => h.type === 'product').length
 
   // Loading
+    // Loading
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -309,13 +312,38 @@ export default function CreatorProfilePage() {
     )
   }
 
+  // Not found state
+  if (!loading && !creator) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Globe className="w-8 h-8 text-neutral-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-2">Creator not found</h1>
+          <p className="text-neutral-500 mb-6">We couldn&apos;t find a creator with the username &quot;@{username}&quot;.</p>
+          <Link href="/explore">
+            <Button className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2">
+              Explore Hooks
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Hero Banner */}
-      <div className="relative h-48 sm:h-64 lg:h-80 bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=1920&h=400&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent" />
-        
+      {/* Hero Banner */}
+<div className="relative h-48 sm:h-64 lg:h-80 bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 overflow-hidden">
+  {creatorData.banner_url ? (
+    <img src={creatorData.banner_url} alt="" className="w-full h-full object-cover opacity-60" />
+  ) : (
+    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=1920&h=400&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay" />
+  )}
+  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent" />
+
         {/* Floating particles effect */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
@@ -340,9 +368,13 @@ export default function CreatorProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-start gap-6">
               {/* Avatar */}
               <div className="relative">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl shadow-purple-500/30 border-4 border-white">
-                  {(creatorData.display_name || creatorData.username || 'A')[0].toUpperCase()}
-                </div>
+  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-2xl shadow-purple-500/30 border-4 border-white overflow-hidden">
+    {creatorData.avatar_url ? (
+      <img src={creatorData.avatar_url} alt="" className="w-full h-full object-cover" />
+    ) : (
+      (creatorData.display_name || creatorData.username || 'A')[0].toUpperCase()
+    )}
+  </div>
                 {creatorData.verified && (
                   <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                     <CheckCircle2 className="w-4 h-4 text-white" />

@@ -1,3 +1,4 @@
+// src/app/api/creator/verify-otp/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { sendCreatorPasskey } from '@/lib/email'
 import { NextResponse } from 'next/server'
@@ -40,9 +41,10 @@ export async function POST(req: Request) {
 
     // If new creator, create creator profile and send passkey
     if (!passcodeRecord.is_returning) {
+      // Check if creator already exists (double-check)
       const { data: existingCreator } = await supabase
         .from('creators')
-        .select('id')
+        .select('id, username, email, passcode, display_name')
         .eq('email', normalizedEmail)
         .single()
 
@@ -62,6 +64,7 @@ export async function POST(req: Request) {
           .single()
 
         if (createError) {
+          console.error('Creator insert error:', createError)
           return NextResponse.json({ error: 'Failed to create creator profile' }, { status: 500 })
         }
         creator = newCreator
@@ -92,6 +95,7 @@ export async function POST(req: Request) {
       isNewCreator: false,
     })
   } catch (err: any) {
+    console.error('Verify OTP error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

@@ -485,7 +485,13 @@ export default function HomePage() {
                 <div className="p-4">
                   <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title}</h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-neutral-500 text-xs">@{hook.creator}</span>
+                    <Link 
+  href={`/creator/${hook.creator}`}
+  onClick={(e) => e.stopPropagation()}
+  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
+>
+  @{hook.creator}
+</Link>
                     <div className="flex items-center gap-3 text-neutral-400 text-xs">
                       <span className="flex items-center gap-1">
                         <Eye className="w-3 h-3" />

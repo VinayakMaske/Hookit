@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       category_slug: body.category_slug || body.category.toLowerCase(),
       tags: body.tags || [],
       creator_name: body.creator_name || 'Anonymous',
+      creator_username: body.creator_username || body.creator_name || body.creator_email_ref?.split('@')[0] || 'anonymous',
       creator_email_ref: body.creator_email_ref || body.creator_email || '',
       is_published: true,
       type: body.type || 'link',
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('hooks')
       .insert(insertPayload)
-      .select()
+      .select('*, creator_username')
       .single()
 
     if (error) {

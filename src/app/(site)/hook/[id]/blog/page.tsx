@@ -292,7 +292,12 @@ export default function BlogArticlePage() {
               {(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}
             </div>
             <div>
-              <p className="font-semibold text-sm text-neutral-900">@{hook.creator_name || hook.creator || 'anonymous'}</p>
+              <Link 
+  href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
+  className="font-semibold text-sm text-neutral-900 hover:text-purple-600 transition-colors"
+>
+  @{hook.creator_name || hook.creator || 'anonymous'}
+</Link>
               <p className="text-xs text-neutral-400 flex items-center gap-1">
                 <User className="w-3 h-3" />
                 Creator on Hookit

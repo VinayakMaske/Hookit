@@ -22,7 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Fetch related hooks (same category, different id, limit 24)
     const { data: related, error: relatedError } = await supabase
       .from('hooks')
-      .select('id, title, images, image_url, creator_name, category, views, view_count, clicks, click_count, type, product_price, price')
+      .select('id, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, click_count, type, product_price, price')
       .eq('is_published', true)
       .eq('category', hook.category)
       .neq('id', hookId)
@@ -35,5 +35,26 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch hook' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    // Delete the hook
+    const { error } = await supabase
+      .from('hooks')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

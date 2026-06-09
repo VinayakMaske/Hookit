@@ -289,19 +289,20 @@ export default function CreateHookPage() {
     
     try {
       const payload: any = {
-        title,
-        description,
-        images: uploadedUrls,
-        image_url: uploadedUrls[0],
-        category,
-        category_slug: category.toLowerCase(),
-        tags,
-        type: hookType,
-        creator_name: creatorData?.username || creatorEmail.split('@')[0],
-        creator_email_ref: creatorEmail,
-        is_published: true,
-      }
-      
+  title,
+  description,
+  images: uploadedUrls,
+  image_url: uploadedUrls[0],
+  category,
+  category_slug: category.toLowerCase(),
+  tags,
+  type: hookType,
+  creator_name: creatorData?.username || creatorEmail.split('@')[0],
+  creator_username: creatorData?.username || creatorEmail.split('@')[0], // ← ADD THIS
+  creator_email_ref: creatorEmail,
+  is_published: true,
+}
+
       if (hookType === 'link') {
         payload.destination_url = destinationUrl
       } else if (hookType === 'blog') {

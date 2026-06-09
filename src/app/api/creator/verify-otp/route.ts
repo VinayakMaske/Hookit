@@ -1,4 +1,3 @@
-// src/app/api/creator/verify-otp/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { sendCreatorPasskey } from '@/lib/email'
 import { NextResponse } from 'next/server'
@@ -19,7 +18,7 @@ export async function POST(req: Request) {
       .select('*')
       .eq('email', normalizedEmail)
       .eq('otp', otp)
-      .eq('used', false)
+      .eq('is_used', false)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
     // Mark OTP as used
     await supabase
       .from('creator_passcodes')
-      .update({ used: true })
+      .update({ is_used: true })
       .eq('id', passcodeRecord.id)
 
     // If new creator, create creator profile and send passkey
@@ -56,7 +55,7 @@ export async function POST(req: Request) {
             email: normalizedEmail,
             username: passcodeRecord.suggested_username,
             display_name: passcodeRecord.suggested_username,
-            passkey: passcodeRecord.passkey,
+            passcode: passcodeRecord.passcode,
             is_verified: true,
           })
           .select()
@@ -71,7 +70,7 @@ export async function POST(req: Request) {
       }
 
       // Send passkey email
-      await sendCreatorPasskey(email, passcodeRecord.passkey, creator.username)
+      await sendCreatorPasskey(email, passcodeRecord.passcode, creator.username)
 
       return NextResponse.json({
         success: true,
@@ -81,7 +80,7 @@ export async function POST(req: Request) {
           username: creator.username,
           email: normalizedEmail,
         },
-        passkey: passcodeRecord.passkey,
+        passkey: passcodeRecord.passcode,
         isNewCreator: true,
       })
     }

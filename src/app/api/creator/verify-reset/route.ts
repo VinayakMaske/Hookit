@@ -1,4 +1,3 @@
-// src/app/api/creator/verify-reset/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -18,7 +17,7 @@ export async function POST(req: Request) {
       .select('*')
       .eq('email', normalizedEmail)
       .eq('otp', otp)
-      .eq('used', false)
+      .eq('is_used', false)
       .eq('is_reset', true)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -36,15 +35,15 @@ export async function POST(req: Request) {
     // Mark as used
     await supabase
       .from('creator_passcodes')
-      .update({ used: true })
+      .update({ is_used: true })
       .eq('id', resetRecord.id)
 
     // Update creator's passkey
     const { data: creator, error: updateError } = await supabase
       .from('creators')
-      .update({ passkey: resetRecord.passkey })
+      .update({ passcode: resetRecord.passcode })
       .eq('email', normalizedEmail)
-      .select('id, username, email, passkey')
+      .select('id, username, email, passcode')
       .single()
 
     if (updateError) {
@@ -54,7 +53,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: 'New passkey activated successfully',
-      newPasskey: resetRecord.passkey,
+      newPasskey: resetRecord.passcode,
       creator: {
         id: creator.id,
         username: creator.username,

@@ -1,4 +1,3 @@
-// src/app/api/creator/reset-passkey/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { sendNewPasskeyReset } from '@/lib/email'
 import { NextResponse } from 'next/server'
@@ -45,9 +44,9 @@ export async function POST(req: Request) {
     const { error: insertError } = await supabase.from('creator_passcodes').insert({
       email: normalizedEmail,
       otp,
-      passkey: newPasskey,
+      passcode: newPasskey,
       expires_at: expiresAt,
-      used: false,
+      is_used: false,
       is_returning: true,
       is_reset: true,
     })

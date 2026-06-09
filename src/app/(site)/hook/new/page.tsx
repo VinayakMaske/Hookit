@@ -4,53 +4,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
-  Camera,
-  Upload,
-  X,
-  Plus,
-  Link2,
-  Globe,
-  ShoppingBag,
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  Loader2,
-  Trash2,
-  GripVertical,
-  AlertCircle,
-  Zap,
-  TrendingUp,
-  Heart,
-  Eye,
-  Star,
-  Flame,
-  Rocket,
-  Crown,
-  Gem,
-  ArrowUpRight,
-  Palette,
-  Plane,
-  Laptop,
-  Gamepad2,
-  Utensils,
-  MousePointerClick,
-  Lock,
-  User,
-  FileText,
-  Tag,
-  DollarSign,
-  ExternalLink,
-  BookOpen,
-  Mail,
-  KeyRound,
-  ChevronRight,
-  ArrowLeft
+  Camera, Upload, X, Plus, Link2, Globe, ShoppingBag, Sparkles,
+  ArrowRight, CheckCircle2, Loader2, Trash2, GripVertical, AlertCircle,
+  Zap, TrendingUp, Heart, Eye, Star, Flame, Rocket, Crown, Gem,
+  ArrowUpRight, Palette, Plane, Laptop, Gamepad2, Utensils,
+  MousePointerClick, Lock, Tag, DollarSign, ExternalLink, BookOpen,
+  Mail, KeyRound, ArrowLeft
 } from 'lucide-react'
 
 // Floating background images
@@ -92,39 +56,9 @@ const QUOTES = [
 
 // Hook Types
 const HOOK_TYPES = [
-  { 
-    id: 'link', 
-    label: 'Link Hook', 
-    description: 'Share any external link',
-    icon: ExternalLink, 
-    color: 'from-purple-500 to-pink-500',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    textColor: 'text-purple-700',
-    examples: 'YouTube, Instagram, Portfolio, News, Affiliate links'
-  },
-  { 
-    id: 'blog', 
-    label: 'Blog Hook', 
-    description: 'Write an article on Hookit',
-    icon: BookOpen, 
-    color: 'from-blue-500 to-indigo-500',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    textColor: 'text-blue-700',
-    examples: 'Stories, Tutorials, Guides, Reviews'
-  },
-  { 
-    id: 'product', 
-    label: 'Product Hook', 
-    description: 'Showcase something to sell',
-    icon: ShoppingBag, 
-    color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-200',
-    textColor: 'text-emerald-700',
-    examples: 'Physical products, Digital goods, Services'
-  },
+  { id: 'link', label: 'Link Hook', description: 'Share any external link', icon: ExternalLink, color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-700', examples: 'YouTube, Instagram, Portfolio, News, Affiliate links' },
+  { id: 'blog', label: 'Blog Hook', description: 'Write an article on Hookit', icon: BookOpen, color: 'from-blue-500 to-indigo-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', textColor: 'text-blue-700', examples: 'Stories, Tutorials, Guides, Reviews' },
+  { id: 'product', label: 'Product Hook', description: 'Showcase something to sell', icon: ShoppingBag, color: 'from-emerald-500 to-teal-500', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', textColor: 'text-emerald-700', examples: 'Physical products, Digital goods, Services' },
 ]
 
 // Categories
@@ -141,13 +75,13 @@ const CATEGORIES = [
 
 const POPULAR_TAGS = ['portfolio', 'art', 'design', 'photography', 'travel', 'fashion', 'food', 'tech', 'gaming', 'minimal', 'vintage', 'modern', 'creative', 'inspiration', 'diy']
 
-// Passcode steps
-type PasscodeStep = 'email' | 'sending' | 'verify' | 'verified'
+// Creator flow states
+type CreatorFlow = 'enter_email' | 'checking' | 'new_otp_sent' | 'new_verified' | 'returning_show' | 'returning_otp' | 'forgot_passkey' | 'reset_otp_sent' | 'verified'
 
 export default function CreateHookPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // ===== FORM STATE =====
   const [images, setImages] = useState<{ preview: string; uploading: boolean; url?: string }[]>([])
   const [hookType, setHookType] = useState<'link' | 'blog' | 'product'>('link')
@@ -156,19 +90,22 @@ export default function CreateHookPage() {
   const [category, setCategory] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  
+
   // Type-specific fields
-  const [destinationUrl, setDestinationUrl] = useState('') // For link hooks
-  const [blogContent, setBlogContent] = useState('') // For blog hooks
-  const [productPrice, setProductPrice] = useState('') // For product hooks
-  const [externalStoreUrl, setExternalStoreUrl] = useState('') // For product hooks
-  
-  // Creator / Passcode state
+  const [destinationUrl, setDestinationUrl] = useState('')
+  const [blogContent, setBlogContent] = useState('')
+  const [productPrice, setProductPrice] = useState('')
+  const [externalStoreUrl, setExternalStoreUrl] = useState('')
+
+  // Creator verification state
+  const [creatorFlow, setCreatorFlow] = useState<CreatorFlow>('enter_email')
   const [creatorEmail, setCreatorEmail] = useState('')
-  const [passcode, setPasscode] = useState('')
-  const [passcodeStep, setPasscodeStep] = useState<PasscodeStep>('email')
+  const [otp, setOtp] = useState('')
+  const [passkey, setPasskey] = useState('')
   const [creatorProfile, setCreatorProfile] = useState<any>(null)
-  
+  const [suggestedUsername, setSuggestedUsername] = useState('')
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
@@ -239,61 +176,111 @@ export default function CreateHookPage() {
   const addTag = (tag: string) => { if (tag && !tags.includes(tag) && tags.length < 10) { setTags([...tags, tag]); setTagInput('') } }
   const removeTag = (tag: string) => setTags(tags.filter(t => t !== tag))
 
-  // ===== PASSCODE FLOW =====
-  const handleRequestPasscode = async () => {
+  // ===== CREATOR VERIFICATION FLOW =====
+
+  const handleCheckEmail = async () => {
     if (!creatorEmail.includes('@')) {
       setUploadError('Please enter a valid email')
       return
     }
-    setPasscodeStep('sending')
+    setIsCheckingEmail(true)
     setUploadError(null)
-    
+
     try {
-      const res = await fetch('/api/creator/passcode', {
+      const res = await fetch('/api/creator/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: creatorEmail })
       })
-      
-      if (!res.ok) throw new Error('Failed to send passcode')
-      setPasscodeStep('verify')
+      const data = await res.json()
+
+      if (data.exists && data.creator) {
+        setCreatorProfile(data.creator)
+        setSuggestedUsername(data.creator.username)
+        setCreatorFlow('returning_show')
+      } else {
+        const otpRes = await fetch('/api/creator/otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: creatorEmail, isReturning: false })
+        })
+        const otpData = await otpRes.json()
+
+        if (!otpRes.ok) throw new Error(otpData.error)
+        setSuggestedUsername(otpData.suggestedUsername)
+        setCreatorFlow('new_otp_sent')
+      }
     } catch (err: any) {
-      setUploadError(err.message || 'Failed to send passcode')
-      setPasscodeStep('email')
+      setUploadError(err.message || 'Failed to check email')
+    } finally {
+      setIsCheckingEmail(false)
     }
   }
 
-  const handleVerifyPasscode = async () => {
-    if (passcode.length !== 6) {
-      setUploadError('Enter 6-digit passcode')
+  const handleVerifyNewOTP = async () => {
+    if (otp.length !== 6) {
+      setUploadError('Enter 6-digit OTP')
       return
     }
     setIsSubmitting(true)
     setUploadError(null)
-    
+
     try {
-      const res = await fetch('/api/creator/verify', {
+      const res = await fetch('/api/creator/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: creatorEmail, passcode })
+        body: JSON.stringify({ email: creatorEmail, otp })
       })
-      
-      if (!res.ok) throw new Error('Invalid passcode')
       const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error)
+
       setCreatorProfile(data.creator)
-      setPasscodeStep('verified')
+      setCreatorFlow('new_verified')
     } catch (err: any) {
-      setUploadError(err.message || 'Invalid passcode')
+      setUploadError(err.message || 'Invalid OTP')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // ===== PUBLISH =====
-  const handlePublish = async () => {
+  const handleVerifyPasskeyQuick = async () => {
+    if (!passkey.trim()) {
+      setUploadError('Enter your Creator Passkey')
+      return
+    }
+    setIsSubmitting(true)
+    setUploadError(null)
+
+    try {
+      const res = await fetch('/api/creator/verify-passkey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail, passkey })
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (data.needsNewPasskey) {
+          setCreatorFlow('forgot_passkey')
+        }
+        throw new Error(data.error)
+      }
+
+      setCreatorProfile(data.creator)
+      setCreatorFlow('verified')
+      // Auto-publish after verification
+      await handlePublishAfterVerify(data.creator)
+    } catch (err: any) {
+      setUploadError(err.message || 'Verification failed')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handlePublishAfterVerify = async (creatorData: any) => {
     if (!title || !category || images.length === 0) return
     if (images.some(img => img.uploading)) { setUploadError('Wait for uploads'); return }
-    if (passcodeStep !== 'verified') { setUploadError('Please verify your email first'); return }
     
     setIsSubmitting(true)
     setUploadError(null)
@@ -310,12 +297,11 @@ export default function CreateHookPage() {
         category_slug: category.toLowerCase(),
         tags,
         type: hookType,
-        creator_name: creatorProfile?.username || creatorEmail.split('@')[0],
+        creator_name: creatorData?.username || creatorEmail.split('@')[0],
         creator_email_ref: creatorEmail,
         is_published: true,
       }
       
-      // Type-specific fields
       if (hookType === 'link') {
         payload.destination_url = destinationUrl
       } else if (hookType === 'blog') {
@@ -338,7 +324,148 @@ export default function CreateHookPage() {
       const data = await res.json()
       setPublishedHookId(data.id)
       setIsSubmitting(false)
-      setStep(4)
+      setStep(5)
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to publish')
+      setIsSubmitting(false)
+    }
+  }
+
+
+  const handleVerifyReturning = async () => {
+    if (otp.length !== 6) {
+      setUploadError('Enter 6-digit OTP')
+      return
+    }
+    if (!passkey.trim()) {
+      setUploadError('Enter your Creator Passkey')
+      return
+    }
+    setIsSubmitting(true)
+    setUploadError(null)
+
+    try {
+      const res = await fetch('/api/creator/verify-passkey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail, passkey, otp })
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (data.needsNewPasskey) {
+          setCreatorFlow('forgot_passkey')
+        }
+        throw new Error(data.error)
+      }
+
+      setCreatorProfile(data.creator)
+      setCreatorFlow('verified')
+    } catch (err: any) {
+      setUploadError(err.message || 'Verification failed')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRequestNewPasskey = async () => {
+    setIsSubmitting(true)
+    setUploadError(null)
+
+    try {
+      const res = await fetch('/api/creator/reset-passkey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail })
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error)
+      setCreatorFlow('reset_otp_sent')
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to request new passkey')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleVerifyResetOTP = async () => {
+    if (otp.length !== 6) {
+      setUploadError('Enter 6-digit OTP')
+      return
+    }
+    setIsSubmitting(true)
+    setUploadError(null)
+
+    try {
+      const res = await fetch('/api/creator/verify-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creatorEmail, otp })
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error)
+
+      setCreatorProfile(data.creator)
+      setPasskey(data.newPasskey)
+      setCreatorFlow('verified')
+    } catch (err: any) {
+      setUploadError(err.message || 'Invalid OTP')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // ===== PUBLISH =====
+  const handlePublish = async () => {
+    if (!title || !category || images.length === 0) return
+    if (images.some(img => img.uploading)) { setUploadError('Wait for uploads'); return }
+    if (creatorFlow !== 'verified') { setUploadError('Please verify your email first'); return }
+
+    setIsSubmitting(true)
+    setUploadError(null)
+
+    const uploadedUrls = images.map(img => img.url).filter(Boolean) as string[]
+
+    try {
+      const payload: any = {
+        title,
+        description,
+        images: uploadedUrls,
+        image_url: uploadedUrls[0],
+        category,
+        category_slug: category.toLowerCase(),
+        tags,
+        type: hookType,
+        creator_name: creatorProfile?.username || creatorEmail.split('@')[0],
+        creator_email_ref: creatorEmail,
+        is_published: true,
+      }
+
+      if (hookType === 'link') {
+        payload.destination_url = destinationUrl
+      } else if (hookType === 'blog') {
+        payload.blog_content = blogContent
+      } else if (hookType === 'product') {
+        payload.product_price = parseFloat(productPrice) || 0
+        payload.product_details = {
+          external_store_url: externalStoreUrl,
+          currency: 'USD'
+        }
+      }
+
+      const res = await fetch('/api/hooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) throw new Error('Failed to publish')
+      const data = await res.json()
+      setPublishedHookId(data.id)
+      setIsSubmitting(false)
+      setStep(5)
     } catch (err: any) {
       setUploadError(err.message || 'Failed to publish')
       setIsSubmitting(false)
@@ -354,7 +481,7 @@ export default function CreateHookPage() {
     if (hookType === 'link' && destinationUrl.length > 0) completed++
     if (hookType === 'blog' && blogContent.length > 50) completed++
     if (hookType === 'product' && productPrice.length > 0) completed++
-    if (passcodeStep === 'verified') completed++
+    if (creatorFlow === 'verified') completed++
     return completed
   }
 
@@ -362,7 +489,7 @@ export default function CreateHookPage() {
   const totalSteps = 7
 
   // ===== SUCCESS SCREEN =====
-  if (step === 4 && publishedHookId) {
+  if (step === 5 && publishedHookId) {
     return (
       <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center px-4 py-20">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -378,18 +505,18 @@ export default function CreateHookPage() {
           ))}
         </div>
         <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-purple-50/80 to-pink-50/90" />
-        
+
         <div className={`relative z-10 max-w-md w-full text-center transition-all duration-1000 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
           <div className="w-24 h-24 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-green-500/20 animate-pulse">
             <CheckCircle2 className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-neutral-900 mb-3">Hook Published!</h1>
           <p className="text-lg text-neutral-500 mb-2">Your creativity is now discoverable.</p>
-          <p className="text-purple-600 font-medium mb-2">"One Hook. Infinite reach."</p>
+          <p className="text-purple-600 font-medium mb-2">&quot;One Hook. Infinite reach.&quot;</p>
           <p className="text-sm text-neutral-400 mb-10">
             Posted by <span className="font-semibold text-neutral-600">@{creatorProfile?.username || creatorEmail.split('@')[0]}</span>
           </p>
-          
+
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-100 mb-8">
             <p className="text-sm text-neutral-400 mb-3 uppercase tracking-wider font-medium">Your Hook URL</p>
             <div className="flex items-center gap-2 bg-neutral-50 rounded-xl p-4 border border-neutral-200">
@@ -404,9 +531,9 @@ export default function CreateHookPage() {
             <div className="flex items-start gap-3">
               <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-800">Save your Creator Passcode</p>
+                <p className="text-sm font-medium text-amber-800">Save your Creator Passkey</p>
                 <p className="text-xs text-amber-600 mt-1">
-                  Passcode sent to <strong>{creatorEmail}</strong>. Use it to publish more Hooks under the same profile.
+                  Passkey sent to <strong>{creatorEmail}</strong>. Use it to publish more Hooks under the same profile.
                 </p>
               </div>
             </div>
@@ -474,10 +601,10 @@ export default function CreateHookPage() {
       <div className="relative z-10 min-h-screen flex flex-col">
         <div className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-24">
           <div className={`w-full max-w-2xl transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            
+
             {/* Glass Card */}
             <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-white/60 shadow-2xl shadow-purple-500/10 overflow-hidden">
-              
+
               {/* Card Header */}
               <div className="p-8 pb-0">
                 <div className="text-center mb-6">
@@ -733,7 +860,7 @@ export default function CreateHookPage() {
                   </div>
 
                   {/* TYPE-SPECIFIC FIELDS */}
-                  
+
                   {/* Link Hook: Destination URL */}
                   {hookType === 'link' && (
                     <div className="space-y-2">
@@ -848,8 +975,7 @@ export default function CreateHookPage() {
                           {tags.map(tag => <span key={tag} className="text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">#{tag}</span>)}
                         </div>
                       )}
-                      
-                      {/* Type-specific preview */}
+
                       {hookType === 'link' && destinationUrl && (
                         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
                           <Globe className="w-4 h-4 text-blue-500" />
@@ -887,110 +1013,235 @@ export default function CreateHookPage() {
                     </div>
                   </div>
 
-                  {/* Email / Passcode Section */}
-                  {!creatorProfile ? (
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-                      <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-purple-600" /> 
-                        {passcodeStep === 'email' ? 'Enter your email' : passcodeStep === 'sending' ? 'Sending passcode...' : 'Enter your 6-digit passcode'}
-                      </h3>
+                  {/* ===== CREATOR VERIFICATION FLOW UI ===== */}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
 
-                      {passcodeStep === 'email' && (
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                            <Input 
-                              type="email" 
-                              placeholder="you@example.com" 
-                              value={creatorEmail} 
-                              onChange={(e) => setCreatorEmail(e.target.value)} 
-                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10" 
-                            />
-                          </div>
-                          <p className="text-xs text-neutral-500">
-                            We'll send you a 6-digit Creator Passcode. Use it to publish and manage your Hooks.
-                          </p>
+                    {/* FLOW: ENTER EMAIL */}
+                    {creatorFlow === 'enter_email' && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+                          <Mail className="w-5 h-5 text-purple-600" /> 
+                          Enter your email to publish
+                        </h3>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Input 
+                            type="email" 
+                            placeholder="you@example.com" 
+                            value={creatorEmail} 
+                            onChange={(e) => setCreatorEmail(e.target.value)} 
+                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10" 
+                          />
+                        </div>
+                        <p className="text-xs text-neutral-500">
+                          New creators get a unique passkey. Returning creators use their existing one.
+                        </p>
+                        <Button 
+                          onClick={handleCheckEmail} 
+                          disabled={isCheckingEmail || !creatorEmail.includes('@')}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
+                        >
+                          {isCheckingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                          {isCheckingEmail ? 'Checking...' : 'Continue'}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* FLOW: CHECKING */}
+                    {creatorFlow === 'checking' && (
+                      <div className="text-center py-8">
+                        <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
+                        <p className="text-neutral-600">Checking your email...</p>
+                      </div>
+                    )}
+
+                    {/* FLOW: NEW CREATOR - OTP SENT */}
+                    {creatorFlow === 'new_otp_sent' && (
+                      <div className="space-y-4">
+                        <div className="bg-white rounded-xl p-4 border border-purple-100 mb-4">
+                          <p className="text-sm text-neutral-600 mb-1">New Creator</p>
+                          <p className="font-medium text-neutral-900">{creatorEmail}</p>
+                          <p className="text-xs text-purple-600 mt-1">Suggested username: @{suggestedUsername}</p>
+                        </div>
+                        <p className="text-sm text-neutral-600">We sent a 6-digit code to your email. Enter it below:</p>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Input 
+                            placeholder="000000" 
+                            maxLength={6}
+                            value={otp} 
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
+                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-lg tracking-[0.5em] font-mono" 
+                          />
+                        </div>
+                        <div className="flex gap-2">
                           <Button 
-                            onClick={handleRequestPasscode} 
-                            disabled={!creatorEmail.includes('@')}
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                            variant="outline" 
+                            onClick={handleCheckEmail} 
+                            className="flex-1 rounded-xl border-neutral-200"
                           >
-                            <KeyRound className="w-4 h-4" /> Send Passcode
+                            Resend Code
+                          </Button>
+                          <Button 
+                            onClick={handleVerifyNewOTP} 
+                            disabled={otp.length !== 6 || isSubmitting}
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                            Verify
                           </Button>
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {passcodeStep === 'sending' && (
-                        <div className="text-center py-8">
-                          <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
-                          <p className="text-neutral-600">Sending passcode to {creatorEmail}...</p>
-                        </div>
-                      )}
-
-                      {passcodeStep === 'verify' && (
-                        <div className="space-y-4">
-                          <div className="bg-white rounded-xl p-4 border border-purple-100 mb-4">
-                            <p className="text-sm text-neutral-600 mb-1">Passcode sent to</p>
-                            <p className="font-medium text-neutral-900">{creatorEmail}</p>
-                            <button 
-                              onClick={() => setPasscodeStep('email')} 
-                              className="text-xs text-purple-600 hover:text-purple-700 mt-1"
-                            >
-                              Change email
-                            </button>
-                          </div>
-                          <div className="relative">
-                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                            <Input 
-                              placeholder="000000" 
-                              maxLength={6}
-                              value={passcode} 
-                              onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))} 
-                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-lg tracking-[0.5em] font-mono" 
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              onClick={handleRequestPasscode} 
-                              className="flex-1 rounded-xl border-neutral-200 hover:bg-purple-50"
-                            >
-                              Resend
-                            </Button>
-                            <Button 
-                              onClick={handleVerifyPasscode} 
-                              disabled={passcode.length !== 6 || isSubmitting}
-                              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
-                            >
-                              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                              Verify
-                            </Button>
+                    {/* FLOW: NEW CREATOR - VERIFIED, SHOW PASSKEY INFO */}
+                    {creatorFlow === 'new_verified' && (
+                      <div className="space-y-4">
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                          <div className="flex items-center gap-3 mb-2">
+                            <CheckCircle2 className="w-6 h-6 text-green-500" />
+                            <div>
+                              <p className="font-semibold text-green-800">Email Verified!</p>
+                              <p className="text-sm text-green-600">@{creatorProfile?.username}</p>
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
-                      <div className="flex items-center gap-3 mb-4">
-                        <CheckCircle2 className="w-6 h-6 text-green-500" />
-                        <div>
-                          <p className="font-semibold text-green-800">Email Verified</p>
-                          <p className="text-sm text-green-600">@{creatorProfile.username} • {creatorEmail}</p>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                          <div className="flex items-start gap-3">
+                            <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-amber-800">Check your email for your Creator Passkey</p>
+                              <p className="text-xs text-amber-600 mt-1">
+                                A unique passkey (like <strong>HK-XXXXXX</strong>) has been sent to <strong>{creatorEmail}</strong>. 
+                                Save it — you will need it every time you publish.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => setCreatorFlow('verified')}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" /> I am Ready to Publish
+                        </Button>
+                      </div>
+                    )}
+
+                                        {/* FLOW: RETURNING - SHOW USERNAME, ASK FOR PASSKEY */}
+                    {creatorFlow === 'returning_show' && (
+                      <div className="space-y-4">
+                        <div className="bg-white rounded-xl p-4 border border-purple-100 mb-4">
+                          <p className="text-sm text-neutral-600 mb-1">Welcome back</p>
+                          <p className="font-bold text-lg text-neutral-900">@{creatorProfile?.username}</p>
+                          <p className="text-xs text-neutral-400">{creatorEmail}</p>
+                        </div>
+                        <p className="text-sm text-neutral-600">Enter your Creator Passkey to publish:</p>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Input 
+                            placeholder="HK-XXXXXX" 
+                            value={passkey} 
+                            onChange={(e) => setPasskey(e.target.value.toUpperCase())} 
+                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 font-mono tracking-wider uppercase" 
+                          />
+                        </div>
+                        <button 
+                          onClick={() => setCreatorFlow('forgot_passkey')}
+                          className="text-xs text-purple-600 hover:text-purple-700 text-center w-full"
+                        >
+                          Forgot your passkey? Request a new one
+                        </button>
+                      </div>
+                    )}
+
+                    {/* FLOW: FORGOT PASSKEY */}
+                    {creatorFlow === 'forgot_passkey' && (
+                      <div className="space-y-4">
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-100 mb-4">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800">Forgot your passkey?</p>
+                              <p className="text-xs text-red-600 mt-1">
+                                We will send a new passkey + OTP to {creatorEmail}. Your old passkey will no longer work.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setCreatorFlow('returning_show')}
+                            className="flex-1 rounded-xl border-neutral-200"
+                          >
+                            Go Back
+                          </Button>
+                          <Button 
+                            onClick={handleRequestNewPasskey} 
+                            disabled={isSubmitting}
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                            Request New Passkey
+                          </Button>
                         </div>
                       </div>
-                      <p className="text-xs text-green-600">
-                        Your Creator Passcode is saved. Use it to publish more Hooks under this profile.
-                      </p>
-                    </div>
-                  )}
+                    )}
+
+                    {/* FLOW: RESET OTP SENT */}
+                    {creatorFlow === 'reset_otp_sent' && (
+                      <div className="space-y-4">
+                        <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-4">
+                          <p className="text-sm font-medium text-amber-800">New passkey sent!</p>
+                          <p className="text-xs text-amber-600 mt-1">
+                            Check your email for a new passkey and 6-digit OTP. Enter the OTP below to activate it.
+                          </p>
+                        </div>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Input 
+                            placeholder="000000" 
+                            maxLength={6}
+                            value={otp} 
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
+                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-lg tracking-[0.5em] font-mono" 
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleVerifyResetOTP} 
+                          disabled={otp.length !== 6 || isSubmitting}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
+                        >
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          Activate New Passkey
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* FLOW: VERIFIED - READY TO PUBLISH */}
+                    {creatorFlow === 'verified' && (
+                      <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
+                        <div className="flex items-center gap-3 mb-4">
+                          <CheckCircle2 className="w-6 h-6 text-green-500" />
+                          <div>
+                            <p className="font-semibold text-green-800">Creator Verified</p>
+                            <p className="text-sm text-green-600">@{creatorProfile?.username} • {creatorEmail}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-green-600">
+                          Your Creator Passkey is saved. Use it to publish more Hooks under this profile.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex gap-3 justify-center">
                     <Button variant="outline" onClick={() => setStep(3)} className="rounded-full h-12 px-6 border-neutral-200 hover:bg-neutral-50">
                       <ArrowLeft className="w-4 h-4 mr-2" /> Edit
                     </Button>
-                    <Button 
-                      onClick={handlePublish} 
-                      disabled={isSubmitting || !creatorProfile}
+                                        <Button 
+                      onClick={creatorFlow === 'returning_show' ? handleVerifyPasskeyQuick : handlePublish} 
+                      disabled={isSubmitting || (creatorFlow !== 'verified' && creatorFlow !== 'returning_show')}
                       className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 text-lg gap-2 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all disabled:opacity-40"
                     >
                       {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Publishing...</> : <><Sparkles className="w-5 h-5" /> Publish Hook</>}
@@ -1001,7 +1252,7 @@ export default function CreateHookPage() {
             </div>
 
             <div className="text-center mt-8">
-              <p className="text-neutral-400 text-sm font-medium tracking-wide">"Don't think. Just Hookit."</p>
+              <p className="text-neutral-400 text-sm font-medium tracking-wide">&quot;Do not think. Just Hookit.&quot;</p>
             </div>
           </div>
         </div>

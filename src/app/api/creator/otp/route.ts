@@ -1,4 +1,3 @@
-// src/app/api/creator/otp/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { sendCreatorOTP, sendReturningCreatorOTP } from '@/lib/email'
 import { NextResponse } from 'next/server'
@@ -48,9 +47,9 @@ export async function POST(req: Request) {
       await supabase.from('creator_passcodes').insert({
         email: normalizedEmail,
         otp,
-        passkey: null, // not needed for returning, they already have one
+        passcode: null, // not needed for returning, they already have one
         expires_at: expiresAt,
-        used: false,
+        is_used: false,
         is_returning: true,
       })
 
@@ -72,9 +71,9 @@ export async function POST(req: Request) {
     const { error: insertError } = await supabase.from('creator_passcodes').insert({
       email: normalizedEmail,
       otp,
-      passkey,
+      passcode: passkey,
       expires_at: expiresAt,
-      used: false,
+      is_used: false,
       is_returning: false,
       suggested_username: username,
     })

@@ -1,4 +1,3 @@
-// src/app/api/creator/check/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
       .from('creator_passcodes')
       .select('id, created_at')
       .eq('email', email.toLowerCase().trim())
-      .eq('used', false)
+      .eq('is_used', false)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()

@@ -82,7 +82,7 @@ function HookCard({ hook }: { hook: any }) {
   const imageUrl = hook.images?.[0] || hook.image_url || hook.src || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop'
 
   return (
-    <Link href={`/hook/${hook.id}`} className="block break-inside-avoid mb-4">
+    <Link href={`/hook/${hook.slug}`} className="block break-inside-avoid mb-4">
       <div
         className="group relative rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}

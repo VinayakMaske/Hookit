@@ -139,7 +139,7 @@ function HookCard({ hook }: { hook: any }) {
   const imageUrl = hook.src || hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop'
 
   return (
-    <Link href={`/hook/${hook.id}`} className="block break-inside-avoid mb-4">
+    <Link href={`/hook/${hook.slug}`} className="block break-inside-avoid mb-4">
       <div
         className="group relative rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
@@ -291,7 +291,7 @@ export default function CreatorProfilePage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const creatorData = creator || DEMO_CREATOR
+  const creatorData = creator 
   const totalHooks = hooks.length
   const totalViews = hooks.reduce((sum, h) => sum + (h.views || h.view_count || 0), 0)
   const totalClicks = hooks.reduce((sum, h) => sum + (h.clicks || h.click_count || 0), 0)
@@ -528,8 +528,15 @@ export default function CreatorProfilePage() {
 
       <style jsx global>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) opacity: 0.3; }
-          50% { transform: translateY(-20px) opacity: 0.8; }
+          0%, 100% {
+  transform: translateY(0px);
+  opacity: 0.3;
+}
+
+50% {
+  transform: translateY(-20px);
+  opacity: 0.8;
+}
         }
         .animate-float {
           animation: float 3s ease-in-out infinite;

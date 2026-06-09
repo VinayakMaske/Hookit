@@ -69,28 +69,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     // Fetch hooks
     const { data: hooksExact } = await supabase
       .from('hooks')
-      .select('id, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at')
+      .select('id, title, slug, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at, updated_at')
       .eq('creator_username', creatorData.username)
       .eq('is_published', true)
       .order('created_at', { ascending: false })
 
     const { data: hooksILike } = await supabase
       .from('hooks')
-      .select('id, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at')
+      .select('id, slug, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at, updated_at')
       .ilike('creator_username', creatorData.username)
       .eq('is_published', true)
       .order('created_at', { ascending: false })
 
     const { data: hooksByEmail } = await supabase
       .from('hooks')
-      .select('id, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at')
+      .select('id, slug, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at, updated_at')
       .eq('creator_email_ref', creatorEmail || '')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
 
     const { data: hooksByName } = await supabase
       .from('hooks')
-      .select('id, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at')
+      .select('id, slug, title, description, images, image_url, category, category_slug, tags, type, destination_url, blog_content, product_price, product_details, creator_name, creator_username, views, view_count, clicks, created_at, updated_at')
       .eq('creator_name', creatorData.username)
       .eq('is_published', true)
       .order('created_at', { ascending: false })

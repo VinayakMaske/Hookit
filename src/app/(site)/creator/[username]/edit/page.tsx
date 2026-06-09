@@ -354,7 +354,7 @@ export default function EditCreatorProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link href={`/hook/${hook.id}`}>
+                      <Link href={`/hook/${hook.slug}`}>
                         <Button variant="ghost" size="sm" className="rounded-full text-neutral-500 hover:text-purple-600">
                           <ExternalLink className="w-4 h-4" />
                         </Button>

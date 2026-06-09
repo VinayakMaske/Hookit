@@ -41,23 +41,31 @@ export async function GET(
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   try {
-    const { id } = await params
+    const { slug } = await params
     const supabase = await createClient()
 
-    // Delete the hook
     const { error } = await supabase
       .from('hooks')
       .delete()
-      .eq('id', id)
+      .eq('slug', slug)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    )
   }
 }

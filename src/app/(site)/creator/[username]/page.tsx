@@ -291,7 +291,7 @@ export default function CreatorProfilePage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const creatorData = creator 
+  const creatorData = creator || {}
   const totalHooks = hooks.length
   const totalViews = hooks.reduce((sum, h) => sum + (h.views || h.view_count || 0), 0)
   const totalClicks = hooks.reduce((sum, h) => sum + (h.clicks || h.click_count || 0), 0)

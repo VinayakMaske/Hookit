@@ -360,13 +360,13 @@ export default function EditCreatorProfilePage() {
                         </Button>
                       </Link>
                       <Button
-                        onClick={() => handleDeleteHook(hook.id)}
-                        disabled={deletingHookId === hook.id}
+                        onClick={() => handleDeleteHook(hook.slug)}
+                        disabled={deletingHookId === hook.slug}
                         variant="ghost"
                         size="sm"
                         className="rounded-full text-neutral-500 hover:text-red-600 hover:bg-red-50"
                       >
-                        {deletingHookId === hook.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        {deletingHookId === hook.slug ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>

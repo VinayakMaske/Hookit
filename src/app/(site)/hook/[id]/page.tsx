@@ -23,7 +23,8 @@ import {
   Tag,
   User,
   ArrowUpRight,
-  Link2
+  Link2,
+  X
 } from 'lucide-react'
 
 // ============================================
@@ -156,12 +157,12 @@ function RelatedCard({ hook }: { hook: any }) {
           <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title}</h3>
           <div className="flex items-center justify-between">
             <Link 
-  href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
-  onClick={(e) => e.stopPropagation()}
-  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
->
-  @{hook.creator_name || hook.creator_username || 'anonymous'}
-</Link>
+              href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
+            >
+              @{hook.creator_name || hook.creator_username || 'anonymous'}
+            </Link>
             <div className="flex items-center gap-2 text-neutral-400 text-[10px]">
               <span className="flex items-center gap-0.5">
                 <Eye className="w-3 h-3" />
@@ -205,6 +206,7 @@ export default function HookDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
+  const [showBlogContent, setShowBlogContent] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
@@ -218,11 +220,18 @@ export default function HookDetailPage() {
       if (!res.ok) throw new Error('Hook not found')
       const data = await res.json()
       setHook(data.hook)
-      // Shuffle related hooks
-      setRelated(shuffleArray(data.related || DEMO_RELATED))
+      
+      // Build related: same category first, then random
+      const currentCategory = data.hook?.category
+      const allRelated = data.related || []
+      
+      const sameCategory = allRelated.filter((h: any) => h.category === currentCategory && h.id !== data.hook?.id)
+      const otherCategory = allRelated.filter((h: any) => h.category !== currentCategory && h.id !== data.hook?.id)
+      
+      const combined = [...sameCategory, ...shuffleArray(otherCategory)]
+      setRelated(combined)
     } catch (err: any) {
       setError(err.message)
-      // Fallback to demo data with shuffle
       setRelated(shuffleArray(DEMO_RELATED))
     } finally {
       setLoading(false)
@@ -245,8 +254,8 @@ export default function HookDetailPage() {
     if (hook.type === 'link' && hook.destination_url) {
       window.open(hook.destination_url, '_blank', 'noopener,noreferrer')
     } else if (hook.type === 'blog') {
-      // Scroll to blog content or show full article
-      document.getElementById('blog-content')?.scrollIntoView({ behavior: 'smooth' })
+      // Toggle blog content inline
+      setShowBlogContent(!showBlogContent)
     } else if (hook.type === 'product' && hook.product_details?.external_store_url) {
       window.open(hook.product_details.external_store_url, '_blank', 'noopener,noreferrer')
     }
@@ -305,23 +314,8 @@ export default function HookDetailPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Sticky Back Button */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-neutral-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-4">
-          <Link href="/explore" className="flex items-center gap-2 text-neutral-600 hover:text-purple-600 transition-colors group">
-            <div className="w-8 h-8 rounded-full bg-neutral-100 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-medium hidden sm:inline">Back to Explore</span>
-          </Link>
-          <div className="flex-1" />
-          <Badge className={`bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 shadow-sm`}>
-            {hook.category}
-          </Badge>
-        </div>
-      </div>
-
-      {/* MAIN DETAIL SECTION - Medium Size, Centered */}
+      
+      {/* MAIN DETAIL SECTION */}
       <section className={`py-8 lg:py-12 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl shadow-xl shadow-purple-100/20 overflow-hidden border border-neutral-100">
@@ -329,13 +323,13 @@ export default function HookDetailPage() {
             {/* Top: Image + Details Side by Side on Desktop */}
             <div className="grid lg:grid-cols-[1fr_420px]">
               
-              {/* LEFT: Image Gallery */}
+              {/* LEFT: Image Gallery - Natural Size */}
               <div className="relative bg-neutral-100">
-                <div className="relative aspect-[4/3] lg:aspect-auto lg:h-full">
+                <div className="relative">
                   <img
                     src={currentImage}
                     alt={hook.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto max-h-[70vh] object-contain"
                   />
 
                   {/* Image Navigation */}
@@ -393,22 +387,21 @@ export default function HookDetailPage() {
                   </div>
                   <div>
                     <span
-  onClick={(e) => {
-    e.stopPropagation()
-    e.preventDefault()
-    router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
-  }}
-  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
->
-  @{hook.creator_name || hook.creator_username || 'anonymous'}
-</span>
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
+                      }}
+                      className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
+                    >
+                      @{hook.creator_name || hook.creator_username || 'anonymous'}
+                    </span>
                     <p className="text-xs text-neutral-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {timeAgo(hook.created_at)}
                     </p>
                   </div>
                 </div>
-
 
                 {/* Title */}
                 <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 leading-tight mb-3">
@@ -461,7 +454,9 @@ export default function HookDetailPage() {
                   {hookType === 'blog' && (
                     <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl border border-purple-100">
                       <BookOpen className="w-4 h-4 text-purple-500" />
-                      <span className="text-sm text-purple-700">Full article available on Hookit</span>
+                      <span className="text-sm text-purple-700">
+                        {showBlogContent ? 'Click to hide article' : 'Full article available on Hookit'}
+                      </span>
                     </div>
                   )}
 
@@ -495,29 +490,37 @@ export default function HookDetailPage() {
                     {hookType === 'link' && <ExternalLink className="w-5 h-5" />}
                     {hookType === 'blog' && <BookOpen className="w-5 h-5" />}
                     {hookType === 'product' && <ShoppingBag className="w-5 h-5" />}
-                    {typeConfig.actionText}
+                    {hookType === 'blog' ? (showBlogContent ? 'Hide Article' : 'Read Article') : typeConfig.actionText}
                     <ArrowUpRight className="w-5 h-5" />
                   </Button>
                   <p className="text-center text-xs text-neutral-400 mt-2">
                     {hookType === 'link' && 'You will be redirected to an external website'}
-                    {hookType === 'blog' && 'Read the full article on Hookit'}
+                    {hookType === 'blog' && (showBlogContent ? 'Article expanded below' : 'Click to read the full article')}
                     {hookType === 'product' && 'View product details or visit store'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Blog Content Section (if blog type) */}
-            {hookType === 'blog' && hook.blog_content && (
-              <div id="blog-content" className="border-t border-neutral-100 p-6 lg:p-8 bg-neutral-50/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <BookOpen className="w-5 h-5 text-purple-500" />
-                  <h2 className="text-lg font-bold text-neutral-900">Full Article</h2>
-                </div>
-                <div className="prose prose-neutral max-w-none">
-                  <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                    {hook.blog_content}
-                  </p>
+            {/* INLINE BLOG CONTENT - appears below image when toggled */}
+            {hookType === 'blog' && showBlogContent && hook.blog_content && (
+              <div className="border-t border-neutral-100 bg-neutral-50/50">
+                <div className="p-6 lg:p-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <BookOpen className="w-5 h-5 text-purple-500" />
+                    <h2 className="text-lg font-bold text-neutral-900">Full Article</h2>
+                    <button 
+                      onClick={() => setShowBlogContent(false)}
+                      className="ml-auto text-xs text-neutral-500 hover:text-purple-600 underline"
+                    >
+                      Hide
+                    </button>
+                  </div>
+                  <div className="prose prose-neutral max-w-none">
+                    <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
+                      {hook.blog_content}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -525,7 +528,7 @@ export default function HookDetailPage() {
         </div>
       </section>
 
-      {/* RELATED HOOKS - FILLS THE ENTIRE PAGE BELOW */}
+      {/* RELATED HOOKS */}
       <section className="py-8 lg:py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
@@ -539,14 +542,14 @@ export default function HookDetailPage() {
             </div>
           </div>
 
-          {/* Masonry Grid - Fills the Page */}
+          {/* Masonry Grid */}
           <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4">
             {related.map((item, i) => (
               <RelatedCard key={item.id || i} hook={item} />
             ))}
           </div>
 
-          {/* Load More / End of Feed */}
+          {/* End of Feed */}
           <div className="text-center py-12">
             <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-neutral-100 text-neutral-500 text-sm">
               <Sparkles className="w-4 h-4" />

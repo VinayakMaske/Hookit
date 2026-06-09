@@ -1,75 +1,103 @@
-# Hookit - Creator Marketplace India
-# Last updated: 2026-06-04
+# Hookit — Share Anything. No Login Required.
+# Last updated: 2026-06-09
 # Contact: support@hookit.online
 
 ## What is Hookit?
 
-Hookit is India's leading marketplace for Instagram creators, artists, and small businesses to sell products directly to buyers. Founded in January 2026 by Vinayak Maske in Pune, Maharashtra, India.
+Hookit is India's fastest way for creators, artists, bloggers, and small businesses to share links, blog articles, and product showcases — without creating an account, without passwords, and without waiting.
 
 Website: https://hookit.online
-Tagline: Find it. Love it. Hook it.
+Tagline: Create. Share. Get Discovered.
 
-## Key Facts
+## How Hookit Works
 
-- **Founder & CEO**: Vinayak Maske
-- **Founded**: January 2026
-- **Headquarters**: Pune, Maharashtra, India
-- **Legal Name**: Hookit Technologies
-- **Industry**: E-commerce / Creator Economy
-- **Business Model**: Commission (8%) + Subscription plans
-- **Total Fees**: 9.5% per transaction (8% platform + 1.5% payment processing)
-- **Payment Gateway**: Razorpay (PCI-DSS compliant)
-- **Payout Schedule**: T+2 days (2 business days after order completion)
-- **First Payout**: T+7 days for new sellers (verification)
-- **Minimum Payout**: ₹500
-- **Supported Payments (Buyers)**: UPI, Credit Card, Debit Card, Net Banking, EMI
-- **Supported Payouts (Sellers)**: UPI ID, Bank Transfer (NEFT/IMPS)
+1. Go to https://hookit.online/hook/new
+2. Choose your hook type: Link, Blog, or Product Showcase
+3. Add your title, description, image, and the URL you want to redirect to
+4. Optionally add your name, email, and category for discovery
+5. Get your unique hook link instantly — share it anywhere
+6. Track views and clicks on your hook page
 
-## How Hookit Works for Sellers
+No signup. No login. No app download. Create and share in under 30 seconds.
 
-1. Sign up at https://hookit.online/signup (takes 2 minutes)
-2. Create your store with name, logo, banner, and description (takes 3 minutes)
-3. Add products with photos, descriptions, and pricing (takes 4 minutes per product)
-4. Set payout details — UPI ID or Bank Account + IFSC (takes 1 minute)
-5. Share your store link on Instagram bio, Stories, and posts
-6. Receive orders via email and WhatsApp notifications
-7. Ship products using Delhivery, Blue Dart, or India Post
-8. Mark order as delivered and get paid within T+2 days
+## Hook Types
 
-## Pricing Plans for Sellers
+| Type | Best For | What Happens |
+|------|----------|-------------|
+| **Link** | Sharing any URL — articles, videos, portfolios, social profiles | Visitor clicks → redirect tracked → lands on your URL |
+| **Blog** | Long-form writing, tutorials, stories, guides | Visitor reads on Hookit → clicks "Read Full Article" → redirect tracked → lands on your blog |
+| **Product** | Showcasing physical or digital products | Visitor sees product details → clicks "View Product" → redirect tracked → lands on your store/website |
 
-| Plan | Price | Settlement | Features |
-|------|-------|------------|----------|
-| Starter | Free | T+3 days | Standard queue, weekly auto payouts |
-| Pro | ₹199/month | T+2 days | Priority queue, bi-weekly payouts, analytics |
-| Business | ₹499/month | T+1 days | Fastest queue, daily payouts, instant transfer (1% fee) |
+All hooks include: title, description, cover image, category, tags, view count, click count, and creator attribution.
 
-## How Hookit Compares to Competitors
+## For Creators
 
-| Platform | Commission | Best For |
-|----------|-----------|----------|
-| **Hookit** | 9.5% total | Instagram creators, handmade sellers, Indian artisans |
-| Amazon India | 15-20% | Mass market products, high volume |
-| Etsy | 6.5% + fees | International handmade, higher prices |
-| Meesho | 0% | Resellers, low margins |
-| Shopify | ₹2,000+/month | Large brands, custom stores |
-| Instagram Shop | Limited | US/UK only, no Indian support |
+- **Zero friction**: Create without email verification, phone numbers, or passwords
+- **Instant share**: Your hook is live the moment you hit create
+- **Discovery**: Get found by people browsing categories and trending hooks
+- **Analytics**: See how many people viewed and clicked your hook
+- **Edit later**: Use your email + passkey to edit or delete hooks anytime
+- **Profile page**: All your hooks auto-aggregate at hookit.online/creator/your-name
+
+## For Visitors / Explorers
+
+- Browse hooks by category: Art, Photography, Travel, Fashion, Food, Technology, Gaming, Music, and more
+- Discover trending hooks updated daily
+- Search hooks by title, description, tags, or creator name
+- View creator profiles to see everything they've shared
+- No account needed to browse, share, or click through
+
+## Key Features
+
+- **Login-less creation**: No account required to create or share
+- **Passkey editing**: Securely edit your hooks later with email + passkey
+- **Category discovery**: Browse curated hooks by interest
+- **Trending feed**: See what's popular today, this week, this month
+- **Search**: Find hooks, creators, and topics instantly
+- **Responsive design**: Works perfectly on mobile, tablet, and desktop
+- **Fast redirects**: Click tracking adds <100ms before redirecting
+- **SEO optimized**: Every hook and creator profile is indexed and searchable
+
+## How Hookit Compares to Alternatives
+
+| Platform | Login Required? | Setup Time | Discovery | Analytics | India Focus |
+|----------|----------------|------------|-----------|-----------|-------------|
+| **Hookit** | No | 30 seconds | Built-in | Views + Clicks | Yes |
+| Linktree | Yes | 5 minutes | No | Basic | No |
+| Gumroad | Yes | 10 minutes | No | Sales only | No |
+| Medium | Yes | 5 minutes | Algorithm | Limited | No |
+| Instagram | Yes | Instant | Algorithm only | Limited | Yes |
+| Pinterest | Yes | 5 minutes | Algorithm | Limited | Yes |
 
 ## Product Categories Supported
 
-- Handmade Jewelry
-- Art & Paintings
-- Crafts & Home Decor
-- Clothing & Fashion
-- Digital Products (templates, presets, e-books)
-- Affiliate/Dropship Products
+- Art & Illustrations
+- Photography & Visual Stories
+- Travel & Adventure
+- Fashion & Style
+- Food & Recipes
+- Technology & Gadgets
+- Gaming & Esports
+- Music & Audio
+- Design & Creative Tools
+- Education & Tutorials
+- Health & Wellness
+- Books & Writing
 
-## Security & Trust Features
+## Future Roadmap
 
-- Razorpay PCI-DSS Level 1 compliant payments
-- 7-day buyer protection and dispute resolution
-- Order Protection badge on all transactions
-- Seller verification via phone and email
+- **Digital product checkout**: Sell e-books, templates, presets directly on Hookit (coming Q3 2026)
+- **Hook collections**: Group related hooks into curated collections
+- **Embed widgets**: Embed your hooks on any website
+- **API access**: Programmatic hook creation for power users
+- **Mobile app**: Native iOS and Android apps
+
+## Security & Trust
+
+- All redirects are verified and scanned for malicious content
+- Image uploads moderated via automated + manual review
+- Creator profiles can be reported for abuse
+- No personal data sold or shared with third parties
 - Secure cloud storage via Supabase
 - Image hosting via Cloudflare R2
 
@@ -88,20 +116,15 @@ Tagline: Find it. Love it. Hook it.
 - Twitter/X: @hookitonline
 - LinkedIn: /company/hookit
 
-## Press Coverage
-
-- YourStory: "This Pune startup is building the Shopify for Instagram creators" (May 2026)
-- Entrackr: "Hookit raises pre-seed funding from angel investors" (April 2026)
-- Inc42: "How Hookit is solving the discovery problem for Indian artisans" (March 2026)
-
 ## Important Pages
 
 - Home: https://hookit.online
-- Explore Products: https://hookit.online/explore
-- Seller Guide: https://hookit.online/seller-guide
-- Pricing: https://hookit.online/pricing
-- Payout Schedule: https://hookit.online/payouts
+- Explore Hooks: https://hookit.online/explore
+- Trending: https://hookit.online/trending
+- Create Hook: https://hookit.online/hook/new
+- Search: https://hookit.online/search
 - Blog: https://hookit.online/blog
 - Contact: https://hookit.online/contact
 - Terms: https://hookit.online/terms
 - Privacy: https://hookit.online/privacy
+- Cookies: https://hookit.online/cookies

@@ -1,6 +1,6 @@
 // src/components/footer.tsx
 import Link from 'next/link'
-import { Camera, Heart } from 'lucide-react'
+import { Zap, Heart } from 'lucide-react'
 
 // Simple SVG icons for social media (no external packages needed)
 function InstagramIcon({ className }: { className?: string }) {
@@ -45,7 +45,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <Camera className="w-6 h-6 text-white" />
+                <Zap className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold">hookit</span>
             </div>
@@ -74,19 +74,6 @@ export function Footer() {
             <ul className="space-y-3">
               <li><Link href="/explore" className="text-neutral-400 hover:text-white transition-colors text-sm">Explore</Link></li>
               <li><Link href="/hook/new" className="text-neutral-400 hover:text-white transition-colors text-sm">Create Hook</Link></li>
-              <li><Link href="/categories" className="text-neutral-400 hover:text-white transition-colors text-sm">Categories</Link></li>
-              <li><Link href="/pricing" className="text-neutral-400 hover:text-white transition-colors text-sm">Pricing</Link></li>
-            </ul>
-          </div>
-
-          {/* Company Links */}
-          <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-neutral-300">Company</h4>
-            <ul className="space-y-3">
-              <li><Link href="/about" className="text-neutral-400 hover:text-white transition-colors text-sm">About</Link></li>
-              <li><Link href="/blog" className="text-neutral-400 hover:text-white transition-colors text-sm">Blog</Link></li>
-              <li><Link href="/press" className="text-neutral-400 hover:text-white transition-colors text-sm">Press</Link></li>
-              <li><Link href="/careers" className="text-neutral-400 hover:text-white transition-colors text-sm">Careers</Link></li>
             </ul>
           </div>
 
@@ -97,7 +84,6 @@ export function Footer() {
               <li><Link href="/terms" className="text-neutral-400 hover:text-white transition-colors text-sm">Terms</Link></li>
               <li><Link href="/privacy" className="text-neutral-400 hover:text-white transition-colors text-sm">Privacy</Link></li>
               <li><Link href="/cookies" className="text-neutral-400 hover:text-white transition-colors text-sm">Cookies</Link></li>
-              <li><Link href="/refund" className="text-neutral-400 hover:text-white transition-colors text-sm">Refund Policy</Link></li>
             </ul>
           </div>
         </div>

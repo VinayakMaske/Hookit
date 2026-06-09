@@ -2,13 +2,31 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+function generateSlug(title: string) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const supabase = await createClient()
 
+    const baseSlug = generateSlug(body.title)
+
+const randomSuffix = Math.random()
+  .toString(36)
+  .substring(2, 7)
+
+const slug = `${baseSlug}-${randomSuffix}`
+
     // Build the insert payload based on hook type
     const insertPayload: any = {
+      slug,
       title: body.title,
       description: body.description || '',
       images: body.images || [],
@@ -65,7 +83,11 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, id: data.id })
+    return NextResponse.json({
+  success: true,
+  id: data.id,
+  slug: data.slug
+})
   } catch (error: any) {
     console.error('API error:', error)
     return NextResponse.json({ error: error.message || 'Failed to create hook' }, { status: 500 })

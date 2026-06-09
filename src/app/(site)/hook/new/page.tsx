@@ -323,7 +323,7 @@ export default function CreateHookPage() {
       
       if (!res.ok) throw new Error('Failed to publish')
       const data = await res.json()
-      setPublishedHookId(data.id)
+      setPublishedHookId(data.slug)
       setIsSubmitting(false)
       setStep(5)
     } catch (err: any) {
@@ -464,7 +464,7 @@ export default function CreateHookPage() {
 
       if (!res.ok) throw new Error('Failed to publish')
       const data = await res.json()
-      setPublishedHookId(data.id)
+      setPublishedHookId(data.slug)
       setIsSubmitting(false)
       setStep(5)
     } catch (err: any) {

@@ -72,14 +72,10 @@ export const metadata: Metadata = {
     alternates: {
         canonical: 'https://hookit.online',
     },
-    verification: {
-        google: 'YOUR_GOOGLE_SEARCH_CONSOLE_VERIFICATION_CODE',
-    },
     category: 'ecommerce',
     classification: 'Business/Marketplace',
     other: {
-        'msvalidate.01': 'YOUR_BING_VERIFICATION',
-        'facebook-domain-verification': 'YOUR_FACEBOOK_VERIFICATION',
+        'msvalidate.01': 'A5FC429DA75416304F7E530E463A2A02',
     }
 }
 

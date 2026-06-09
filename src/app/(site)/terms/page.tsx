@@ -1,9 +1,9 @@
 // src/app/(site)/terms/page.tsx
-import { Scale, Gavel, FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Scale, Gavel, FileText, AlertTriangle, CheckCircle, Link2, BookOpen, ExternalLink, Eye, MousePointerClick } from 'lucide-react'
 
 export const metadata = {
     title: 'Terms of Service - Hookit',
-    description: 'Terms and conditions for using the Hookit marketplace platform.',
+    description: 'Terms and conditions for using the Hookit content sharing and discovery platform.',
 }
 
 export default function TermsOfServicePage() {
@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
                         <Scale className="w-8 h-8 text-[#7C3AED]" />
                     </div>
                     <h1 className="text-4xl font-bold text-neutral-900 mb-3">Terms of Service</h1>
-                    <p className="text-neutral-500">Last updated: June 1, 2026</p>
+                    <p className="text-neutral-500">Last updated: June 9, 2026</p>
                 </div>
 
                 <div className="prose prose-neutral max-w-none">
@@ -36,114 +36,94 @@ export default function TermsOfServicePage() {
                         </h2>
                         <div className="bg-neutral-50 rounded-xl p-6 space-y-3">
                             <p className="text-neutral-600"><strong>"Platform"</strong> — The Hookit website and all associated services.</p>
-                            <p className="text-neutral-600"><strong>"Seller"</strong> — Any user who creates a store and lists products for sale.</p>
-                            <p className="text-neutral-600"><strong>"Buyer"</strong> — Any user who purchases products through the platform.</p>
-                            <p className="text-neutral-600"><strong>"Product"</strong> — Any item, digital good, or service listed on the platform.</p>
-                            <p className="text-neutral-600"><strong>"Commission"</strong> — The fee charged by Hookit on each sale (8% + 1.5% payment processing).</p>
+                            <p className="text-neutral-600"><strong>"Creator"</strong> — Any user who creates and shares hooks on the platform.</p>
+                            <p className="text-neutral-600"><strong>"Visitor"</strong> — Any person who browses, views, or clicks hooks on the platform.</p>
+                            <p className="text-neutral-600"><strong>"Hook"</strong> — Any link, blog showcase, or product showcase created and shared on the platform.</p>
+                            <p className="text-neutral-600"><strong>"Redirect URL"</strong> — The external website URL that a hook directs visitors to when clicked.</p>
                         </div>
                     </section>
 
                     <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">2. Seller Terms</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">2. Platform Services</h2>
                         <div className="space-y-4">
                             <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">2.1 Eligibility</h3>
+                                <h3 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
+                                    <Link2 className="w-4 h-4 text-[#7C3AED]" />
+                                    2.1 Hook Creation
+                                </h3>
                                 <ul className="list-disc list-inside text-neutral-600 space-y-1">
-                                    <li>Must be 18 years or older</li>
-                                    <li>Must provide valid government ID for verification</li>
-                                    <li>Must have valid bank account or UPI for payouts</li>
-                                    <li>Must comply with all Indian laws and regulations</li>
+                                    <li>Create hooks without requiring an account, login, or password</li>
+                                    <li>Three hook types: Link, Blog, and Product Showcase</li>
+                                    <li>Each hook must include a valid redirect URL</li>
+                                    <li>Hooks are publicly visible once created unless deleted by the creator</li>
+                                    <li>Creators receive a passkey to edit or delete their hooks later</li>
                                 </ul>
                             </div>
 
                             <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">2.2 Product Listings</h3>
+                                <h3 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
+                                    <Eye className="w-4 h-4 text-[#7C3AED]" />
+                                    2.2 Discovery & Browsing
+                                </h3>
                                 <ul className="list-disc list-inside text-neutral-600 space-y-1">
-                                    <li>All products must be accurately described</li>
-                                    <li>Prohibited items: counterfeit goods, illegal substances, weapons, adult content</li>
-                                    <li>Images must be original or properly licensed</li>
-                                    <li>Prices must be in Indian Rupees (INR)</li>
-                                    <li>Sellers are responsible for product quality and authenticity</li>
+                                    <li>Browse hooks by category, trending, or search</li>
+                                    <li>View creator profiles and their published hooks</li>
+                                    <li>No account required to browse, share, or click through hooks</li>
+                                    <li>All hooks redirect to external URLs provided by creators</li>
                                 </ul>
                             </div>
 
                             <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">2.3 Fees & Commission</h3>
-                                <div className="bg-white rounded-lg p-4 border border-neutral-200">
-                                    <div className="grid grid-cols-2 gap-4 text-center">
-                                        <div>
-                                            <p className="text-2xl font-bold text-[#7C3AED]">8%</p>
-                                            <p className="text-sm text-neutral-500">Platform Commission</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold text-[#7C3AED]">1.5%</p>
-                                            <p className="text-sm text-neutral-500">Payment Processing</p>
-                                        </div>
+                                <h3 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
+                                    <MousePointerClick className="w-4 h-4 text-[#7C3AED]" />
+                                    2.3 Analytics
+                                </h3>
+                                <ul className="list-disc list-inside text-neutral-600 space-y-1">
+                                    <li>View counts are tracked for every hook page visit</li>
+                                    <li>Click counts are tracked for every redirect URL click</li>
+                                    <li>Analytics are displayed publicly on each hook page</li>
+                                    <li>Creators can see aggregated stats on their profile page</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">3. Creator Responsibilities</h2>
+                        <div className="space-y-3">
+                            {[
+                                'Provide accurate titles, descriptions, and redirect URLs',
+                                'Ensure redirect URLs are safe, functional, and not malicious',
+                                'Only upload images you own or have rights to use',
+                                'Categorize hooks accurately for proper discovery',
+                                'Do not create hooks that redirect to harmful, illegal, or deceptive content',
+                                'Respect intellectual property rights of others',
+                                'Use appropriate tags and categories — do not spam or mislead',
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-start gap-3 bg-neutral-50 rounded-lg p-3">
+                                    <div className="w-6 h-6 rounded-full bg-[#7C3AED]/10 flex items-center justify-center shrink-0 mt-0.5">
+                                        <span className="text-xs font-bold text-[#7C3AED]">{i + 1}</span>
                                     </div>
-                                    <p className="text-sm text-neutral-500 text-center mt-3">
-                                        Total fee: 9.5% of each transaction
-                                    </p>
+                                    <p className="text-neutral-700">{item}</p>
                                 </div>
-                                <p className="text-sm text-neutral-500 mt-3">
-                                    Commission is automatically deducted from each sale. Payouts are processed 
-                                    within T+2 days (2 days after order completion).
-                                </p>
-                            </div>
-
-                            <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">2.4 Payout Schedule</h3>
-                                <p className="text-neutral-600">
-                                    Sellers receive payouts after order completion + 2-day holding period. 
-                                    This allows time for dispute resolution and buyer protection.
-                                </p>
-                            </div>
+                            ))}
                         </div>
                     </section>
 
                     <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">3. Buyer Terms</h2>
-                        <div className="space-y-4">
-                            <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">3.1 Orders & Payments</h3>
-                                <ul className="list-disc list-inside text-neutral-600 space-y-1">
-                                    <li>All payments are processed securely via Razorpay</li>
-                                    <li>Prices shown include all applicable fees and taxes</li>
-                                    <li>Orders cannot be cancelled once payment is confirmed</li>
-                                    <li>Buyers must provide accurate shipping information</li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-neutral-50 rounded-xl p-5">
-                                <h3 className="font-semibold text-neutral-900 mb-3">3.2 Returns & Refunds</h3>
-                                <p className="text-neutral-600 mb-3">
-                                    Return policies are set by individual sellers. Check the store's specific 
-                                    policy before purchasing. Hookit provides a standard 7-day return window 
-                                    for defective or misrepresented products.
-                                </p>
-                                <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                                    <p className="text-sm text-neutral-600">
-                                        <strong>Standard Protection:</strong> If a product is not as described, 
-                                        buyers can raise a dispute within 7 days of delivery.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">4. Prohibited Activities</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">4. Prohibited Content</h2>
                         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                            <p className="text-neutral-700 mb-4">The following will result in immediate account suspension:</p>
+                            <p className="text-neutral-700 mb-4">The following will result in immediate hook removal and potential IP ban:</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {[
-                                    'Taking transactions off-platform',
-                                    'Selling counterfeit or illegal goods',
-                                    'Harassment or abusive behavior',
-                                    'Fake reviews or review manipulation',
-                                    'Multiple accounts for same seller',
-                                    'Sharing buyer contact information externally',
-                                    'Misrepresenting product details',
-                                    'Money laundering or fraudulent activities',
+                                    'Malware, phishing, or fraudulent redirect URLs',
+                                    'Adult content, pornography, or sexually explicit material',
+                                    'Hate speech, harassment, or content promoting violence',
+                                    'Illegal drugs, weapons, or counterfeit goods',
+                                    'Copyright infringement or pirated content',
+                                    'Spam, misleading redirects, or clickbait',
+                                    'Personal data harvesting or unauthorized data collection',
+                                    'Impersonation of individuals, brands, or organizations',
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
@@ -155,62 +135,110 @@ export default function TermsOfServicePage() {
                     </section>
 
                     <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">5. Intellectual Property</h2>
-                        <p className="text-neutral-600">
-                            Sellers retain ownership of their products and content. By listing on Hookit, 
-                            sellers grant us a license to display and promote their products. Hookit owns 
-                            all platform branding, code, and design elements.
-                        </p>
-                    </section>
-
-                    <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">6. Limitation of Liability</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">5. No E-Commerce or Transactions</h2>
                         <div className="bg-neutral-50 rounded-xl p-6">
-                            <p className="text-neutral-600">
-                                Hookit acts as a marketplace connecting buyers and sellers. We are not responsible 
-                                for:
+                            <p className="text-neutral-600 mb-4">
+                                <strong>Hookit is a content sharing and discovery platform only.</strong> We do not:
                             </p>
-                            <ul className="list-disc list-inside text-neutral-600 mt-3 space-y-1">
-                                <li>Product quality, safety, or legality</li>
-                                <li>Seller's ability to fulfill orders</li>
-                                <li>Buyer's accuracy of shipping information</li>
-                                <li>Direct, indirect, or consequential damages from platform use</li>
+                            <ul className="list-disc list-inside text-neutral-600 space-y-2">
+                                <li>Process payments or handle transactions of any kind</li>
+                                <li>Store payment information or financial data</li>
+                                <li>Facilitate product sales, shipping, or fulfillment</li>
+                                <li>Act as an intermediary between buyers and sellers</li>
+                                <li>Guarantee, verify, or endorse any products or services linked through hooks</li>
                             </ul>
                             <p className="text-sm text-neutral-500 mt-4">
-                                Maximum liability is limited to the commission fee earned on the disputed transaction.
+                                All product showcase hooks redirect to external websites where any transactions occur. 
+                                Hookit is not responsible for transactions, quality, or disputes on external sites.
                             </p>
                         </div>
                     </section>
 
                     <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">7. Dispute Resolution</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">6. Intellectual Property</h2>
+                        <div className="space-y-4">
+                            <div className="bg-neutral-50 rounded-xl p-5">
+                                <h3 className="font-semibold text-neutral-900 mb-3">6.1 Creator Content</h3>
+                                <p className="text-neutral-600">
+                                    Creators retain ownership of their content. By creating a hook, you grant Hookit 
+                                    a non-exclusive license to display, promote, and distribute your hook on our platform 
+                                    and through our discovery features.
+                                </p>
+                            </div>
+                            <div className="bg-neutral-50 rounded-xl p-5">
+                                <h3 className="font-semibold text-neutral-900 mb-3">6.2 Platform Content</h3>
+                                <p className="text-neutral-600">
+                                    Hookit owns all platform branding, code, design elements, and trademarks. 
+                                    You may not copy, modify, or redistribute platform assets without written permission.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">7. Data & Privacy</h2>
                         <p className="text-neutral-600">
-                            All disputes shall be resolved through arbitration in Pune, Maharashtra, India, 
-                            under the Arbitration and Conciliation Act, 1996. The language of arbitration shall be English.
+                            Hookit collects minimal data: hook content, view/click analytics, and optional creator email 
+                            (for passkey recovery). We do not sell personal data. See our 
+                            <a href="/privacy" className="text-[#7C3AED] hover:underline"> Privacy Policy</a> for details.
                         </p>
                     </section>
 
                     <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">8. Governing Law</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">8. Limitation of Liability</h2>
+                        <div className="bg-neutral-50 rounded-xl p-6">
+                            <p className="text-neutral-600">
+                                Hookit acts as a platform connecting creators with visitors through shared links. We are not responsible for:
+                            </p>
+                            <ul className="list-disc list-inside text-neutral-600 mt-3 space-y-1">
+                                <li>Content accuracy, safety, or legality on external redirect URLs</li>
+                                <li>Availability or functionality of third-party websites</li>
+                                <li>Any transactions, purchases, or agreements made on external sites</li>
+                                <li>Direct, indirect, or consequential damages from platform use</li>
+                                <li>Loss of passkeys or inability to edit hooks due to lost credentials</li>
+                            </ul>
+                            <p className="text-sm text-neutral-500 mt-4">
+                                Maximum liability is limited to the direct operational cost of maintaining the disputed hook on our platform.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">9. Termination</h2>
+                        <p className="text-neutral-600">
+                            Hookit reserves the right to remove any hook or ban any IP address that violates these terms. 
+                            Creators may delete their own hooks at any time using their email and passkey. 
+                            Deleted hooks are removed immediately but may remain in cached or archived form for up to 30 days.
+                        </p>
+                    </section>
+
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">10. Changes to Terms</h2>
+                        <p className="text-neutral-600">
+                            We may update these terms at any time. Continued use of the platform after changes 
+                            constitutes acceptance. Major changes will be posted on this page with an updated date.
+                        </p>
+                    </section>
+
+                    <section className="mb-10">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">11. Governing Law</h2>
                         <p className="text-neutral-600">
                             These terms are governed by the laws of India. Any legal action shall be brought 
                             in the courts of Pune, Maharashtra.
                         </p>
                     </section>
 
-                    <section className="mb-10">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">9. Changes to Terms</h2>
-                        <p className="text-neutral-600">
-                            We may update these terms at any time. Continued use of the platform after changes 
-                            constitutes acceptance. Major changes will be notified via email.
-                        </p>
-                    </section>
-
                     <section>
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-4">10. Contact</h2>
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                            <Gavel className="w-5 h-5 text-[#7C3AED]" />
+                            12. Contact
+                        </h2>
                         <div className="bg-neutral-50 rounded-xl p-6">
                             <p className="text-neutral-600">
                                 For legal inquiries: <a href="mailto:legal@hookit.online" className="text-[#7C3AED] hover:underline">legal@hookit.online</a>
+                            </p>
+                            <p className="text-neutral-600 mt-2">
+                                For support: <a href="mailto:support@hookit.online" className="text-[#7C3AED] hover:underline">support@hookit.online</a>
                             </p>
                         </div>
                     </section>

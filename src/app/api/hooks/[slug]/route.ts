@@ -2,16 +2,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   try {
-    const { id: hookId } = await params
+    const { slug } = await params
     const supabase = await createClient()
 
     // Fetch the hook
     const { data: hook, error: hookError } = await supabase
       .from('hooks')
       .select('*')
-      .eq('id', hookId)
+      .eq('slug', slug)
       .eq('is_published', true)
       .single()
 
@@ -22,10 +25,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Fetch related hooks (same category, different id, limit 24)
     const { data: related, error: relatedError } = await supabase
       .from('hooks')
-      .select('id, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, click_count, type, product_price, price')
+      .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, click_count, type, product_price, price')
       .eq('is_published', true)
       .eq('category', hook.category)
-      .neq('id', hookId)
+      .neq('slug', slug)
       .order('created_at', { ascending: false })
       .limit(24)
 

@@ -265,7 +265,7 @@ function FeaturedCard({ hook }: { hook: any }) {
   const price = hook.price || hook.product_price
 
   return (
-    <Link href={hook.id ? `/hook/${hook.id}` : '#'} className="block flex-shrink-0">
+    <Link href={hook.slug ? `/hook/${hook.slug}` : '#'} className="block flex-shrink-0">
       <div className="group relative rounded-2xl overflow-hidden bg-neutral-100 aspect-[16/10] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 w-[320px] sm:w-[380px] md:w-[420px]">
         <img
           src={hook.images?.[0] || hook.image_url || hook.src || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop'}
@@ -692,10 +692,10 @@ function ExploreContent() {
           ) : displayHooks.length > 0 ? (
             <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
               {displayHooks.map((hook, i) => (
-                <Link key={hook.id || i} href={hook.id ? `/hook/${hook.id}` : '#'}>
-                  <HookCard hook={hook} isDemo={hooks.length === 0} />
-                </Link>
-              ))}
+  <Link key={hook.id || i} href={hook.slug ? `/hook/${hook.slug}` : '#'}>
+    <HookCard hook={hook} isDemo={hooks.length === 0} />
+  </Link>
+))}
             </div>
           ) : (
             <div className="text-center py-20">

@@ -107,7 +107,7 @@ function RelatedCard({ hook }: { hook: any }) {
   const imageUrl = hook.src || hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop'
 
   return (
-    <Link href={hook.id ? `/hook/${hook.id}` : '#'} className="block break-inside-avoid mb-4">
+    <Link href={hook.id ? `/hook/${hook.slug}` : '#'} className="block break-inside-avoid mb-4">
       <div
         className="group relative rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
@@ -195,10 +195,14 @@ function RelatedCard({ hook }: { hook: any }) {
 // ============================================
 // MAIN PAGE
 // ============================================
-export default function HookDetailPage() {
-  const params = useParams()
+export default function HookDetailClient({
+    slug,
+}: {
+  slug: string
+}) {
+  
   const router = useRouter()
-  const hookId = params.id as string
+
 
   const [hook, setHook] = useState<any>(null)
   const [related, setRelated] = useState<any[]>([])
@@ -211,12 +215,12 @@ export default function HookDetailPage() {
   useEffect(() => {
     setIsVisible(true)
     fetchHook()
-  }, [hookId])
+  }, [slug])
 
   const fetchHook = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/hooks/${hookId}`)
+      const res = await fetch(`/api/hooks/${slug}`)
       if (!res.ok) throw new Error('Hook not found')
       const data = await res.json()
       setHook(data.hook)
@@ -240,16 +244,16 @@ export default function HookDetailPage() {
 
   // Track view on mount
   useEffect(() => {
-    if (hookId) {
-      fetch(`/api/hooks/${hookId}/view`, { method: 'POST' }).catch(() => {})
+    if (slug) {
+      fetch(`/api/hooks/${slug}/view`, { method: 'POST' }).catch(() => {})
     }
-  }, [hookId])
+  }, [slug])
 
   const handleClickAction = () => {
     if (!hook) return
 
     // Track click
-    fetch(`/api/hooks/${hookId}/click`, { method: 'POST' }).catch(() => {})
+    fetch(`/api/hooks/${slug}/click`, { method: 'POST' }).catch(() => {})
 
     if (hook.type === 'link' && hook.destination_url) {
       window.open(hook.destination_url, '_blank', 'noopener,noreferrer')

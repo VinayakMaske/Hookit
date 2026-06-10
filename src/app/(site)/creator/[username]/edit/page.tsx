@@ -1,5 +1,6 @@
 'use client'
 
+import imageCompression from 'browser-image-compression'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -13,6 +14,15 @@ import {
   Globe, MapPin
 } from 'lucide-react'
 import { updateProfile, updateUsername, deleteHook } from '@/app/actions/creator'
+
+const compressImage = async (file: File): Promise<File> => {
+  return await imageCompression(file, {
+    maxSizeMB: 0.4,
+    maxWidthOrHeight: 1200,
+    useWebWorker: true,
+    fileType: 'image/webp',
+  })
+}
 
 const HOOK_TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> = {
   link: { icon: ExternalLink, label: 'Link', color: 'bg-blue-500' },
@@ -151,18 +161,47 @@ export default function EditCreatorProfilePage() {
     }
   }
 
-  const handleImageUpload = async (file: File, type: 'avatar' | 'banner') => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('folder', type === 'avatar' ? 'avatars' : 'banners')
+  const handleImageUpload = async (
+  file: File,
+  type: 'avatar' | 'banner'
+) => {
+  const compressedFile = await compressImage(file)
 
-    const res = await fetch('/api/upload', { method: 'POST', body: formData })
-    if (!res.ok) throw new Error('Upload failed')
-    const data = await res.json()
+  const formData = new FormData()
 
-    if (type === 'avatar') setAvatarUrl(data.url)
-    else setBannerUrl(data.url)
+  formData.append('file', compressedFile)
+
+  formData.append(
+    'folder',
+    type === 'avatar'
+      ? 'avatars'
+      : 'banners'
+  )
+
+  formData.append(
+    'fileName',
+    `${type}/${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 15)}.webp`
+  )
+
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!res.ok) {
+    throw new Error('Upload failed')
   }
+
+  const data = await res.json()
+
+  if (type === 'avatar') {
+    setAvatarUrl(data.url)
+  } else {
+    setBannerUrl(data.url)
+  }
+}
 
   if (loading) {
     return (

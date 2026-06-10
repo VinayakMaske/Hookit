@@ -1,4 +1,4 @@
-// src/app/api/hooks/[id]/route.ts
+// src/app/api/hooks/[slug]/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -23,14 +23,42 @@ export async function GET(
     }
 
     // Fetch related hooks (same category, different id, limit 24)
-    const { data: related, error: relatedError } = await supabase
-      .from('hooks')
-      .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, click_count, type, product_price, price')
-      .eq('is_published', true)
-      .eq('category', hook.category)
-      .neq('slug', slug)
-      .order('created_at', { ascending: false })
-      .limit(24)
+    // First try same-category hooks
+const { data: categoryHooks } = await supabase
+  .from('hooks')
+  .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, type, product_price')
+  .eq('is_published', true)
+  .eq('category', hook.category)
+  .neq('slug', slug)
+  .limit(24)
+
+let related = categoryHooks || []
+
+// If not enough, fill with random hooks from the platform
+if (related.length < 24) {
+  const { data: randomHooks } = await supabase
+    .from('hooks')
+    .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, type, product_price')
+    .eq('is_published', true)
+    .neq('slug', slug)
+    .limit(100)
+
+  const existingIds = new Set(
+    related.map((h) => h.id)
+  )
+
+  const fillers = (randomHooks || []).filter(
+    (h) => !existingIds.has(h.id)
+  )
+
+  // shuffle
+  fillers.sort(() => Math.random() - 0.5)
+
+  related = [
+    ...related,
+    ...fillers
+  ].slice(0, 24)
+}
 
     return NextResponse.json({
       hook,

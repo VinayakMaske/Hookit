@@ -170,13 +170,13 @@ export async function updateUsername(currentUsername: string, newUsername: strin
   return { success: true, creator: after, newUsername: clean }
 }
 
-export async function deleteHook(hookId: string) {
+export async function deleteHook(slug: string) {
   const supabase = await createClient()
-  
+
   const { error } = await supabase
     .from('hooks')
     .delete()
-    .eq('id', hookId)
+    .eq('slug', slug)
 
   if (error) {
     throw new Error(error.message)

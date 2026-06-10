@@ -13,70 +13,100 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://hookit.online'),
-    title: {
-        default: 'Hookit - Sell on Instagram | Creator Marketplace India',
-        template: '%s | Hookit'
+  metadataBase: new URL('https://hookit.online'),
+
+  title: {
+    default: 'Hookit - Discover Blogs, Products, News & Links',
+    template: '%s | Hookit',
+  },
+
+  description:
+    'Discover blogs, products, news and useful links shared by creators. Explore ideas, resources, tools and recommendations on Hookit.',
+
+  keywords: [
+    'hookit',
+    'discover blogs',
+    'discover products',
+    'discover news',
+    'discover links',
+    'creator platform',
+    'content discovery',
+    'creator recommendations',
+    'best products',
+    'best blogs',
+    'online resources',
+    'internet discovery',
+    'useful websites',
+    'useful tools',
+    'knowledge sharing',
+    'link sharing',
+  ],
+
+  authors: [
+    {
+      name: 'Vinayak Maske',
+      url: 'https://hookit.online',
     },
-    description: 'Hookit is India\'s #1 marketplace for Instagram creators, artists, and small businesses. Create your store in 10 minutes, sell handmade products, and get paid instantly via UPI. 8% commission — lower than Amazon & Etsy.',
-    keywords: [
-        'sell on instagram india',
-        'creator marketplace india',
-        'handmade products online',
-        'small business selling platform',
-        'instagram shop india',
-        'artisan marketplace',
-        'sell handmade india',
-        'online store india',
-        'hookit marketplace',
-        'vinayak maske hookit',
-        'pune startup marketplace'
+  ],
+
+  creator: 'Hookit',
+  publisher: 'Hookit',
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://hookit.online',
+    siteName: 'Hookit',
+
+    title: 'Hookit - Discover Blogs, Products, News & Links',
+
+    description:
+      'Explore blogs, products, links and news shared by creators. Discover useful ideas and resources on Hookit.',
+
+    images: [
+      {
+        url: 'https://hookit.online/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Hookit',
+      },
     ],
-    authors: [{ name: 'Vinayak Maske', url: 'https://hookit.online' }],
-    creator: 'Hookit Technologies',
-    publisher: 'Hookit',
-    robots: {
-        index: true,
-        follow: true,
-        nocache: false,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-    openGraph: {
-        type: 'website',
-        locale: 'en_IN',
-        url: 'https://hookit.online',
-        siteName: 'Hookit',
-        title: 'Hookit - Sell on Instagram | Creator Marketplace India',
-        description: 'Create your store in 10 minutes. Sell handmade, art, crafts, and digital products to buyers across India. Lower fees than Amazon & Etsy.',
-        images: [{
-            url: 'https://hookit.online/og-image.jpg',
-            width: 1200,
-            height: 630,
-            alt: 'Hookit - India\'s Creator Marketplace for Instagram Sellers'
-        }],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Hookit - Sell on Instagram | Creator Marketplace India',
-        description: 'Create your store in 10 minutes. Sell handmade, art, crafts, and digital products.',
-        images: ['https://hookit.online/og-image.jpg'],
-        creator: '@hookitonline',
-        site: '@hookitonline',
-    },
-    alternates: {
-        canonical: 'https://hookit.online',
-    },
-    category: 'ecommerce',
-    classification: 'Business/Marketplace',
-    other: {
-        'msvalidate.01': 'A5FC429DA75416304F7E530E463A2A02',
-    }
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+
+    title: 'Hookit - Discover Blogs, Products, News & Links',
+
+    description:
+      'Explore blogs, products, links and news shared by creators.',
+
+    images: ['https://hookit.online/og-image.jpg'],
+  },
+
+  alternates: {
+    canonical: 'https://hookit.online',
+  },
+
+  category: 'technology',
+
+  classification: 'Content Discovery Platform',
+
+  other: {
+    'msvalidate.01': 'A5FC429DA75416304F7E530E463A2A02',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -89,12 +119,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     dangerouslySetInnerHTML={{
                         __html: JSON.stringify({
                             "@context": "https://schema.org",
-                            "@type": "Organization",
-                            "name": "Hookit",
-                            "alternateName": "Hookit Marketplace",
-                            "url": "https://hookit.online",
-                            "logo": "https://hookit.online/logo.png",
-                            "description": "India's leading creator marketplace for Instagram sellers, artists, and small businesses. Founded by Vinayak Maske in Pune, Maharashtra.",
+  "@type": "Organization",
+  "name": "Hookit",
+  "alternateName": "Hookit Discovery Platform",
+  "url": "https://hookit.online",
+  "logo": "https://hookit.online/logo.png",
+  "description": "Hookit is a discovery platform where creators share blogs, products, links and news.",
                             "foundingDate": "2026-01",
                             "founders": [{
                                 "@type": "Person",
@@ -159,43 +189,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     }}
                 />
 
-                {/* LocalBusiness Schema */}
+
                 <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "LocalBusiness",
-                            "name": "Hookit",
-                            "image": "https://hookit.online/logo.png",
-                            "@id": "https://hookit.online",
-                            "url": "https://hookit.online",
-                            "telephone": "+91-8459444524",
-                            "priceRange": "₹₹",
-                            "address": {
-                                "@type": "PostalAddress",
-                                "streetAddress": "Pune",
-                                "addressLocality": "Pune",
-                                "addressRegion": "Maharashtra",
-                                "postalCode": "411001",
-                                "addressCountry": "IN"
-                            },
-                            "geo": {
-                                "@type": "GeoCoordinates",
-                                "latitude": 18.5204,
-                                "longitude": 73.8567
-                            },
-                            "openingHoursSpecification": {
-                                "@type": "OpeningHoursSpecification",
-                                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-                                "opens": "09:00",
-                                "closes": "18:00"
-                            },
-                            "currenciesAccepted": "INR",
-                            "paymentAccepted": "UPI, Credit Card, Debit Card, Net Banking"
-                        })
-                    }}
-                />
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Hookit',
+      applicationCategory: 'SocialNetworkingApplication',
+      operatingSystem: 'Web',
+      url: 'https://hookit.online',
+      description:
+        'Discover blogs, products, links and news shared by creators.',
+      creator: {
+        '@type': 'Organization',
+        name: 'Hookit',
+      },
+    }),
+  }}
+/>
 
                 {/* Preconnect for performance */}
                 <link rel="preconnect" href="https://hookit.online" />

@@ -881,7 +881,7 @@ export default function CreateHookPage() {
                   {hookType === 'link' && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-blue-500" /> Destination URL *
+                        <Globe className="w-4 h-4 text-blue-500" /> Destination URL (optional)
                       </label>
                       <div className="relative">
                         <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -956,7 +956,7 @@ export default function CreateHookPage() {
                     </Button>
                     <Button 
                       onClick={() => setStep(4)} 
-                      disabled={!title || !category || (hookType === 'link' && !destinationUrl) || (hookType === 'blog' && blogContent.length < 50) || (hookType === 'product' && !productPrice)} 
+                      disabled={!title || !category || (hookType === 'blog' && blogContent.length < 50) || (hookType === 'product' && !productPrice)} 
                       className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
                     >
                       Preview & Publish <ArrowRight className="w-4 h-4" />

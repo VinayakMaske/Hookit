@@ -84,10 +84,20 @@ export function Footer() {
               <li><Link href="/terms" className="text-neutral-400 hover:text-white transition-colors text-sm">Terms</Link></li>
               <li><Link href="/privacy" className="text-neutral-400 hover:text-white transition-colors text-sm">Privacy</Link></li>
               <li><Link href="/cookies" className="text-neutral-400 hover:text-white transition-colors text-sm">Cookies</Link></li>
+              <li><Link href="/sitemap.xml" className="text-neutral-400 hover:text-white transition-colors text-sm">Sitemap</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-neutral-300">Company</h4>
+            <ul className="space-y-3">
+              <li><Link href="/about" className="text-neutral-400 hover:text-white transition-colors text-sm">About</Link></li>
+              <li><Link href="/contact" className="text-neutral-400 hover:text-white transition-colors text-sm">Contact</Link></li>
             </ul>
           </div>
         </div>
       </div>
+      
 
       {/* Bottom Bar */}
       <div className="border-t border-neutral-800">

@@ -65,12 +65,6 @@ export function Navbar() {
                   Explore
                 </Button>
               </Link>
-              <Link href="/trending">
-                <Button variant="ghost" className="gap-2 text-neutral-600 hover:text-purple-600 hover:bg-purple-50 rounded-full">
-                  <Flame className="w-4 h-4" />
-                  Trending
-                </Button>
-              </Link>
               <Button
                 variant="ghost"
                 onClick={() => setShowEditModal(true)}

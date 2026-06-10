@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
   Search,
+  ArrowUpRight,
   ArrowRight,
   Sparkles,
   Globe,
@@ -234,7 +235,17 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
 // ============================================
 // CATEGORY PILL COMPONENT
 // ============================================
-function CategoryPill({ category, isActive, onClick, count }: { category: any; isActive: boolean; onClick: () => void; count?: number }) {
+function CategoryPill({
+  category,
+  isActive,
+  onClick,
+  count,
+}: {
+  category: any
+  isActive: boolean
+  onClick: () => void
+  count?: number
+}) {
   const Icon = ICON_MAP[category.icon] || Globe
 
   return (
@@ -247,12 +258,32 @@ function CategoryPill({ category, isActive, onClick, count }: { category: any; i
       }`}
     >
       <Icon className="w-4 h-4" />
-      {category.name}
+
+      <span>{category.name}</span>
+
       {count !== undefined && (
-        <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-neutral-100 text-neutral-500'}`}>
+        <span
+          className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${
+            isActive
+              ? 'bg-white/20'
+              : 'bg-neutral-100 text-neutral-500'
+          }`}
+        >
           {count}
         </span>
       )}
+
+      {/* SEO Link */}
+      <Link
+        href={`/category/${category.slug}`}
+        onClick={(e) => e.stopPropagation()}
+        className={`ml-1 transition-opacity hover:opacity-70 ${
+          isActive ? 'text-white' : 'text-purple-600'
+        }`}
+        title={`View ${category.name} page`}
+      >
+        <ArrowUpRight className="w-3 h-3" />
+      </Link>
     </button>
   )
 }

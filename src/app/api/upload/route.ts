@@ -18,10 +18,18 @@
             const buffer = Buffer.from(bytes)
 
             // Generate key if not provided
-            const key = fileName || `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${file.name.split('.').pop()}`
+            const key =
+  fileName ||
+  `${folder}/${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 15)}.webp`
 
             // Upload to R2
-            const publicUrl = await uploadToR2(buffer, key, file.type)
+            const publicUrl = await uploadToR2(
+  buffer,
+  key,
+  'image/webp'
+)
 
             return NextResponse.json({
                 success: true,

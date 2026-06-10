@@ -1,6 +1,7 @@
 // src/app/(site)/hook/new/page.tsx
 'use client'
 
+import imageCompression from 'browser-image-compression'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,6 +17,18 @@ import {
   MousePointerClick, Lock, Tag, DollarSign, ExternalLink, BookOpen,
   Mail, KeyRound, ArrowLeft
 } from 'lucide-react'
+
+
+const compressImage = async (file: File): Promise<File> => {
+  const options = {
+    maxSizeMB: 0.4,
+    maxWidthOrHeight: 1200,
+    useWebWorker: true,
+    fileType: 'image/webp',
+  }
+
+  return await imageCompression(file, options)
+}
 
 // Floating background images
 const FLOATING_IMAGES = [
@@ -121,7 +134,7 @@ export default function CreateHookPage() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('folder', 'hooks')
-    formData.append('fileName', `hooks/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${file.name.split('.').pop()}`)
+    formData.append('fileName', `hooks/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.webp`)
 
     const res = await fetch('/api/upload', { method: 'POST', body: formData })
     if (!res.ok) throw new Error('Upload failed')
@@ -139,11 +152,12 @@ export default function CreateHookPage() {
     const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
     if (files.length + images.length > 5) { setUploadError('Max 5 images'); return }
     for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) { setUploadError('Max 5MB per image'); continue }
+      if (file.size > 10 * 1024 * 1024) { setUploadError('Max 5MB per image'); continue }
       const preview = URL.createObjectURL(file)
       setImages(prev => [...prev, { preview, uploading: true }])
       try {
-        const url = await uploadImageToR2(file)
+        const compressedFile = await compressImage(file)
+        const url = await uploadImageToR2(compressedFile)
         setImages(prev => prev.map(img => img.preview === preview ? { ...img, uploading: false, url } : img))
       } catch (err: any) {
         setImages(prev => prev.filter(img => img.preview !== preview))
@@ -157,11 +171,12 @@ export default function CreateHookPage() {
     const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'))
     if (files.length + images.length > 5) { setUploadError('Max 5 images'); return }
     for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) { setUploadError('Max 5MB per image'); continue }
+      if (file.size > 10 * 1024 * 1024) { setUploadError('Max 5MB per image'); continue }
       const preview = URL.createObjectURL(file)
       setImages(prev => [...prev, { preview, uploading: true }])
       try {
-        const url = await uploadImageToR2(file)
+        const compressedFile = await compressImage(file)
+        const url = await uploadImageToR2(compressedFile)
         setImages(prev => prev.map(img => img.preview === preview ? { ...img, uploading: false, url } : img))
       } catch (err: any) {
         setImages(prev => prev.filter(img => img.preview !== preview))

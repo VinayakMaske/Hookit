@@ -22,7 +22,9 @@ export async function generateMetadata(
       username,
       display_name,
       bio,
-      avatar_url
+      avatar_url,
+      website,
+      location
     `)
     .eq('username', username)
     .single()
@@ -42,7 +44,6 @@ export async function generateMetadata(
 
   return {
     title: `${creatorName} - Creator on Hookit`,
-
     description,
 
     alternates: {
@@ -67,8 +68,55 @@ export async function generateMetadata(
   }
 }
 
-export default function CreatorLayout({
+export default async function CreatorLayout({
   children,
+  params,
 }: Props) {
-  return children
+
+  const { username } = await params
+
+  const supabase = await createClient()
+
+  const { data: creator } = await supabase
+    .from('creators')
+    .select(`
+      username,
+      display_name,
+      bio,
+      avatar_url,
+      website,
+      location
+    `)
+    .eq('username', username)
+    .single()
+
+  const creatorName =
+    creator?.display_name ||
+    creator?.username ||
+    username
+
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: creatorName,
+    url: `https://hookit.online/creator/${username}`,
+    image: creator?.avatar_url || undefined,
+    description: creator?.bio || undefined,
+    homeLocation: creator?.location || undefined,
+    sameAs: creator?.website
+      ? [creator.website]
+      : [],
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(personSchema),
+        }}
+      />
+      {children}
+    </>
+  )
 }

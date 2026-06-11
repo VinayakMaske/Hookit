@@ -23,8 +23,12 @@ export async function GET(request: Request) {
 
     if (query) {
       hooksQuery = hooksQuery.or(
-        `title.ilike.%${query}%,description.ilike.%${query}%,creator_name.ilike.%${query}%,category.ilike.%${query}%,tags.cs.{${query}}`
-      )
+  `title.ilike.%${query}%,
+   description.ilike.%${query}%,
+   why_care.ilike.%${query}%,
+   creator_name.ilike.%${query}%,
+   category.ilike.%${query}%`
+)
     }
 
     if (type !== 'all') {
@@ -42,6 +46,22 @@ export async function GET(request: Request) {
     if (hooksError) {
       return NextResponse.json({ error: hooksError.message }, { status: 500 })
     }
+
+    const searchWords = query
+  .toLowerCase()
+  .split(' ')
+  .filter(Boolean)
+
+const enhancedHooks = (hooks || []).filter((hook) => {
+  const queries = Array.isArray(hook.search_queries)
+    ? hook.search_queries.join(' ').toLowerCase()
+    : ''
+
+  return (
+    queries.includes(query) ||
+    searchWords.some(word => queries.includes(word))
+  )
+})
 
     // Search creators
     let creatorsQuery = supabase
@@ -61,11 +81,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: creatorsError.message }, { status: 500 })
     }
 
-    return NextResponse.json({
-      hooks: hooks || [],
-      creators: creators || [],
-      total: (hooks?.length || 0) + (creators?.length || 0)
-    })
+    const mergedHooks = [
+  ...(hooks || []),
+  ...enhancedHooks
+]
+
+const uniqueHooks = Array.from(
+  new Map(
+    mergedHooks.map((hook) => [hook.id, hook])
+  ).values()
+)
+
+return NextResponse.json({
+  hooks: uniqueHooks,
+  creators: creators || [],
+  total: uniqueHooks.length + (creators?.length || 0)
+})
+
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Search failed' }, { status: 500 })
   }

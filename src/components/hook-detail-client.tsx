@@ -488,6 +488,17 @@ export default function HookDetailClient({
                   </div>
                 </div>
 
+                {hook.category_slug && (
+  <div className="absolute top-4 left-28 z-10">
+    <Link
+      href={`/category/${hook.category_slug}`}
+      className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-xs font-medium text-neutral-800 shadow-lg hover:bg-white"
+    >
+      {hook.category}
+    </Link>
+  </div>
+)}
+
                 {/* Thumbnail Strip */}
                 {images.length > 1 && (
                   <div className="flex gap-2 p-3 overflow-x-auto bg-white border-t border-neutral-100">
@@ -512,16 +523,12 @@ export default function HookDetailClient({
                     {(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}
                   </div>
                   <div>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        e.preventDefault()
-                        router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
-                      }}
-                      className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
-                    >
-                      @{hook.creator_name || hook.creator_username || 'anonymous'}
-                    </span>
+                    <Link
+  href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
+  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
+>
+  @{hook.creator_username || hook.creator_name || 'anonymous'}
+</Link>
                     <p className="text-xs text-neutral-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {timeAgo(hook.created_at)}
@@ -567,6 +574,30 @@ export default function HookDetailClient({
                     ))}
                   </div>
                 )}
+
+                {/* Related Searches */}
+{hook.search_queries?.length > 0 && (
+  <div className="mb-5">
+    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+      Related Searches
+    </p>
+
+    <div className="flex flex-wrap gap-2">
+      {hook.search_queries.map((query: string) => (
+        <Link
+          key={query}
+          href={`/search/${query
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')}`}
+          className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs hover:bg-blue-100 transition-colors border border-blue-100"
+        >
+          {query}
+        </Link>
+      ))}
+    </div>
+  </div>
+)}
 
                 {/* Type-Specific Info */}
                 <div className="space-y-3 mb-6">
@@ -670,6 +701,34 @@ export default function HookDetailClient({
       {/* RELATED HOOKS */}
       <section className="py-8 lg:py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {hook.search_queries?.length > 0 && (
+  <div className="mb-8">
+
+    <h3 className="text-lg font-bold text-neutral-900 mb-3">
+      Explore Related Searches
+    </h3>
+
+    <div className="flex flex-wrap gap-2">
+
+      {hook.search_queries.map((query: string) => (
+        <Link
+          key={query}
+          href={`/search/${query
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')}`}
+          className="px-4 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm transition-colors"
+        >
+          {query}
+        </Link>
+      ))}
+
+    </div>
+
+  </div>
+)}
+
           {/* Section Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">

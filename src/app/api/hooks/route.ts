@@ -26,22 +26,42 @@ const slug = `${baseSlug}-${randomSuffix}`
 
     // Build the insert payload based on hook type
     const insertPayload: any = {
-      slug,
-      title: body.title,
-      description: body.description || '',
-      images: body.images || [],
-      image_url: body.image_url || body.images?.[0] || '',
-      category: body.category,
-      category_slug: body.category_slug || body.category.toLowerCase(),
-      tags: body.tags || [],
-      creator_name: body.creator_name || 'Anonymous',
-      creator_username: body.creator_username || body.creator_name || body.creator_email_ref?.split('@')[0] || 'anonymous',
-      creator_email_ref: body.creator_email_ref || body.creator_email || '',
-      is_published: true,
-      type: body.type || 'link',
-      clicks: 0,
-      view_count: 0,
-    }
+  slug,
+  title: body.title,
+  description: body.description || '',
+
+  // NEW SEO FIELDS
+  why_care: body.why_care || '',
+  search_queries: body.search_queries || [],
+
+  images: body.images || [],
+  image_url: body.image_url || body.images?.[0] || '',
+
+  category: body.category,
+  category_slug: body.category_slug || body.category.toLowerCase(),
+
+  tags: body.tags || [],
+
+  creator_name: body.creator_name || 'Anonymous',
+
+  creator_username:
+    body.creator_username ||
+    body.creator_name ||
+    body.creator_email_ref?.split('@')[0] ||
+    'anonymous',
+
+  creator_email_ref:
+    body.creator_email_ref ||
+    body.creator_email ||
+    '',
+
+  is_published: true,
+
+  type: body.type || 'link',
+
+  clicks: 0,
+  view_count: 0,
+}
 
     // Type-specific fields
     if (body.type === 'link') {

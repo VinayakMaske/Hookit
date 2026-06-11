@@ -1,0 +1,32 @@
+# Hookit
+
+Hookit is a creator discovery platform.
+
+Creators publish Hooks containing:
+
+- Products
+- Blogs
+- Research
+- Travel discoveries
+- Art
+- Architecture
+- Books
+- News
+- Videos
+
+Every Hook is a public discoverable page designed to help users find useful resources and connect with the original creator.
+
+Important URLs:
+
+https://hookit.online
+https://hookit.online/explore
+https://hookit.online/categories
+
+Hooks:
+https://hookit.online/hook/[slug]
+
+Categories:
+https://hookit.online/category/[slug]
+
+Creators:
+https://hookit.online/creator/[username]

@@ -22,42 +22,80 @@ export async function GET(
       return NextResponse.json({ error: 'Hook not found' }, { status: 404 })
     }
 
-    // Fetch related hooks (same category, different id, limit 24)
-    // First try same-category hooks
+    // Fetch related hooks using search intent + same category + fallback hooks
+const relatedSelect = `
+  id,
+  slug,
+  title,
+  description,
+  why_care,
+  search_queries,
+  images,
+  image_url,
+  creator_name,
+  creator_username,
+  category,
+  view_count,
+  clicks,
+  type,
+  product_price
+`
+
+const searchQueries = Array.isArray(hook.search_queries)
+  ? hook.search_queries
+  : []
+
+// 1. First try hooks with matching search queries
+let searchRelated: any[] = []
+
+if (searchQueries.length > 0) {
+  const { data } = await supabase
+    .from('hooks')
+    .select(relatedSelect)
+    .eq('is_published', true)
+    .neq('slug', slug)
+    .overlaps('search_queries', searchQueries)
+    .limit(24)
+
+  searchRelated = data || []
+}
+
+// 2. Then get hooks from same category
 const { data: categoryHooks } = await supabase
   .from('hooks')
-  .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, type, product_price')
+  .select(relatedSelect)
   .eq('is_published', true)
   .eq('category', hook.category)
   .neq('slug', slug)
   .limit(24)
 
-let related = categoryHooks || []
+// 3. Merge search-related + category-related hooks
+const relatedMap = new Map()
 
-// If not enough, fill with random hooks from the platform
+for (const item of [...searchRelated, ...(categoryHooks || [])]) {
+  relatedMap.set(item.id, item)
+}
+
+let related = Array.from(relatedMap.values()).slice(0, 24)
+
+// 4. If still not enough, fill with random hooks
 if (related.length < 24) {
   const { data: randomHooks } = await supabase
     .from('hooks')
-    .select('id, slug, title, images, image_url, creator_name, category, views, creator_username, view_count, clicks, type, product_price')
+    .select(relatedSelect)
     .eq('is_published', true)
     .neq('slug', slug)
     .limit(100)
 
-  const existingIds = new Set(
-    related.map((h) => h.id)
-  )
+  for (const item of randomHooks || []) {
+    if (!relatedMap.has(item.id)) {
+      relatedMap.set(item.id, item)
+    }
+  }
 
-  const fillers = (randomHooks || []).filter(
-    (h) => !existingIds.has(h.id)
-  )
-
-  // shuffle
-  fillers.sort(() => Math.random() - 0.5)
-
-  related = [
-    ...related,
-    ...fillers
-  ].slice(0, 24)
+  related = Array.from(relatedMap.values())
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 24)
 }
 
     return NextResponse.json({

@@ -68,7 +68,11 @@ export default async function CategoryPage(
 
   const { data: hooks } = await supabase
     .from('hooks')
-    .select('*')
+    .select(`
+    *,
+    search_queries,
+    why_care
+  `)
     .eq('is_published', true)
     .eq('category_slug', slug)
     .order('created_at', { ascending: false })
@@ -76,6 +80,61 @@ export default async function CategoryPage(
   const categoryName =
     category?.name ||
     slug.replace(/-/g, ' ')
+
+  const searchQueryMap = new Map<string, number>()
+
+;(hooks || []).forEach((hook) => {
+  if (Array.isArray(hook.search_queries)) {
+    hook.search_queries.forEach((query: string) => {
+      const normalized = query.trim()
+
+      if (!normalized) return
+
+      searchQueryMap.set(
+        normalized,
+        (searchQueryMap.get(normalized) || 0) + 1
+      )
+    })
+  }
+})
+
+const popularSearchQueries = Array.from(
+  searchQueryMap.entries()
+)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 20)
+
+const creatorMap = new Map<
+  string,
+  {
+    username: string
+    name: string
+    count: number
+  }
+>()
+
+;(hooks || []).forEach((hook) => {
+  const username =
+    hook.creator_username ||
+    hook.creator_name ||
+    'anonymous'
+
+  if (!creatorMap.has(username)) {
+    creatorMap.set(username, {
+      username,
+      name: hook.creator_name || username,
+      count: 0,
+    })
+  }
+
+  creatorMap.get(username)!.count += 1
+})
+
+const topCreators = Array.from(
+  creatorMap.values()
+)
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 12)
 
   const categorySchema = {
     '@context': 'https://schema.org',
@@ -127,7 +186,77 @@ export default async function CategoryPage(
         </section>
 
         <section className="max-w-7xl mx-auto px-4 py-12">
+  <div className="max-w-4xl">
+
+    <h2 className="text-3xl font-bold text-neutral-900 mb-4">
+      About {categoryName}
+    </h2>
+
+    <p className="text-neutral-600 leading-relaxed">
+      Explore the latest {categoryName} hooks shared by creators,
+      bloggers, researchers, artists and businesses on Hookit.
+      Every hook is a discoverable page that helps users find
+      products, ideas, resources, articles and recommendations.
+    </p>
+
+  </div>
+</section>
+
+        <section className="max-w-7xl mx-auto px-4 py-12">
           <div className="mb-8">
+
+            {popularSearchQueries.length > 0 && (
+  <div className="mb-10">
+
+    <h2 className="text-2xl font-bold text-neutral-900 mb-4">
+      Popular Searches In {categoryName}
+    </h2>
+
+    <div className="flex flex-wrap gap-3">
+
+      {popularSearchQueries.map(([query]) => (
+        <Link
+          key={query}
+          href={`/search/${encodeURIComponent(
+            query
+              .toLowerCase()
+              .replace(/\s+/g, '-')
+          )}`}
+          className="px-4 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-sm"
+        >
+          {query}
+        </Link>
+      ))}
+
+    </div>
+
+  </div>
+)}
+
+{topCreators.length > 0 && (
+  <div className="mb-10">
+
+    <h2 className="text-2xl font-bold text-neutral-900 mb-4">
+      Top Creators In {categoryName}
+    </h2>
+
+    <div className="flex flex-wrap gap-3">
+
+      {topCreators.map((creator) => (
+        <Link
+          key={creator.username}
+          href={`/creator/${creator.username}`}
+          className="px-4 py-2 rounded-full bg-purple-50 text-purple-700 hover:bg-purple-100 text-sm transition-colors"
+        >
+          @{creator.username}
+        </Link>
+      ))}
+
+    </div>
+
+  </div>
+)}
+
             <h2 className="text-2xl font-bold text-neutral-900">
               Latest {categoryName} Hooks
             </h2>
@@ -169,11 +298,18 @@ export default async function CategoryPage(
                         `Discover this ${categoryName} hook on Hookit.`}
                     </p>
 
-                    <p className="text-xs text-neutral-400 mt-4">
-                      @{hook.creator_username ||
-                        hook.creator_name ||
-                        'anonymous'}
-                    </p>
+                    <Link
+  href={`/creator/${
+    hook.creator_username ||
+    hook.creator_name ||
+    'anonymous'
+  }`}
+  className="text-xs text-neutral-400 mt-4 block hover:text-purple-600"
+>
+  @{hook.creator_username ||
+    hook.creator_name ||
+    'anonymous'}
+</Link>
                   </div>
                 </Link>
               ))}

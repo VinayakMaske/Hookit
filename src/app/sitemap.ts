@@ -21,6 +21,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('creator_username')
     .not('creator_username', 'is', null)
 
+  const { data: searchQueryHooks } = await supabase
+  .from('hooks')
+  .select('search_queries')
+  .eq('is_published', true)
+
+  const searchQueries = new Set<string>()
+
+searchQueryHooks?.forEach((hook) => {
+  if (Array.isArray(hook.search_queries)) {
+    hook.search_queries.forEach((query) => {
+      if (query?.trim()) {
+        searchQueries.add(
+          query
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+        )
+      }
+    })
+  }
+})
+
+const searchUrls = Array.from(searchQueries).map(
+  (query) => ({
+    url: `https://hookit.online/search/${query}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  })
+)
+
   const hookUrls =
     hooks?.map((hook) => ({
       url: `https://hookit.online/hook/${hook.slug}`,
@@ -28,7 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         hook.updated_at || Date.now()
       ),
       changeFrequency: 'weekly' as const,
-      priority: 0.8,
+      priority: 0.9,
     })) || []
 
   const categoryUrls =
@@ -71,5 +102,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...categoryUrls,
     ...creatorUrls,
     ...hookUrls,
+    ...searchUrls,
   ]
 }

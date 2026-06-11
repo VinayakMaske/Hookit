@@ -1,7 +1,7 @@
 // src/app/(site)/hook/[id]/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,53 @@ import {
   User,
   ArrowUpRight,
   Link2,
-  X
+  X,
+  Share2,
+  MessageCircle,
+  Send,
+  Copy,
+  Check
 } from 'lucide-react'
+
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+)
+
+const FbIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+)
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+)
+
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+)
+
+const MessengerIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 4.975 0 11.111c0 3.497 1.744 6.616 4.472 8.652V24l4.086-2.242c1.09.301 2.246.464 3.442.464 6.627 0 12-4.975 12-11.111C24 4.975 18.627 0 12 0zm1.193 14.963l-3.056-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.559 6.963z"/>
+  </svg>
+)
+
+const CopyLinkIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+  </svg>
+)
 
 // ============================================
 // CATEGORY COLOR MAPPING
@@ -94,15 +139,100 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 // ============================================
+// SHARE POPUP COMPONENT
+// ============================================
+function SharePopup({ hook, onClose }: { hook: any; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hook/${hook.slug}` : ''
+  const shareText = `Check out this hook: ${hook.title}`
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      // Fallback
+      const textArea = document.createElement('textarea')
+      textArea.value = shareUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const shareOptions = [
+  {
+    name: 'Copy link',
+    icon: CopyLinkIcon,
+    color: 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700',
+    action: handleCopy
+  },
+  {
+    name: 'WhatsApp',
+    icon: WhatsAppIcon,
+    color: 'bg-green-500 hover:bg-green-600 text-white',
+    action: () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank')
+  },
+  {
+    name: 'Messenger',
+    icon: MessengerIcon,
+    color: 'bg-gradient-to-br from-purple-500 to-pink-500 hover:opacity-90 text-white',
+    action: () => window.open(`https://www.facebook.com/dialog/send?link=${encodeURIComponent(shareUrl)}`, '_blank')
+  },
+  {
+    name: 'Facebook',
+    icon: FbIcon,
+    color: 'bg-blue-600 hover:bg-blue-700 text-white',
+    action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank')
+  },
+  {
+    name: 'X',
+    icon: XIcon,
+    color: 'bg-black hover:bg-neutral-800 text-white',
+    action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank')
+  },
+]
+
+  return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl p-5 w-80 max-w-[320px] mx-4 animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+                <div className="text-center mb-6">
+          <h3 className="text-base font-semibold text-neutral-900">Share</h3>
+        </div>
+
+          <div className="grid grid-cols-4 gap-2">
+          {shareOptions.map((option) => (
+            <button
+              key={option.name}
+              onClick={option.action}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${option.color}`}>
+                <option.icon className="w-6 h-6" />
+              </div>
+              <span className="text-[11px] text-neutral-600 font-medium mt-1">{option.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
 // RELATED HOOK CARD
 // ============================================
 function RelatedCard({ hook }: { hook: any }) {
   const [isHovered, setIsHovered] = useState(false)
   const hookType = hook.type || 'link'
   const price = hook.price || hook.product_price
-  const viewCount = hook.views || hook.view_count || 0
-  const clickCount = hook.clicks || hook.click_count || 0
-  const router = useRouter()
 
   const imageUrl = hook.src || hook.images?.[0] || hook.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=500&fit=crop'
 
@@ -153,37 +283,9 @@ function RelatedCard({ hook }: { hook: any }) {
           )}
         </div>
 
+        {/* Card Info - Title only */}
         <div className="p-3">
-          <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title}</h3>
-          <div className="flex items-center justify-between">
-            <span
-  onClick={(e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    router.push(
-      `/creator/${
-        hook.creator_username ||
-        hook.creator_name ||
-        'anonymous'
-      }`
-    )
-  }}
-  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
->
-  @{hook.creator_name || hook.creator_username || 'anonymous'}
-</span>
-            <div className="flex items-center gap-2 text-neutral-400 text-[10px]">
-              <span className="flex items-center gap-0.5">
-                <Eye className="w-3 h-3" />
-                {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount}
-              </span>
-              <span className="flex items-center gap-0.5">
-                <MousePointerClick className="w-3 h-3" />
-                {clickCount >= 1000 ? `${(clickCount / 1000).toFixed(1)}K` : clickCount}
-              </span>
-            </div>
-          </div>
+          <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight">{hook.title}</h3>
         </div>
 
         {/* Hover Overlay */}
@@ -221,6 +323,7 @@ export default function HookDetailClient({
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
   const [showBlogContent, setShowBlogContent] = useState(false)
+  const [showSharePopup, setShowSharePopup] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
@@ -273,6 +376,15 @@ export default function HookDetailClient({
     } else if (hook.type === 'product' && hook.product_details?.external_store_url) {
       window.open(hook.product_details.external_store_url, '_blank', 'noopener,noreferrer')
     }
+  }
+
+  // Determine if CTA button should show
+  const shouldShowCTA = () => {
+    if (!hook) return false
+    if (hook.type === 'link') return !!hook.destination_url
+    if (hook.type === 'blog') return true // Always show for blog (toggle)
+    if (hook.type === 'product') return !!hook.product_details?.external_store_url
+    return false
   }
 
   const timeAgo = (dateStr: string) => {
@@ -491,26 +603,39 @@ export default function HookDetailClient({
                   )}
                 </div>
 
-                {/* CTA Button */}
+                {/* CTA Buttons */}
                 <div className="mt-auto">
-                  <Button 
-                    onClick={handleClickAction}
-                    className={`w-full h-14 rounded-2xl text-base font-semibold gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] ${
-                      hookType === 'link' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600' :
-                      hookType === 'blog' ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' :
-                      'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
-                    } text-white`}
-                  >
-                    {hookType === 'link' && <ExternalLink className="w-5 h-5" />}
-                    {hookType === 'blog' && <BookOpen className="w-5 h-5" />}
-                    {hookType === 'product' && <ShoppingBag className="w-5 h-5" />}
-                    {hookType === 'blog' ? (showBlogContent ? 'Hide Article' : 'Read Article') : typeConfig.actionText}
-                    <ArrowUpRight className="w-5 h-5" />
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    {shouldShowCTA() && (
+                      <Button 
+                        onClick={handleClickAction}
+                        className={`flex-1 h-14 rounded-2xl text-base font-semibold gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] ${
+                          hookType === 'link' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600' :
+                          hookType === 'blog' ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' :
+                          'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
+                        } text-white`}
+                      >
+                        {hookType === 'link' && <ExternalLink className="w-5 h-5" />}
+                        {hookType === 'blog' && <BookOpen className="w-5 h-5" />}
+                        {hookType === 'product' && <ShoppingBag className="w-5 h-5" />}
+                        {hookType === 'blog' ? (showBlogContent ? 'Hide Article' : 'Read Article') : typeConfig.actionText}
+                        <ArrowUpRight className="w-5 h-5" />
+                      </Button>
+                    )}
+
+                    {/* Share Button */}
+                    <Button
+                      onClick={() => setShowSharePopup(true)}
+                      variant="outline"
+                      className="h-14 w-14 rounded-2xl border-neutral-200 hover:border-purple-300 hover:bg-purple-50 transition-all hover:scale-[1.02] flex-shrink-0"
+                    >
+                      <Share2 className="w-5 h-5 text-neutral-600" />
+                    </Button>
+                  </div>
                   <p className="text-center text-xs text-neutral-400 mt-2">
-                    {hookType === 'link' && 'You will be redirected to an external website'}
+                    {hookType === 'link' && (hook.destination_url ? 'You will be redirected to an external website' : 'No link available for this hook')}
                     {hookType === 'blog' && (showBlogContent ? 'Article expanded below' : 'Click to read the full article')}
-                    {hookType === 'product' && 'View product details or visit store'}
+                    {hookType === 'product' && (hook.product_details?.external_store_url ? 'View product details or visit store' : 'No store link available')}
                   </p>
                 </div>
               </div>
@@ -576,7 +701,7 @@ export default function HookDetailClient({
       {/* Footer CTA */}
       <section className="py-12 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-3">
+          <h2 className="text-xl lg:text-3xl font-bold text-neutral-900 mb-3">
             Want to share your own?
           </h2>
           <p className="text-neutral-500 mb-6">
@@ -591,6 +716,11 @@ export default function HookDetailClient({
           </Link>
         </div>
       </section>
+
+      {/* Share Popup */}
+      {showSharePopup && hook && (
+        <SharePopup hook={hook} onClose={() => setShowSharePopup(false)} />
+      )}
     </div>
   )
 }

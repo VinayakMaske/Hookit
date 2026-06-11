@@ -708,19 +708,6 @@ export default function HomePage() {
                   {/* Info below image */}
                   <div className="p-2.5">
                     <h3 className="font-semibold text-neutral-900 text-sm leading-tight mb-2">{hook.title}</h3>
-                    <div className="flex items-center justify-between text-xs text-neutral-400">
-                      <span>@{hook.creator}</span>
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-0.5">
-                          <Eye className="w-3 h-3" />
-                          {hook.views}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <MousePointerClick className="w-4 h-4" />
-                          {hook.likes}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )

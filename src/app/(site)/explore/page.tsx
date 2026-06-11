@@ -189,31 +189,9 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
       </div>
 
       {/* Card Info */}
-      <div className="p-4">
-        <h3 className="font-semibold text-neutral-900 text-sm mb-1 line-clamp-2 leading-tight">{hook.title || hook.name}</h3>
-        <div className="flex items-center justify-between">
-          <span
-  onClick={(e) => {
-    e.stopPropagation()
-    e.preventDefault()
-    router.push(`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`)
-  }}
-  className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors cursor-pointer"
->
-  @{hook.creator_name || hook.creator_username || 'anonymous'}
-</span>
-          <div className="flex items-center gap-3 text-neutral-400 text-xs">
-            <span className="flex items-center gap-1">
-              <Eye className="w-3 h-3" />
-              {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount}
-            </span>
-            <span className="flex items-center gap-1">
-              <MousePointerClick className="w-3 h-3" />
-              {clickCount >= 1000 ? `${(clickCount / 1000).toFixed(1)}K` : clickCount}
-            </span>
-          </div>
-        </div>
-      </div>
+<div className="p-4">
+  <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight">{hook.title || hook.name}</h3>
+</div>
 
       {/* Hover Overlay */}
       <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-100' : 'opacity-0'}`}>

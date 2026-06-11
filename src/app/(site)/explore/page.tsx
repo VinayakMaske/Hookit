@@ -143,12 +143,12 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
 
   return (
     <div
-      className="break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden cursor-pointer bg-white shadow-sm hover:shadow-xl transition-all duration-300"
+      className="break-inside-avoid mb-4 group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative">
+      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
         <img
           src={imageUrl}
           alt={hook.title || hook.name}
@@ -156,41 +156,41 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
           loading="lazy"
         />
 
-        {/* Type Icon (top right) */}
-        <div className="absolute top-3 right-3">
-          {hookType === 'link' && (
-            <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <ExternalLink className="w-4 h-4 text-white" />
-            </div>
-          )}
-          {hookType === 'blog' && (
-            <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <FileText className="w-4 h-4 text-white" />
-            </div>
-          )}
-          {hookType === 'product' && (
-            <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <ShoppingBagIcon className="w-4 h-4 text-white" />
-            </div>
-          )}
-        </div>
+        {/* Type Icon (top right) — hover only */}
+<div className={`absolute top-3 right-3 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+  {hookType === 'link' && (
+    <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
+      <ExternalLink className="w-4 h-4 text-white" />
+    </div>
+  )}
+  {hookType === 'blog' && (
+    <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
+      <FileText className="w-4 h-4 text-white" />
+    </div>
+  )}
+  {hookType === 'product' && (
+    <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
+      <ShoppingBagIcon className="w-4 h-4 text-white" />
+    </div>
+  )}
+</div>
 
-        {/* Category Badge */}
-        <Badge className={`absolute top-3 left-3 bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 text-xs backdrop-blur-sm shadow-lg`}>
-          {hook.category}
-        </Badge>
+{/* Category Badge — hover only */}
+<Badge className={`absolute top-3 left-3 bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 text-xs backdrop-blur-sm shadow-lg transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+  {hook.category}
+</Badge>
 
-        {/* Price badge for products */}
-        {price && (
-          <div className="absolute bottom-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-            ${price}
-          </div>
-        )}
+{/* Price badge for products — hover only */}
+{price && (
+  <div className={`absolute bottom-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 md:group-hover:opacity-100'}`}>
+    {hook.currency === 'INR' ? '₹' : hook.currency === 'EUR' ? '€' : hook.currency === 'GBP' ? '£' : hook.currency === 'JPY' ? '¥' : hook.currency === 'AUD' ? 'A$' : hook.currency === 'CAD' ? 'C$' : '$'}{price}
+  </div>
+)}
       </div>
 
       {/* Card Info */}
-<div className="p-4">
-  <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight">{hook.title || hook.name}</h3>
+<div className="pt-2 pb-1">
+  <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight group-hover:underline decoration-1 underline-offset-2">{hook.title || hook.name}</h3>
 </div>
 
       {/* Hover Overlay */}

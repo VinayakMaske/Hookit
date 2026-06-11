@@ -629,10 +629,10 @@ export default function HomePage() {
               return (
                 <div
                   key={`${activeCategory}-${i}`}
-                  className="break-inside-avoid mb-3 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                  className="break-inside-avoid mb-3 cursor-pointer group"
                 >
                   {/* Image */}
-                  <div className="relative" onMouseEnter={() => setHoveredCard(i + 2000)} onMouseLeave={() => setHoveredCard(null)}>
+                  <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200" onMouseEnter={() => setHoveredCard(i + 2000)} onMouseLeave={() => setHoveredCard(null)}>
                     <img
                       src={hook.src}
                       alt={hook.title}
@@ -706,9 +706,9 @@ export default function HomePage() {
                   </div>
 
                   {/* Info below image */}
-                  <div className="p-2.5">
-                    <h3 className="font-semibold text-neutral-900 text-sm leading-tight mb-2">{hook.title}</h3>
-                  </div>
+<div className="pt-2 pb-1">
+  <h3 className="font-semibold text-neutral-900 text-sm leading-tight group-hover:underline decoration-1 underline-offset-2">{hook.title}</h3>
+</div>
                 </div>
               )
             })}

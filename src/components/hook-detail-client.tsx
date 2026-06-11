@@ -239,11 +239,11 @@ function RelatedCard({ hook }: { hook: any }) {
   return (
     <Link href={hook.id ? `/hook/${hook.slug}` : '#'} className="block break-inside-avoid mb-4">
       <div
-        className="group relative rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+        className="group cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="relative">
+        <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
           <img
             src={imageUrl}
             alt={hook.title}
@@ -277,16 +277,16 @@ function RelatedCard({ hook }: { hook: any }) {
 
           {/* Price */}
           {price && (
-            <div className="absolute bottom-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-lg">
-              ${price}
-            </div>
-          )}
+  <div className={`absolute bottom-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 md:group-hover:opacity-100'}`}>
+    {hook.currency === 'INR' ? '₹' : hook.currency === 'EUR' ? '€' : hook.currency === 'GBP' ? '£' : hook.currency === 'JPY' ? '¥' : hook.currency === 'AUD' ? 'A$' : hook.currency === 'CAD' ? 'C$' : '$'}{price}
+  </div>
+)}
         </div>
 
         {/* Card Info - Title only */}
-        <div className="p-3">
-          <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight">{hook.title}</h3>
-        </div>
+<div className="pt-2 pb-1">
+  <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight group-hover:underline decoration-1 underline-offset-2">{hook.title}</h3>
+</div>
 
         {/* Hover Overlay */}
         <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-100' : 'opacity-0'}`}>

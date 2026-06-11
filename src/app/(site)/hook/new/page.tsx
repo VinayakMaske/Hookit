@@ -15,7 +15,10 @@ import {
   Zap, TrendingUp, Heart, Eye, Star, Flame, Rocket, Crown, Gem,
   ArrowUpRight, Palette, Plane, Laptop, Gamepad2, Utensils,
   MousePointerClick, Lock, Tag, DollarSign, ExternalLink, BookOpen,
-  Mail, KeyRound, ArrowLeft
+  Mail, KeyRound, ArrowLeft,
+  Music, Film, Dumbbell, Briefcase, GraduationCap, Wrench, Home,
+  Cat, Trophy, Car, TreePine, Atom, Landmark, Laugh, Newspaper, PenTool,
+  Coffee, Baby, Building2, Tv, Sticker, Quote, Compass
 } from 'lucide-react'
 
 
@@ -84,9 +87,40 @@ const CATEGORIES = [
   { name: 'Food', slug: 'food', icon: Utensils, color: 'bg-rose-100 text-rose-700 border-rose-200' },
   { name: 'Technology', slug: 'technology', icon: Laptop, color: 'bg-blue-100 text-blue-700 border-blue-200' },
   { name: 'Gaming', slug: 'gaming', icon: Gamepad2, color: 'bg-violet-100 text-violet-700 border-violet-200' },
+  { name: 'Music', slug: 'music', icon: Music, color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  { name: 'Movies', slug: 'movies', icon: Film, color: 'bg-red-100 text-red-700 border-red-200' },
+  { name: 'Books', slug: 'books', icon: BookOpen, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { name: 'Fitness', slug: 'fitness', icon: Dumbbell, color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { name: 'Health', slug: 'health', icon: Heart, color: 'bg-red-100 text-red-700 border-red-200' },
+  { name: 'Business', slug: 'business', icon: Briefcase, color: 'bg-slate-100 text-slate-700 border-slate-200' },
+  { name: 'Finance', slug: 'finance', icon: TrendingUp, color: 'bg-green-100 text-green-700 border-green-200' },
+  { name: 'Education', slug: 'education', icon: GraduationCap, color: 'bg-sky-100 text-sky-700 border-sky-200' },
+  { name: 'DIY', slug: 'diy', icon: Wrench, color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { name: 'Home', slug: 'home', icon: Home, color: 'bg-teal-100 text-teal-700 border-teal-200' },
+  { name: 'Pets', slug: 'pets', icon: Cat, color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { name: 'Sports', slug: 'sports', icon: Trophy, color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { name: 'Cars', slug: 'cars', icon: Car, color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { name: 'Nature', slug: 'nature', icon: TreePine, color: 'bg-green-100 text-green-700 border-green-200' },
+  { name: 'Science', slug: 'science', icon: Atom, color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  { name: 'History', slug: 'history', icon: Landmark, color: 'bg-stone-100 text-stone-700 border-stone-200' },
+  { name: 'Comedy', slug: 'comedy', icon: Laugh, color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { name: 'News', slug: 'news', icon: Newspaper, color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { name: 'Design', slug: 'design', icon: PenTool, color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  { name: 'Lifestyle', slug: 'lifestyle', icon: Coffee, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { name: 'Motivation', slug: 'motivation', icon: Zap, color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { name: 'Parenting', slug: 'parenting', icon: Baby, color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  { name: 'Beauty', slug: 'beauty', icon: Sparkles, color: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200' },
+  { name: 'Architecture', slug: 'architecture', icon: Building2, color: 'bg-slate-100 text-slate-700 border-slate-200' },
+  { name: 'Anime', slug: 'anime', icon: Tv, color: 'bg-violet-100 text-violet-700 border-violet-200' },
+  { name: 'Memes', slug: 'memes', icon: Sticker, color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { name: 'Quotes', slug: 'quotes', icon: Quote, color: 'bg-teal-100 text-teal-700 border-teal-200' },
+  { name: 'Wedding', slug: 'wedding', icon: Heart, color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  { name: 'Outdoors', slug: 'outdoors', icon: Compass, color: 'bg-green-100 text-green-700 border-green-200' },
+  { name: 'Space', slug: 'space', icon: Rocket, color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
 ]
 
 const POPULAR_TAGS = ['portfolio', 'art', 'design', 'photography', 'travel', 'fashion', 'food', 'tech', 'gaming', 'minimal', 'vintage', 'modern', 'creative', 'inspiration', 'diy']
+const CURRENCIES = ['USD', 'INR', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']
 
 // Creator flow states
 type CreatorFlow = 'enter_email' | 'checking' | 'new_otp_sent' | 'new_verified' | 'returning_show' | 'returning_otp' | 'forgot_passkey' | 'reset_otp_sent' | 'verified'
@@ -109,6 +143,7 @@ export default function CreateHookPage() {
   const [blogContent, setBlogContent] = useState('')
   const [productPrice, setProductPrice] = useState('')
   const [externalStoreUrl, setExternalStoreUrl] = useState('')
+  const [currency, setCurrency] = useState('USD')
 
   // Creator verification state
   const [creatorFlow, setCreatorFlow] = useState<CreatorFlow>('enter_email')
@@ -324,10 +359,11 @@ export default function CreateHookPage() {
         payload.blog_content = blogContent
       } else if (hookType === 'product') {
         payload.product_price = parseFloat(productPrice) || 0
-        payload.product_details = {
-          external_store_url: externalStoreUrl,
-          currency: 'USD'
-        }
+payload.currency = currency
+payload.product_details = {
+  external_store_url: externalStoreUrl,
+  currency: currency
+}
       }
       
       const res = await fetch('/api/hooks', {
@@ -465,10 +501,11 @@ export default function CreateHookPage() {
         payload.blog_content = blogContent
       } else if (hookType === 'product') {
         payload.product_price = parseFloat(productPrice) || 0
-        payload.product_details = {
-          external_store_url: externalStoreUrl,
-          currency: 'USD'
-        }
+payload.currency = currency
+payload.product_details = {
+  external_store_url: externalStoreUrl,
+  currency: currency
+}
       }
 
       const res = await fetch('/api/hooks', {
@@ -916,22 +953,31 @@ export default function CreateHookPage() {
                   {hookType === 'product' && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-500" /> Price (USD) *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">$</span>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            min="0" 
-                            placeholder="29.99" 
-                            value={productPrice} 
-                            onChange={(e) => setProductPrice(e.target.value)} 
-                            className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-8" 
-                          />
-                        </div>
-                      </div>
+  <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+    <DollarSign className="w-4 h-4 text-emerald-500" /> Price *
+  </label>
+  <div className="flex gap-2">
+    <select
+      value={currency}
+      onChange={(e) => setCurrency(e.target.value)}
+      className="h-12 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-medium focus:border-purple-300 focus:ring-purple-500/20 outline-none"
+    >
+      {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+    </select>
+    <div className="relative flex-1">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">{currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : currency === 'AUD' ? 'A$' : 'C$'}</span>
+      <Input 
+        type="number" 
+        step="0.01" 
+        min="0" 
+        placeholder="29.99" 
+        value={productPrice} 
+        onChange={(e) => setProductPrice(e.target.value)} 
+        className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10" 
+      />
+    </div>
+  </div>
+</div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
                           <ShoppingBag className="w-4 h-4 text-emerald-500" /> Store URL
@@ -1009,7 +1055,7 @@ export default function CreateHookPage() {
                       {hookType === 'product' && productPrice && (
                         <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                           <DollarSign className="w-4 h-4 text-emerald-500" />
-                          <span className="text-sm text-emerald-700 font-bold">${productPrice}</span>
+                          <span className="text-sm text-emerald-700 font-bold">{currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : currency === 'AUD' ? 'A$' : 'C$'}{productPrice}</span>
                           {externalStoreUrl && <span className="text-xs text-emerald-400 truncate flex-1 ml-2">{externalStoreUrl}</span>}
                           <span className="text-xs text-emerald-400">Product</span>
                         </div>

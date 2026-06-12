@@ -1334,7 +1334,7 @@ export default function CreateHookPage() {
   const totalSteps = 11;
 
   // ===== SUCCESS SCREEN =====
-  if (step === 6 && publishedHookId) {
+  if (step === 5 && publishedHookId) {
     return (
       <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center px-4 py-20">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">

@@ -153,7 +153,7 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
+      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 mb-4">
         <img
           src={imageUrl}
           alt={hook.title || hook.name}
@@ -332,7 +332,7 @@ function FeaturedCard({ hook }: { hook: any }) {
             </span>
           </div>
           <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">{hook.title || hook.name}</h3>
-          <p className="text-white/60 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
+          <p className="text-white/80 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -341,8 +341,8 @@ function FeaturedCard({ hook }: { hook: any }) {
               <span className="text-white/80 text-sm">@{hook.creator_name || hook.creator || hook.creator_username || 'anonymous'}</span>
             </div>
             <div className="flex items-center gap-3 text-white/60 text-xs">
-              <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {hook.views || hook.view_count || 0}</span>
-              <span className="flex items-center gap-1"><MousePointerClick className="w-3.5 h-3.5" /> {hook.clicks || hook.click_count || 0}</span>
+              <span className="flex items-center text-white/80 gap-1"><Eye className="w-3.5 h-3.5" /> {hook.views || hook.view_count || 0}</span>
+              <span className="flex items-center text-white/80 gap-1"><MousePointerClick className="w-3.5 h-3.5" /> {hook.clicks || hook.click_count || 0}</span>
             </div>
           </div>
         </div>

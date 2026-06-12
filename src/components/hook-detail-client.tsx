@@ -12,6 +12,7 @@ import {
   BookOpen,
   ShoppingBag,
   Sparkles,
+  Briefcase,
   Eye,
   MousePointerClick,
   Clock,
@@ -19,6 +20,16 @@ import {
   ChevronLeft,
   Loader2,
   Globe,
+  Wrench,
+  Palette,
+  Film,
+  Camera,
+  Star,
+  Gem,
+  Crown,
+  Zap,
+  Rocket,
+  Heart,
   DollarSign,
   Tag,
   User,
@@ -94,6 +105,30 @@ const HOOK_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string;
   link: { icon: ExternalLink, label: 'Link', color: 'bg-blue-500', bgColor: 'bg-blue-50', textColor: 'text-blue-700', actionText: 'Visit Website' },
   blog: { icon: BookOpen, label: 'Blog', color: 'bg-purple-500', bgColor: 'bg-purple-50', textColor: 'text-purple-700', actionText: 'Read Article' },
   product: { icon: ShoppingBag, label: 'Product', color: 'bg-emerald-500', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700', actionText: 'View Product' },
+}
+
+// Subtype display config for new hook flow
+const HOOK_SUBTYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; badgeClass: string }> = {
+  // Creator subtypes
+  product: { icon: ShoppingBag, label: 'Product', color: 'bg-emerald-500', badgeClass: 'bg-emerald-500 text-white' },
+  blog: { icon: BookOpen, label: 'Blog', color: 'bg-purple-500', badgeClass: 'bg-purple-500 text-white' },
+  website: { icon: Globe, label: 'Website', color: 'bg-blue-500', badgeClass: 'bg-blue-500 text-white' },
+  tool: { icon: Wrench, label: 'Tool', color: 'bg-indigo-500', badgeClass: 'bg-indigo-500 text-white' },
+  resource: { icon: Sparkles, label: 'Resource', color: 'bg-amber-500', badgeClass: 'bg-amber-500 text-white' },
+  portfolio: { icon: Palette, label: 'Portfolio', color: 'bg-pink-500', badgeClass: 'bg-pink-500 text-white' },
+  video: { icon: Film, label: 'Video', color: 'bg-red-500', badgeClass: 'bg-red-500 text-white' },
+  // Personal subtypes
+  memory: { icon: Camera, label: 'Memory', color: 'bg-teal-500', badgeClass: 'bg-teal-500 text-white' },
+  recommendation: { icon: Star, label: 'Recommendation', color: 'bg-cyan-500', badgeClass: 'bg-cyan-500 text-white' },
+  hidden_gem: { icon: Gem, label: 'Hidden Gem', color: 'bg-violet-500', badgeClass: 'bg-violet-500 text-white' },
+  review: { icon: Eye, label: 'Review', color: 'bg-orange-500', badgeClass: 'bg-orange-500 text-white' },
+  collection: { icon: Crown, label: 'Collection', color: 'bg-rose-500', badgeClass: 'bg-rose-500 text-white' },
+  life_lesson: { icon: Zap, label: 'Life Lesson', color: 'bg-yellow-500', badgeClass: 'bg-yellow-500 text-white' },
+}
+
+const PURPOSE_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  creator: { label: 'Creator Hook', color: 'bg-purple-500', icon: Rocket },
+  personal: { label: 'Personal Hook', color: 'bg-teal-500', icon: Heart },
 }
 
 // ============================================
@@ -362,29 +397,40 @@ export default function HookDetailClient({
     }
   }, [slug])
 
-  const handleClickAction = () => {
+    const handleClickAction = () => {
     if (!hook) return
 
     // Track click
     fetch(`/api/hooks/${slug}/click`, { method: 'POST' }).catch(() => {})
 
-    if (hook.type === 'link' && hook.destination_url) {
+    // Support both old type and new hook_subtype
+    const isLink = hook.type === 'link' || hook.hook_subtype === 'website' || hook.hook_subtype === 'tool' || hook.hook_subtype === 'resource' || hook.hook_subtype === 'video' || hook.hook_subtype === 'portfolio'
+    const isBlog = hook.type === 'blog' || hook.hook_subtype === 'blog'
+    const isProduct = hook.type === 'product' || hook.hook_subtype === 'product'
+
+    if (isLink && hook.destination_url) {
       window.open(hook.destination_url, '_blank', 'noopener,noreferrer')
-    } else if (hook.type === 'blog') {
+    } else if (isBlog) {
       // Toggle blog content inline
       setShowBlogContent(!showBlogContent)
-    } else if (hook.type === 'product' && hook.product_details?.external_store_url) {
+    } else if (isProduct && hook.product_details?.external_store_url) {
       window.open(hook.product_details.external_store_url, '_blank', 'noopener,noreferrer')
+    } else if (hook.destination_url) {
+      // Fallback for any hook with a destination URL
+      window.open(hook.destination_url, '_blank', 'noopener,noreferrer')
     }
   }
 
   // Determine if CTA button should show
-  const shouldShowCTA = () => {
+    const shouldShowCTA = () => {
     if (!hook) return false
-    if (hook.type === 'link') return !!hook.destination_url
-    if (hook.type === 'blog') return true // Always show for blog (toggle)
-    if (hook.type === 'product') return !!hook.product_details?.external_store_url
-    return false
+    const isLink = hook.type === 'link' || hook.hook_subtype === 'website' || hook.hook_subtype === 'tool' || hook.hook_subtype === 'resource' || hook.hook_subtype === 'video' || hook.hook_subtype === 'portfolio'
+    const isBlog = hook.type === 'blog' || hook.hook_subtype === 'blog'
+    const isProduct = hook.type === 'product' || hook.hook_subtype === 'product'
+    if (isLink) return !!hook.destination_url
+    if (isBlog) return true // Always show for blog (toggle)
+    if (isProduct) return !!hook.product_details?.external_store_url
+    return !!hook.destination_url // Fallback
   }
 
   const timeAgo = (dateStr: string) => {
@@ -478,26 +524,7 @@ export default function HookDetailClient({
                       </div>
                     </>
                   )}
-
-                  {/* Type Badge on Image */}
-                  <div className="absolute top-4 left-4 z-10">
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white ${typeConfig.color} shadow-lg backdrop-blur-sm`}>
-                      <TypeIcon className="w-3.5 h-3.5" />
-                      {typeConfig.label}
-                    </div>
-                  </div>
                 </div>
-
-                {hook.category_slug && (
-  <div className="absolute top-4 left-28 z-10">
-    <Link
-      href={`/category/${hook.category_slug}`}
-      className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm text-xs font-medium text-neutral-800 shadow-lg hover:bg-white"
-    >
-      {hook.category}
-    </Link>
-  </div>
-)}
 
                 {/* Thumbnail Strip */}
                 {images.length > 1 && (
@@ -517,12 +544,12 @@ export default function HookDetailClient({
 
               {/* RIGHT: Details Panel */}
               <div className="p-6 lg:p-8 flex flex-col">
-                {/* Creator */}
+                {/* Creator + Purpose/Subtype */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
                     {(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <Link
   href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}
   className="text-neutral-500 text-xs hover:text-purple-600 hover:underline transition-colors"
@@ -541,6 +568,14 @@ export default function HookDetailClient({
                   {hook.title}
                 </h1>
 
+                {/* Discoverability Banner */}
+                <div className="mb-4 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <p className="text-xs text-emerald-700">
+                    <span className="font-semibold">Discoverable:</span> This Hook appears in search, categories, and AI results
+                  </p>
+                </div>
+
                 {/* Description */}
                 {hook.description && (
                   <p className="text-sm text-neutral-600 leading-relaxed mb-4 line-clamp-4">
@@ -548,6 +583,18 @@ export default function HookDetailClient({
                   </p>
                 )}
 
+                {/* Why Care */}
+                {hook.why_care && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1.5">
+                      Why this matters
+                    </p>
+                    <p className="text-sm text-neutral-700 leading-relaxed">
+                      {hook.why_care}
+                    </p>
+                  </div>
+                )}
+                
                 {/* Stats */}
                 <div className="flex items-center gap-4 mb-5 py-3 border-y border-neutral-100">
                   <div className="flex items-center gap-1.5 text-sm text-neutral-500">
@@ -561,6 +608,25 @@ export default function HookDetailClient({
                     <span>clicks</span>
                   </div>
                 </div>
+
+                {/* Target Audience */}
+                {hook.target_audience && hook.target_audience.length > 0 && (
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                      Useful for
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {hook.target_audience.map((audience: string) => (
+                        <span
+                          key={audience}
+                          className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100"
+                        >
+                          {audience}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Tags */}
                 {hook.tags && hook.tags.length > 0 && (
@@ -634,6 +700,44 @@ export default function HookDetailClient({
                   )}
                 </div>
 
+                {/* Social Links */}
+                {hook.social_links && Object.keys(hook.social_links).filter(k => hook.social_links[k]).length > 0 && (
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                      Connect with creator
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(hook.social_links)
+                        .filter(([, value]) => value)
+                        .map(([platform, url]) => {
+                          const platformConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+                            instagram: { label: 'Instagram', color: 'bg-pink-500', icon: InstagramIcon },
+                            youtube: { label: 'YouTube', color: 'bg-red-500', icon: Film },
+                            twitter: { label: 'X / Twitter', color: 'bg-black', icon: XIcon },
+                            facebook: { label: 'Facebook', color: 'bg-blue-600', icon: FbIcon },
+                            website: { label: 'Website', color: 'bg-neutral-700', icon: Globe },
+                            linkedin: { label: 'LinkedIn', color: 'bg-blue-700', icon: Briefcase },
+                          }
+                          const config = platformConfig[platform]
+                          if (!config) return null
+                          const PlatformIcon = config.icon
+                          return (
+                            <a
+                              key={platform}
+                              href={url as string}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white ${config.color} hover:opacity-90 transition-opacity`}
+                            >
+                              <PlatformIcon className="w-3.5 h-3.5" />
+                              {config.label}
+                            </a>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
                 {/* CTA Buttons */}
                 <div className="mt-auto">
                   <div className="flex items-center gap-3">
@@ -649,7 +753,11 @@ export default function HookDetailClient({
                         {hookType === 'link' && <ExternalLink className="w-5 h-5" />}
                         {hookType === 'blog' && <BookOpen className="w-5 h-5" />}
                         {hookType === 'product' && <ShoppingBag className="w-5 h-5" />}
-                        {hookType === 'blog' ? (showBlogContent ? 'Hide Article' : 'Read Article') : typeConfig.actionText}
+                        {hook.hook_subtype && HOOK_SUBTYPE_CONFIG[hook.hook_subtype] && (() => {
+                          const STIcon = HOOK_SUBTYPE_CONFIG[hook.hook_subtype].icon
+                          return <STIcon className="w-5 h-5" />
+                        })()}
+                        {hookType === 'blog' || hook.hook_subtype === 'blog' ? (showBlogContent ? 'Hide Article' : 'Read Article') : typeConfig.actionText}
                         <ArrowUpRight className="w-5 h-5" />
                       </Button>
                     )}
@@ -664,9 +772,10 @@ export default function HookDetailClient({
                     </Button>
                   </div>
                   <p className="text-center text-xs text-neutral-400 mt-2">
-                    {hookType === 'link' && (hook.destination_url ? 'You will be redirected to an external website' : 'No link available for this hook')}
-                    {hookType === 'blog' && (showBlogContent ? 'Article expanded below' : 'Click to read the full article')}
-                    {hookType === 'product' && (hook.product_details?.external_store_url ? 'View product details or visit store' : 'No store link available')}
+                    {(hookType === 'link' || hook.hook_subtype === 'website' || hook.hook_subtype === 'tool' || hook.hook_subtype === 'resource' || hook.hook_subtype === 'video' || hook.hook_subtype === 'portfolio') && (hook.destination_url ? 'You will be redirected to an external website' : 'No link available for this hook')}
+                    {(hookType === 'blog' || hook.hook_subtype === 'blog') && (showBlogContent ? 'Article expanded below' : 'Click to read the full article')}
+                    {(hookType === 'product' || hook.hook_subtype === 'product') && (hook.product_details?.external_store_url ? 'View product details or visit store' : 'No store link available')}
+                    {!hookType && !hook.hook_subtype && 'Discover this content on Hookit'}
                   </p>
                 </div>
               </div>
@@ -761,10 +870,10 @@ export default function HookDetailClient({
       <section className="py-12 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-xl lg:text-3xl font-bold text-neutral-900 mb-3">
-            Want to share your own?
+            Create once. Get discovered everywhere.
           </h2>
           <p className="text-neutral-500 mb-6">
-            Create a Hook in seconds. No signup needed.
+            Share something worth discovering. Your content becomes a searchable discovery page.
           </p>
           <Link href="/hook/new">
             <Button className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-14 px-10 text-lg gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-105">

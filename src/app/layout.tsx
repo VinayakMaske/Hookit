@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
   title: {
     default: 'Hookit - Discover Blogs, Products, News & Links',
-    template: '%s | Hookit',
+    template: '%s | Hookit'
   },
 
   description:

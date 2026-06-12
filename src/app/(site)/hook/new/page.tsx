@@ -307,6 +307,7 @@ const QUOTES = [
 ];
 
 // Hook Types
+// Legacy hook types (kept for backwards compatibility in payload)
 const HOOK_TYPES = [
   {
     id: "link",
@@ -594,6 +595,71 @@ const POPULAR_TAGS = [
 ];
 const CURRENCIES = ["USD", "INR", "EUR", "GBP", "JPY", "AUD", "CAD"];
 
+// Hook Purpose
+const HOOK_PURPOSES = [
+  {
+    id: "creator",
+    label: "Creator Hook",
+    description: "Grow your audience, website, blog, store, portfolio or social media.",
+    examples: "Product, Blog, Website, Tool, Resource, Video, Portfolio",
+    icon: Rocket,
+    color: "from-purple-500 to-pink-500",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    textColor: "text-purple-700",
+  },
+  {
+    id: "personal",
+    label: "Personal Hook",
+    description: "Share memories, recommendations, experiences, hidden gems and things worth discovering.",
+    examples: "Memory, Recommendation, Hidden Gem, Review, Collection, Life Lesson",
+    icon: Heart,
+    color: "from-emerald-500 to-teal-500",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+    textColor: "text-emerald-700",
+  },
+];
+
+// Creator Subtypes with Unsplash images
+const CREATOR_SUBTYPES = [
+  { id: "product", label: "Product", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop&q=80" },
+  { id: "blog", label: "Blog", image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=500&fit=crop&q=80" },
+  { id: "website", label: "Website", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=500&fit=crop&q=80" },
+  { id: "tool", label: "Tool", image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=400&h=500&fit=crop&q=80" },
+  { id: "resource", label: "Resource", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=500&fit=crop&q=80" },
+  { id: "portfolio", label: "Portfolio", image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=500&fit=crop&q=80" },
+  { id: "video", label: "Video", image: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=400&h=500&fit=crop&q=80" },
+];
+
+// Personal Subtypes with Unsplash images
+const PERSONAL_SUBTYPES = [
+  { id: "memory", label: "Memory", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=500&fit=crop&q=80" },
+  { id: "recommendation", label: "Recommendation", image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=400&h=500&fit=crop&q=80" },
+  { id: "hidden_gem", label: "Hidden Gem", image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&h=500&fit=crop&q=80" },
+  { id: "review", label: "Review", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=500&fit=crop&q=80" },
+  { id: "collection", label: "Collection", image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=400&h=500&fit=crop&q=80" },
+  { id: "life_lesson", label: "Life Lesson", image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=500&fit=crop&q=80" },
+];
+
+// Target Audience options
+const TARGET_AUDIENCES = [
+  "Travelers", "Artists", "Students", "Founders", "Readers",
+  "Photographers", "Designers", "Developers", "History Lovers",
+  "Anime Fans", "Food Lovers", "Fitness Enthusiasts", "Musicians",
+  "Entrepreneurs", "Parents", "Gamers", "Writers", "Explorers",
+];
+
+// Social links
+const SOCIAL_PLATFORMS = [
+  { key: "instagram", label: "Instagram", icon: Camera, placeholder: "@username or URL" },
+  { key: "youtube", label: "YouTube", icon: Film, placeholder: "Channel or video URL" },
+  { key: "twitter", label: "Twitter/X", icon: Zap, placeholder: "@username or URL" },
+  { key: "facebook", label: "Facebook", icon: Globe, placeholder: "Profile or page URL" },
+  { key: "website", label: "Website", icon: ExternalLink, placeholder: "https://yourwebsite.com" },
+  { key: "linkedin", label: "LinkedIn", icon: Briefcase, placeholder: "Profile URL" },
+];
+
 // Creator flow states
 type CreatorFlow =
   | "enter_email"
@@ -629,6 +695,73 @@ export default function CreateHookPage() {
   const [productPrice, setProductPrice] = useState("");
   const [externalStoreUrl, setExternalStoreUrl] = useState("");
   const [currency, setCurrency] = useState("USD");
+    // New flow state
+  const [hookPurpose, setHookPurpose] = useState<"creator" | "personal" | "">("");
+  const [hookSubtype, setHookSubtype] = useState("");
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
+
+    // ===== TARGET AUDIENCE HELPERS =====
+  const toggleTargetAudience = (audience: string) => {
+    setTargetAudience((prev) =>
+      prev.includes(audience)
+        ? prev.filter((a) => a !== audience)
+        : [...prev, audience]
+    );
+  };
+
+  // ===== SOCIAL LINKS HELPERS =====
+  const updateSocialLink = (platform: string, value: string) => {
+    setSocialLinks((prev) => ({ ...prev, [platform]: value }));
+  };
+
+  // ===== DYNAMIC TITLE PLACEHOLDER =====
+  const getTitlePlaceholder = () => {
+    if (hookPurpose === "creator") {
+      if (hookSubtype === "product") return "e.g., Handmade Silver Earrings - Artisan Jewellery";
+      if (hookSubtype === "blog") return "e.g., Best AI Tools For Startups in 2026";
+      if (hookSubtype === "website") return "e.g., My Design Portfolio - 10 Years of Work";
+      if (hookSubtype === "tool") return "e.g., This Tool Helped Me Automate My Workflow";
+      if (hookSubtype === "resource") return "e.g., Ultimate List of Free Design Resources";
+      if (hookSubtype === "portfolio") return "e.g., Photography Portfolio - Landscapes & Portraits";
+      if (hookSubtype === "video") return "e.g., How I Built a SaaS in 30 Days";
+      return "e.g., Best AI Tools For Startups";
+    }
+    if (hookPurpose === "personal") {
+      if (hookSubtype === "memory") return "e.g., Sunrise I Witnessed At Kedarnath";
+      if (hookSubtype === "recommendation") return "e.g., Best Coffee Shop in Pune You Must Visit";
+      if (hookSubtype === "hidden_gem") return "e.g., Hidden Waterfall Near Manali Nobody Talks About";
+      if (hookSubtype === "review") return "e.g., Why This Book Changed My Perspective on Life";
+      if (hookSubtype === "collection") return "e.g., My Collection of Vintage Cameras";
+      if (hookSubtype === "life_lesson") return "e.g., What I Learned From Failing My First Startup";
+      return "e.g., Sunrise I Witnessed At Kedarnath";
+    }
+    return "e.g., Best AI Tools For Startups";
+  };
+
+  // ===== DYNAMIC SEARCH QUERY EXAMPLES =====
+  const getSearchQueryExamples = () => {
+    if (hookPurpose === "creator") {
+      if (hookSubtype === "product") return "handmade silver earrings, artisan jewellery india, silver earrings for women";
+      if (hookSubtype === "blog") return "best ai tools for founders, how to start an ai startup, ai productivity tools 2026";
+      if (hookSubtype === "website") return "best design portfolios, creative portfolio examples, web designer portfolio";
+      if (hookSubtype === "tool") return "best productivity tools, workflow automation tools, ai tools for developers";
+      if (hookSubtype === "resource") return "free design resources, best learning resources, free tools for creators";
+      if (hookSubtype === "portfolio") return "photography portfolio, best photographer portfolios, landscape photography";
+      if (hookSubtype === "video") return "how to build a saas, startup journey video, indie hacker story";
+      return "best ai tools for founders, how to start a startup";
+    }
+    if (hookPurpose === "personal") {
+      if (hookSubtype === "memory") return "kedarnath sunrise, best places in kedarnath, kedarnath travel experience";
+      if (hookSubtype === "recommendation") return "best coffee shop pune, hidden cafes pune, must visit places pune";
+      if (hookSubtype === "hidden_gem") return "hidden waterfall manali, offbeat places himachal, secret spots india";
+      if (hookSubtype === "review") return "best self help books, life changing books, must read books 2026";
+      if (hookSubtype === "collection") return "vintage camera collection, film photography gear, retro cameras";
+      if (hookSubtype === "life_lesson") return "startup failure lessons, what i learned from failure, entrepreneur mistakes";
+      return "kedarnath sunrise, best places in kedarnath";
+    }
+    return "best ai tools for founders, how to start a startup";
+  };
 
   // Creator verification state
   const [creatorFlow, setCreatorFlow] = useState<CreatorFlow>("enter_email");
@@ -909,7 +1042,7 @@ export default function CreateHookPage() {
       .filter(Boolean) as string[];
 
     try {
-      const payload: any = {
+        const payload: any = {
         title,
         description,
         why_care: whyCare,
@@ -920,17 +1053,23 @@ export default function CreateHookPage() {
         category_slug: category.toLowerCase(),
         tags,
         type: hookType,
+        hook_purpose: hookPurpose,
+        hook_subtype: hookSubtype,
+        target_audience: targetAudience,
+        social_links: socialLinks,
         creator_name: creatorData?.username || creatorEmail.split("@")[0],
-        creator_username: creatorData?.username || creatorEmail.split("@")[0], // ← ADD THIS
+        creator_username: creatorData?.username || creatorEmail.split("@")[0],
         creator_email_ref: creatorEmail,
         is_published: true,
       };
 
-      if (hookType === "link") {
+      if (destinationUrl) {
         payload.destination_url = destinationUrl;
-      } else if (hookType === "blog") {
+      }
+      if (hookSubtype === "blog") {
         payload.blog_content = blogContent;
-      } else if (hookType === "product") {
+      }
+      if (hookSubtype === "product") {
         payload.product_price = parseFloat(productPrice) || 0;
         payload.currency = currency;
         payload.product_details = {
@@ -1142,11 +1281,13 @@ export default function CreateHookPage() {
         is_published: true,
       };
 
-      if (hookType === "link") {
+      if (destinationUrl) {
         payload.destination_url = destinationUrl;
-      } else if (hookType === "blog") {
+      }
+      if (hookSubtype === "blog") {
         payload.blog_content = blogContent;
-      } else if (hookType === "product") {
+      }
+      if (hookSubtype === "product") {
         payload.product_price = parseFloat(productPrice) || 0;
         payload.currency = currency;
         payload.product_details = {
@@ -1173,25 +1314,27 @@ export default function CreateHookPage() {
   };
 
   // Progress calculation
-  const getProgress = () => {
+    const getProgress = () => {
     let completed = 0;
+    if (hookPurpose) completed++;
+    if (hookSubtype) completed++;
     if (images.length > 0 && !images.some((img) => img.uploading)) completed++;
     if (title.length > 0) completed++;
     if (category.length > 0) completed++;
     if (whyCare.trim().length > 0) completed++;
     if (searchQueries.length > 0) completed++;
-    if (hookType === "link" && destinationUrl.length > 0) completed++;
-    if (hookType === "blog" && blogContent.length > 50) completed++;
-    if (hookType === "product" && productPrice.length > 0) completed++;
+    if (destinationUrl.length > 0) completed++;
+    if (hookSubtype === "blog" && blogContent.length > 50) completed++;
+    if (hookSubtype === "product" && productPrice.length > 0) completed++;
     if (creatorFlow === "verified") completed++;
     return completed;
   };
 
   const progress = getProgress();
-  const totalSteps = 9;
+  const totalSteps = 11;
 
   // ===== SUCCESS SCREEN =====
-  if (step === 5 && publishedHookId) {
+  if (step === 6 && publishedHookId) {
     return (
       <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center px-4 py-20">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -1226,13 +1369,13 @@ export default function CreateHookPage() {
             <CheckCircle2 className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-neutral-900 mb-3">
-            Hook Published!
+            Your Hook Is Now Discoverable!
           </h1>
           <p className="text-lg text-neutral-500 mb-2">
-            Your Hook is now a searchable discovery page.
+            Your content is now discoverable across multiple pages.
           </p>
           <p className="text-purple-600 font-medium mb-2">
-            &quot;One Hook. Infinite reach.&quot;
+            &quot;Create once. Get discovered everywhere.&quot;
           </p>
           <p className="text-sm text-neutral-400 mb-10">
             Posted by{" "}
@@ -1370,46 +1513,54 @@ export default function CreateHookPage() {
                   <Badge className="mb-3 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0 px-4 py-1.5 text-sm font-medium">
                     <Sparkles className="w-3 h-3 mr-1" />
                     {step === 1
-                      ? "Upload Visuals"
+                      ? "Choose Purpose"
                       : step === 2
-                        ? "Choose Hook Type"
+                        ? "Choose Type"
                         : step === 3
-                          ? "Fill Details"
-                          : "Verify & Publish"}
+                          ? "Share Something Worth Discovering"
+                          : step === 4
+                            ? "Preview Your Reach"
+                            : "Verify & Publish"}
                   </Badge>
                   <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 leading-tight mb-2">
                     {step === 1
-                      ? "Upload your"
+                      ? "What do you want to"
                       : step === 2
-                        ? "What type of"
+                        ? "What kind of"
                         : step === 3
-                          ? "Tell your"
-                          : "Ready to"}{" "}
+                          ? "Help people"
+                          : step === 4
+                            ? "Preview your"
+                            : "Ready to"}{" "}
                     <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
                       {step === 1
-                        ? "visuals"
+                        ? "share?"
                         : step === 2
-                          ? "Hook"
+                          ? "Hook?"
                           : step === 3
-                            ? "story"
-                            : "publish"}
+                            ? "discover this"
+                            : step === 4
+                              ? "reach"
+                              : "publish"}
                     </span>
                   </h1>
                   <p className="text-neutral-500">
                     {step === 1
-                      ? "Drag & drop your images. No sign-up needed."
+                      ? "Choose the purpose of your Hook. Create once. Get discovered everywhere."
                       : step === 2
-                        ? "Select what your Hook represents."
+                        ? "Select the specific type that best describes what you're sharing."
                         : step === 3
                           ? "Add details that help people find your Hook on Google and AI search."
-                          : "Verify your email and publish to the world."}
+                          : step === 4
+                            ? "See how your Hook will be discovered across multiple pages."
+                            : "Verify your email and publish to the world."}
                   </p>
                 </div>
 
                 {/* Step Progress */}
-                <div className="flex items-center justify-center gap-3 mb-6">
+                  <div className="flex items-center justify-center gap-3 mb-6">
                   <div className="flex gap-1.5">
-                    {[1, 2, 3, 4].map((i) => (
+                    {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
                         className={`w-10 h-2.5 rounded-full transition-all duration-500 ${i <= step ? "bg-gradient-to-r from-purple-600 to-pink-500 shadow-md shadow-purple-500/20" : "bg-neutral-200"}`}
@@ -1417,7 +1568,7 @@ export default function CreateHookPage() {
                     ))}
                   </div>
                   <span className="text-sm text-neutral-400 ml-2 font-medium">
-                    Step {step} of 4
+                    Step {step} of 5
                   </span>
                 </div>
 
@@ -1454,8 +1605,158 @@ export default function CreateHookPage() {
                 </div>
               )}
 
-              {/* STEP 1: Upload Images */}
+              {/* STEP 1: Choose Hook Purpose */}
               {step === 1 && (
+                <div className="p-8 pt-2 space-y-6">
+                  <div className="grid gap-4">
+                    {HOOK_PURPOSES.map((purpose) => {
+                      const isSelected = hookPurpose === purpose.id;
+                      const Icon = purpose.icon;
+                      return (
+                        <button
+                          key={purpose.id}
+                          onClick={() => {
+                            setHookPurpose(purpose.id as "creator" | "personal");
+                            setHookSubtype("");
+                          }}
+                          className={`relative flex items-start gap-4 p-6 rounded-2xl border-2 transition-all duration-300 text-left group ${
+                            isSelected
+                              ? `${purpose.bgColor} ${purpose.borderColor} shadow-lg scale-[1.02]`
+                              : "bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
+                          }`}
+                        >
+                          <div
+                            className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${purpose.color} flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform`}
+                          >
+                            <Icon className="w-7 h-7 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3
+                                className={`font-bold text-lg ${isSelected ? purpose.textColor : "text-neutral-900"}`}
+                              >
+                                {purpose.label}
+                              </h3>
+                              {isSelected && (
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                              )}
+                            </div>
+                            <p className="text-sm text-neutral-500 mb-2">
+                              {purpose.description}
+                            </p>
+                            <p className="text-xs text-neutral-400">
+                              Examples: {purpose.examples}
+                            </p>
+                          </div>
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${isSelected ? `border-current ${purpose.textColor}` : "border-neutral-300"}`}
+                          >
+                            {isSelected && (
+                              <div
+                                className={`w-3 h-3 rounded-full bg-current ${purpose.textColor}`}
+                              />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      onClick={() => setStep(2)}
+                      disabled={!hookPurpose}
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                    >
+                      Next Step <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+                            {/* STEP 2: Choose Hook Subtype */}
+              {step === 2 && (
+                <div className="p-8 pt-2 space-y-6">
+                  <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-4">
+                    <p className="text-sm text-purple-700 font-medium">
+                      {hookPurpose === "creator"
+                        ? "You selected: Creator Hook — Grow your audience and drive traffic."
+                        : "You selected: Personal Hook — Share experiences and hidden gems."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {(hookPurpose === "creator" ? CREATOR_SUBTYPES : PERSONAL_SUBTYPES).map(
+                      (subtype) => {
+                        const isSelected = hookSubtype === subtype.id;
+                        return (
+                          <button
+                            key={subtype.id}
+                            onClick={() => setHookSubtype(subtype.id)}
+                            className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ${
+                              isSelected
+                                ? "ring-4 ring-purple-500 shadow-xl scale-[1.02]"
+                                : "hover:shadow-lg hover:scale-[1.01]"
+                            }`}
+                            style={{ aspectRatio: "4/3" }}
+                          >
+                            {/* Background Image */}
+                            <img
+                              src={subtype.image}
+                              alt={subtype.label}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                            
+                            {/* Dark Overlay */}
+                            <div className={`absolute inset-0 transition-opacity duration-300 ${
+                              isSelected 
+                                ? "bg-purple-900/60" 
+                                : "bg-black/40 group-hover:bg-black/50"
+                            }`} />
+
+                            {/* Selected Checkmark */}
+                            {isSelected && (
+                              <div className="absolute top-3 right-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
+                                <CheckCircle2 className="w-5 h-5 text-white" />
+                              </div>
+                            )}
+
+                            {/* Label */}
+                            <div className="absolute inset-0 flex items-center justify-center p-4 z-10">
+                              <span className="text-white font-bold text-lg text-center drop-shadow-lg" style={{ textShadow: "0 2px 10px rgba(0,0,0,0.8)" }}>
+                                {subtype.label}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+
+                  <div className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep(1)}
+                      className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Back
+                    </Button>
+                    <Button
+                      onClick={() => setStep(3)}
+                      disabled={!hookSubtype}
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                    >
+                      Next Step <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Upload Images */}
+              {step === 3 && (
                 <div className="p-8 pt-2 space-y-6">
                   {images.length < 5 && (
                     <div
@@ -1555,106 +1856,14 @@ export default function CreateHookPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      onClick={() => setStep(2)}
-                      disabled={
-                        images.length === 0 ||
-                        images.some((img) => img.uploading)
-                      }
-                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
-                    >
-                      Next Step <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 2: Choose Hook Type */}
-              {step === 2 && (
-                <div className="p-8 pt-2 space-y-6">
-                  <div className="grid gap-4">
-                    {HOOK_TYPES.map((type) => {
-                      const isSelected = hookType === type.id;
-                      const Icon = type.icon;
-                      return (
-                        <button
-                          key={type.id}
-                          onClick={() =>
-                            setHookType(type.id as "link" | "blog" | "product")
-                          }
-                          className={`relative flex items-start gap-4 p-6 rounded-2xl border-2 transition-all duration-300 text-left group ${
-                            isSelected
-                              ? `${type.bgColor} ${type.borderColor} shadow-lg scale-[1.02]`
-                              : "bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
-                          }`}
-                        >
-                          <div
-                            className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${type.color} flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform`}
-                          >
-                            <Icon className="w-7 h-7 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3
-                                className={`font-bold text-lg ${isSelected ? type.textColor : "text-neutral-900"}`}
-                              >
-                                {type.label}
-                              </h3>
-                              {isSelected && (
-                                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                              )}
-                            </div>
-                            <p className="text-sm text-neutral-500 mb-2">
-                              {type.description}
-                            </p>
-                            <p className="text-xs text-neutral-400">
-                              Examples: {type.examples}
-                            </p>
-                          </div>
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${isSelected ? `border-current ${type.textColor}` : "border-neutral-300"}`}
-                          >
-                            {isSelected && (
-                              <div
-                                className={`w-3 h-3 rounded-full bg-current ${type.textColor}`}
-                              />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex justify-between pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back
-                    </Button>
-                    <Button
-                      onClick={() => setStep(3)}
-                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
-                    >
-                      Next Step <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: Fill Details */}
-              {step === 3 && (
-                <div className="p-8 pt-2 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                  {/* Title */}
+                                    {/* Title */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
                       <MousePointerClick className="w-4 h-4 text-purple-500" />{" "}
                       What is this? *
                     </label>
                     <Input
-                      placeholder="e.g., Best Tools To Start An AI Company, Matsumoto Castle Japan, Handmade Silver Earrings..."
+                      placeholder={getTitlePlaceholder()}
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="h-14 rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 text-lg"
@@ -1665,14 +1874,38 @@ export default function CreateHookPage() {
                     </p>
                   </div>
 
-                  {/* Description */}
+                  {/* Target Audience */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-pink-500" /> Describe it
-                      in a few sentences
+                      <Eye className="w-4 h-4 text-amber-500" /> Who is this useful for?
                     </label>
+                    <div className="flex flex-wrap gap-2">
+                      {TARGET_AUDIENCES.map((audience) => (
+                        <button
+                          key={audience}
+                          onClick={() => toggleTargetAudience(audience)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border-2 transition-all ${
+                            targetAudience.includes(audience)
+                              ? "bg-purple-100 text-purple-700 border-purple-300 shadow-sm"
+                              : "bg-white text-neutral-600 border-neutral-200 hover:border-purple-200 hover:bg-purple-50"
+                          }`}
+                        >
+                          {audience}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Description - Tell the story */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-pink-500" /> Tell the story
+                    </label>
+                    <p className="text-xs text-neutral-400">
+                      Explain what this is. Why it matters. What makes it worth discovering.
+                    </p>
                     <Textarea
-                      placeholder="Briefly explain what this is, what it includes, or what people will discover..."
+                      placeholder="Share the story behind this. What makes it special, useful, or worth discovering..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="min-h-[100px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none"
@@ -1686,9 +1919,11 @@ export default function CreateHookPage() {
                   {/* Why Care */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <Rocket className="w-4 h-4 text-emerald-500" /> Why should
-                      someone care about this? *
+                      <Rocket className="w-4 h-4 text-emerald-500" /> Why should someone care about this? *
                     </label>
+                    <p className="text-xs text-neutral-500">
+                      Example: This guide helped me save 5 hours planning my Switzerland trip. This handmade product supports local artisans. This AI tool helped me automate repetitive work.
+                    </p>
                     <Textarea
                       placeholder="Explain why this is useful, interesting, valuable, inspiring, helpful, or worth discovering..."
                       value={whyCare}
@@ -1698,8 +1933,7 @@ export default function CreateHookPage() {
                     />
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs text-neutral-400">
-                        This gives your Hook useful context for Google and AI
-                        search.
+                        This gives your Hook useful context for Google and AI search.
                       </p>
                       <p className="text-xs text-neutral-400 shrink-0">
                         {whyCare.length}/800
@@ -1779,12 +2013,10 @@ export default function CreateHookPage() {
                   {/* Search Queries */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-emerald-500" /> What would
-                      people search to find this? *
+                      <Globe className="w-4 h-4 text-emerald-500" /> What would people search to find this? *
                     </label>
                     <p className="text-xs text-neutral-500">
-                      Add real Google-style search phrases. This is free SEO
-                      generated by the creator, not AI.
+                      Add real Google-style search phrases. This is free SEO generated by the creator, not AI.
                     </p>
 
                     {searchQueries.length > 0 && (
@@ -1824,68 +2056,70 @@ export default function CreateHookPage() {
 
                     <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
                       <p className="text-xs text-emerald-700 font-medium mb-1">
-                        Examples:
+                        Examples for your type:
                       </p>
                       <p className="text-xs text-emerald-600">
-                        best ai tools for founders, cozy home decor ideas, book
-                        summary for entrepreneurs, handmade jewellery india,
-                        places to visit in japan
+                        {getSearchQueryExamples()}
                       </p>
                     </div>
                   </div>
 
-                  {/* TYPE-SPECIFIC FIELDS */}
-
-                  {/* Link Hook: Destination URL */}
-                  {hookType === "link" && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-blue-500" /> Original
-                        Source URL *
-                      </label>
-                      <div className="relative">
-                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <Input
-                          placeholder="https://youtube.com/watch?v=..., https://yourportfolio.com"
-                          value={destinationUrl}
-                          onChange={(e) => setDestinationUrl(e.target.value)}
-                          className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10"
-                        />
-                      </div>
-                      <p className="text-xs text-neutral-400">
-                        Visitors will go to this original creator source when
-                        they click your Hook.
-                      </p>
+                  {/* Social Links */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-blue-500" /> Social Links (Optional)
+                    </label>
+                    <p className="text-xs text-neutral-500">
+                      Drive traffic to your profiles. These will appear on your Hook page.
+                    </p>
+                    <div className="grid gap-3">
+                      {SOCIAL_PLATFORMS.map((platform) => {
+                        const Icon = platform.icon;
+                        return (
+                          <div key={platform.key} className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
+                              <Icon className="w-5 h-5 text-neutral-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-neutral-500 mb-1">{platform.label}</p>
+                              <Input
+                                placeholder={platform.placeholder}
+                                value={socialLinks[platform.key] || ""}
+                                onChange={(e) => updateSocialLink(platform.key, e.target.value)}
+                                className="h-10 rounded-xl border-neutral-200 focus:border-purple-300 text-sm"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
 
-                  {/* Blog Hook: Blog Content */}
-                  {hookType === "blog" && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-blue-500" /> Blog
-                        Content *
-                      </label>
-                      <Textarea
-                        placeholder="Write your full article here. This will be displayed when users click your Hook..."
-                        value={blogContent}
-                        onChange={(e) => setBlogContent(e.target.value)}
-                        className="min-h-[200px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none"
+                  {/* Destination Link */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-blue-500" /> Where should visitors go when they want to learn more?
+                    </label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                      <Input
+                        placeholder="https://yourstore.com, https://yourblog.com, https://youtube.com/watch?v=..."
+                        value={destinationUrl}
+                        onChange={(e) => setDestinationUrl(e.target.value)}
+                        className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10"
                       />
-                      <p className="text-xs text-neutral-400">
-                        {blogContent.length} characters. Write at least 50
-                        characters.
-                      </p>
                     </div>
-                  )}
+                    <p className="text-xs text-neutral-400">
+                      Examples: Store, Blog, Website, Instagram Post, YouTube Video, Portfolio
+                    </p>
+                  </div>
 
-                  {/* Product Hook: Price & Original Store URL */}
-                  {hookType === "product" && (
+                                    {/* Product Price & Store URL - Only for Product subtype */}
+                  {hookSubtype === "product" && (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-500" />{" "}
-                          Price *
+                          <DollarSign className="w-4 h-4 text-emerald-500" /> Price *
                         </label>
                         <div className="flex gap-2">
                           <select
@@ -1929,57 +2163,158 @@ export default function CreateHookPage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                          <ShoppingBag className="w-4 h-4 text-emerald-500" />{" "}
-                          Original Store URL
+                          <ShoppingBag className="w-4 h-4 text-emerald-500" /> Original Store URL *
                         </label>
                         <div className="relative">
                           <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                           <Input
                             placeholder="https://yourstore.com/product/..."
                             value={externalStoreUrl}
-                            onChange={(e) =>
-                              setExternalStoreUrl(e.target.value)
-                            }
+                            onChange={(e) => setExternalStoreUrl(e.target.value)}
                             className="h-12 rounded-xl border-neutral-200 focus:border-purple-300 pl-10"
                           />
                         </div>
                         <p className="text-xs text-neutral-400">
-                          Visitors will be redirected here to view or buy the
-                          product. Native checkout coming soon.
+                          Visitors will be redirected here to view or buy the product. Native checkout coming soon.
                         </p>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex justify-between pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(2)}
-                      className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back
-                    </Button>
+                  {/* Blog Content - Only for Blog subtype */}
+                  {hookSubtype === "blog" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-blue-500" /> Blog Content *
+                      </label>
+                      <Textarea
+                        placeholder="Write your full article here. This will be displayed when users click your Hook..."
+                        value={blogContent}
+                        onChange={(e) => setBlogContent(e.target.value)}
+                        className="min-h-[200px] rounded-xl border-neutral-200 focus:border-purple-300 focus:ring-purple-500/20 resize-none"
+                      />
+                      <p className="text-xs text-neutral-400">
+                        {blogContent.length} characters. Write at least 50 characters.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
                     <Button
                       onClick={() => setStep(4)}
-                      disabled={
+                        disabled={
+                        images.length === 0 ||
+                        images.some((img) => img.uploading) ||
                         !title ||
                         !category ||
                         !whyCare.trim() ||
                         searchQueries.length === 0 ||
-                        (hookType === "link" && !destinationUrl) ||
-                        (hookType === "blog" && blogContent.length < 50) ||
-                        (hookType === "product" &&
-                          (!productPrice || !externalStoreUrl))
+                        (hookSubtype === "blog" && blogContent.length < 50) ||
+                        (hookSubtype === "product" && (!productPrice || !externalStoreUrl))
                       }
                       className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 disabled:opacity-40 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
                     >
-                      Preview & Publish <ArrowRight className="w-4 h-4" />
+                      Next Step <ArrowRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* STEP 4: Verify Email & Publish */}
+              {/* STEP 4: Preview Your Reach */}
+              {step === 4 && (
+                <div className="p-8 pt-2 space-y-6">
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
+                    <h3 className="font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
+                      <Rocket className="w-5 h-5 text-purple-600" />
+                      Your Hook will automatically appear in:
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm text-neutral-700 font-medium">Your Hook Page</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm text-neutral-700 font-medium">{category} Category Page</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm text-neutral-700 font-medium">Your Creator Profile</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm text-neutral-700 font-medium">Search Pages</span>
+                      </div>
+                    </div>
+
+                    {searchQueries.length > 0 && (
+                      <div className="mt-4 p-4 bg-white rounded-xl border border-purple-100">
+                        <p className="text-xs text-purple-600 font-medium mb-2 uppercase tracking-wider">
+                          People will find this when they search:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {searchQueries.map((query) => (
+                            <span
+                              key={query}
+                              className="text-sm text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100"
+                            >
+                              {query}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      </div>
+                      <span className="text-sm text-neutral-700 font-medium">Search Engine Friendly</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      </div>
+                      <span className="text-sm text-neutral-700 font-medium">AI Search Friendly</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-5 border border-neutral-200">
+                    <p className="text-sm text-neutral-600 text-center leading-relaxed">
+                      <span className="font-semibold text-purple-700">Create once. Get discovered everywhere.</span>
+                      <br />
+                      This creates multiple ways for people to discover your content.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep(3)}
+                      className="rounded-full gap-2 border-neutral-200 hover:bg-neutral-50"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Back
+                    </Button>
+                    <Button
+                      onClick={() => setStep(5)}
+                      className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full h-12 px-8 gap-2 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                    >
+                      Verify & Publish <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: Verify Email & Publish */}
               {step === 4 && (
                 <div className="p-8 pt-2 space-y-6">
                   {/* Preview Card */}
@@ -2061,6 +2396,48 @@ export default function CreateHookPage() {
                           </span>
                         </div>
                       )}
+
+                                            {hookSubtype === "blog" && blogContent && (
+                        <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                          <BookOpen className="w-4 h-4 text-indigo-500" />
+                          <span className="text-sm text-indigo-700 flex-1">
+                            {blogContent.length} characters
+                          </span>
+                          <span className="text-xs text-indigo-400">
+                            Blog Article
+                          </span>
+                        </div>
+                      )}
+                      {hookSubtype === "product" && productPrice && (
+                        <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <DollarSign className="w-4 h-4 text-emerald-500" />
+                          <span className="text-sm text-emerald-700 font-bold">
+                            {currency === "USD"
+                              ? "$"
+                              : currency === "INR"
+                                ? "₹"
+                                : currency === "EUR"
+                                  ? "€"
+                                  : currency === "GBP"
+                                    ? "£"
+                                    : currency === "JPY"
+                                      ? "¥"
+                                      : currency === "AUD"
+                                        ? "A$"
+                                        : "C$"}
+                            {productPrice}
+                          </span>
+                          {externalStoreUrl && (
+                            <span className="text-xs text-emerald-400 truncate flex-1 ml-2">
+                              {externalStoreUrl}
+                            </span>
+                          )}
+                          <span className="text-xs text-emerald-400">
+                            Product
+                          </span>
+                        </div>
+                      )}
+
                       {hookType === "blog" && blogContent && (
                         <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                           <BookOpen className="w-4 h-4 text-indigo-500" />
@@ -2102,6 +2479,30 @@ export default function CreateHookPage() {
                         </div>
                       )}
 
+                      {/* Social Links Preview */}
+                      {Object.entries(socialLinks).filter(([,v]) => v).length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-neutral-400 uppercase tracking-wider font-semibold">
+                            Connect with the creator
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(socialLinks)
+                              .filter(([, value]) => value)
+                              .map(([key, value]) => {
+                                const platform = SOCIAL_PLATFORMS.find((p) => p.key === key);
+                                if (!platform) return null;
+                                const Icon = platform.icon;
+                                return (
+                                  <div key={key} className="flex items-center gap-2 p-2 bg-neutral-50 rounded-lg border border-neutral-100">
+                                    <Icon className="w-4 h-4 text-neutral-500" />
+                                    <span className="text-xs text-neutral-600 truncate max-w-[150px]">{value}</span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-3 pt-4 border-t border-neutral-100">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-md text-sm">
                           {creatorProfile?.username?.charAt(0)?.toUpperCase() ||
@@ -2116,6 +2517,11 @@ export default function CreateHookPage() {
                           <p className="text-sm text-neutral-400">
                             {creatorEmail}
                           </p>
+                          {hookPurpose && (
+                            <p className="text-xs text-purple-600 mt-0.5">
+                              {hookPurpose === "creator" ? "Creator Hook" : "Personal Hook"} • {hookSubtype.replace("_", " ")}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2463,9 +2869,9 @@ export default function CreateHookPage() {
               )}
             </div>
 
-            <div className="text-center mt-8">
+           <div className="text-center mt-8">
               <p className="text-neutral-400 text-sm font-medium tracking-wide">
-                &quot;Do not think. Just Hookit.&quot;
+                &quot;Create once. Get discovered everywhere.&quot;
               </p>
             </div>
           </div>

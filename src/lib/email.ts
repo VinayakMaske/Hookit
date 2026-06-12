@@ -441,3 +441,36 @@ export async function sendPasswordResetEmail(
     }
     await transporter.sendMail(mailOptions)
 }
+
+// Send OTP for passcode reset (user creates their own passcode after)
+export async function sendPasscodeResetOTP(to: string, username: string, otp: string) {
+    const mailOptions = {
+        from: `"Hookit" <${process.env.EMAIL_FROM}>`,
+        to,
+        subject: 'Reset Your Hookit Passcode',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #7C3AED; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">Reset Your Passcode</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">@${username}</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+                    <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 16px;">Your 6-digit verification code:</p>
+                        <div style="font-size: 48px; font-weight: bold; color: #7C3AED; letter-spacing: 8px; margin: 20px 0;">
+                            ${otp}
+                        </div>
+                        <p style="margin: 0; color: #999; font-size: 14px;">This code expires in 15 minutes.</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px;">
+                            <strong>After entering this code, you'll create a new 4-digit passcode.</strong><br>
+                            Your old passcode will no longer work.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `,
+    }
+    await transporter.sendMail(mailOptions)
+}

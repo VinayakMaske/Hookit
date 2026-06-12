@@ -1,13 +1,23 @@
-// src/app/api/creator/verify-otp/route.ts
 import { createClient } from '@/lib/supabase/server'
-import { sendCreatorPasskey } from '@/lib/email'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
-    const { email, otp } = await req.json()
-    if (!email?.includes('@') || !otp || otp.length !== 6) {
-      return NextResponse.json({ error: 'Invalid email or OTP' }, { status: 400 })
+    const body = await req.json()
+    console.log('verify-otp received body:', body)
+    
+    const { email, otp } = body
+    
+    console.log('verify-otp extracted:', { email, otp, otpType: typeof otp, otpLength: otp?.length })
+
+    if (!email?.includes('@')) {
+      console.log('verify-otp fail: invalid email')
+      return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
+    }
+    
+    if (!otp || typeof otp !== 'string' || otp.length !== 6) {
+      console.log('verify-otp fail: invalid otp', { otp, type: typeof otp, length: otp?.length })
+      return NextResponse.json({ error: 'Invalid OTP. Must be 6 digits.' }, { status: 400 })
     }
 
     const supabase = await createClient()
@@ -24,74 +34,48 @@ export async function POST(req: Request) {
       .limit(1)
       .single()
 
+    console.log('verify-otp db query:', { passcodeRecord, error })
+
     if (error || !passcodeRecord) {
+      console.log('verify-otp fail: record not found')
       return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 })
     }
 
     // Check if expired
     if (new Date(passcodeRecord.expires_at) < new Date()) {
+      console.log('verify-otp fail: expired')
       return NextResponse.json({ error: 'OTP has expired. Please request a new one.' }, { status: 400 })
     }
 
     // Mark OTP as used
-    await supabase
+    const { error: updateError } = await supabase
       .from('creator_passcodes')
-      .update({ is_used: true })
+      .update({ is_used: true, verified_at: new Date().toISOString() })
       .eq('id', passcodeRecord.id)
 
-    // If new creator, create creator profile and send passkey
+    if (updateError) {
+      console.error('verify-otp update error:', updateError)
+      return NextResponse.json({ error: 'Failed to verify OTP' }, { status: 500 })
+    }
+
+    console.log('verify-otp update success, id:', passcodeRecord.id)
+
+    // If new creator, return verified status so frontend shows passcode creation
     if (!passcodeRecord.is_returning) {
-      // Check if creator already exists (double-check)
-      const { data: existingCreator } = await supabase
-        .from('creators')
-        .select('id, username, email, passcode, display_name')
-        .eq('email', normalizedEmail)
-        .single()
-
-      let creator
-      if (!existingCreator) {
-        // Create new creator
-        const { data: newCreator, error: createError } = await supabase
-          .from('creators')
-          .insert({
-            email: normalizedEmail,
-            username: passcodeRecord.suggested_username,
-            display_name: passcodeRecord.suggested_username,
-            passcode: passcodeRecord.passcode,
-            is_verified: true,
-          })
-          .select()
-          .single()
-
-        if (createError) {
-          console.error('Creator insert error:', createError)
-          return NextResponse.json({ error: 'Failed to create creator profile' }, { status: 500 })
-        }
-        creator = newCreator
-      } else {
-        creator = existingCreator
-      }
-
-      // Send passkey email
-      await sendCreatorPasskey(email, passcodeRecord.passcode, creator.username)
-
       return NextResponse.json({
-        success: true,
-        message: 'Email verified. Passkey sent to your email.',
-        creator: {
-          id: creator.id,
-          username: creator.username,
-          email: normalizedEmail,
-        },
-        passkey: passcodeRecord.passcode,
+        verified: true,
+        email: normalizedEmail,
+        suggestedUsername: passcodeRecord.suggested_username,
+        message: 'OTP verified. Please create your 4-digit passcode.',
         isNewCreator: true,
       })
     }
 
-    // Returning creator - OTP verified, now they need to enter passkey
+    // Returning creator - OTP verified, now they need to enter passcode
     return NextResponse.json({
-      success: true,
-      message: 'OTP verified. Now enter your Creator Passkey.',
+      verified: true,
+      email: normalizedEmail,
+      message: 'OTP verified. Now enter your 4-digit passcode.',
       isNewCreator: false,
     })
   } catch (err: any) {

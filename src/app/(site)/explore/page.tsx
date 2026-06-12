@@ -13,9 +13,12 @@ import {
   ArrowUpRight,
   ArrowRight,
   Sparkles,
+  LayoutList,
+  Compass,
   Globe,
   Plane,
   Palette,
+  Grid3X3,
   Camera,
   ShoppingBag,
   Sparkles as SparklesIcon,
@@ -129,7 +132,6 @@ function shuffleArray<T>(array: T[]): T[] {
 // HOOK CARD COMPONENT
 // ============================================
 function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
-  const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
 
   const imageUrl = isDemo
@@ -140,6 +142,9 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
   const clickCount = hook.clicks || hook.click_count || 0
   const hookType = hook.type || 'link'
   const price = hook.price || hook.product_price
+  const cfg = HOOK_TYPE_CONFIG[hookType] || HOOK_TYPE_CONFIG.link
+  const TypeIcon = cfg.icon
+  const catColor = CATEGORY_COLORS[hook.category?.toLowerCase()] || 'from-purple-500 to-pink-500'
 
   return (
     <div
@@ -148,63 +153,72 @@ function HookCard({ hook, isDemo = false }: { hook: any; isDemo?: boolean }) {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
         <img
           src={imageUrl}
           alt={hook.title || hook.name}
-          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
           loading="lazy"
         />
 
-        {/* Type Icon (top right) — hover only */}
-<div className={`absolute top-3 right-3 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-  {hookType === 'link' && (
-    <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
-      <ExternalLink className="w-4 h-4 text-white" />
-    </div>
-  )}
-  {hookType === 'blog' && (
-    <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
-      <FileText className="w-4 h-4 text-white" />
-    </div>
-  )}
-  {hookType === 'product' && (
-    <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
-      <ShoppingBagIcon className="w-4 h-4 text-white" />
-    </div>
-  )}
-</div>
+        {/* Gradient overlay on hover */}
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
 
-{/* Category Badge — hover only */}
-<Badge className={`absolute top-3 left-3 bg-gradient-to-r ${CATEGORY_COLORS[hook.category_slug || hook.category?.toLowerCase() || 'art']} text-white border-0 text-xs backdrop-blur-sm shadow-lg transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-  {hook.category}
-</Badge>
-
-{/* Price badge for products — hover only */}
-{price && (
-  <div className={`absolute bottom-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 md:group-hover:opacity-100'}`}>
-    {hook.currency === 'INR' ? '₹' : hook.currency === 'EUR' ? '€' : hook.currency === 'GBP' ? '£' : hook.currency === 'JPY' ? '¥' : hook.currency === 'AUD' ? 'A$' : hook.currency === 'CAD' ? 'C$' : '$'}{price}
-  </div>
-)}
-      </div>
-
-      {/* Card Info */}
-<div className="pt-2 pb-1">
-  <h3 className="font-semibold text-neutral-900 text-sm line-clamp-2 leading-tight group-hover:underline decoration-1 underline-offset-2">{hook.title || hook.name}</h3>
-</div>
-
-      {/* Hover Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${HOOK_TYPE_CONFIG[hookType]?.bgColor} ${HOOK_TYPE_CONFIG[hookType]?.textColor}`}>
-              {hookType === 'link' && <ExternalLink className="w-3 h-3" />}
-              {hookType === 'blog' && <FileText className="w-3 h-3" />}
-              {hookType === 'product' && <ShoppingBagIcon className="w-3 h-3" />}
-              {HOOK_TYPE_CONFIG[hookType]?.label}
-            </span>
+        {/* Type Icon — top right, hover only */}
+        <div className={`absolute top-3 right-3 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+          <div className={`p-2 ${cfg.color}/90 backdrop-blur-sm rounded-full shadow-lg`}>
+            <TypeIcon className="w-4 h-4 text-white" />
           </div>
         </div>
+
+        {/* Category Badge — top left, hover only */}
+        <div className={`absolute top-3 left-3 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r ${catColor} text-white shadow-lg`}>
+            {hook.category}
+          </span>
+        </div>
+
+        {/* Price — bottom left, always for products */}
+        {price && (
+          <div className={`absolute bottom-3 left-3 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500 text-white text-sm font-bold shadow-lg">
+              {hook.currency === 'INR' ? '₹' : hook.currency === 'EUR' ? '€' : hook.currency === 'GBP' ? '£' : hook.currency === 'JPY' ? '¥' : hook.currency === 'AUD' ? 'A$' : hook.currency === 'CAD' ? 'C$' : '$'}{price}
+            </span>
+          </div>
+        )}
+
+        {/* Bottom info on hover */}
+        <div className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-white text-[10px] font-bold">{(hook.creator_name || hook.creator || hook.creator_username || 'A')[0]}</span>
+              </div>
+              <span className="text-white/80 text-xs">@{hook.creator_name || hook.creator || hook.creator_username || 'anonymous'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-white/70 text-xs">
+              <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {viewCount}</span>
+              <span className="flex items-center gap-1"><MousePointerClick className="w-3 h-3" /> {clickCount}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Title below image */}
+      <div className="pt-2.5 pb-1">
+        <h3 className="font-semibold text-neutral-900 text-sm leading-tight group-hover:text-purple-700 transition-colors line-clamp-2">
+          {hook.title || hook.name}
+        </h3>
+        {/* Search terms chips */}
+        {hook.searchTerms && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {hook.searchTerms.slice(0, 2).map((term: string, j: number) => (
+              <span key={j} className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-medium border border-purple-100">
+                {term}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -272,63 +286,53 @@ function CategoryPill({
 function FeaturedCard({ hook }: { hook: any }) {
   const hookType = hook.type || 'link'
   const price = hook.price || hook.product_price
+  const cfg = HOOK_TYPE_CONFIG[hookType] || HOOK_TYPE_CONFIG.link
+  const TypeIcon = cfg.icon
 
   return (
     <Link href={hook.slug ? `/hook/${hook.slug}` : '#'} className="block flex-shrink-0">
-      <div className="group relative rounded-2xl overflow-hidden bg-neutral-100 aspect-[16/10] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 w-[320px] sm:w-[380px] md:w-[420px]">
+      <div className="group relative rounded-2xl overflow-hidden bg-neutral-100 aspect-[4/3] cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 w-[300px] sm:w-[360px] md:w-[420px]">
         <img
           src={hook.images?.[0] || hook.image_url || hook.src || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop'}
           alt={hook.title || hook.name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
         {/* Featured Badge */}
-        <div className="absolute top-3 left-3">
-          <Badge className="bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0 shadow-lg text-xs">
-            <Sparkles className="w-3 h-3 mr-1" />
+        <div className="absolute top-4 left-4">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs font-bold shadow-lg">
             Featured
-          </Badge>
+          </span>
         </div>
 
         {/* Type Icon */}
-        <div className="absolute top-3 right-3">
-          {hookType === 'link' && (
-            <div className="p-2 bg-blue-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <ExternalLink className="w-4 h-4 text-white" />
-            </div>
-          )}
-          {hookType === 'blog' && (
-            <div className="p-2 bg-purple-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <FileText className="w-4 h-4 text-white" />
-            </div>
-          )}
-          {hookType === 'product' && (
-            <div className="p-2 bg-emerald-500/90 backdrop-blur-sm rounded-full shadow-lg">
-              <ShoppingBagIcon className="w-4 h-4 text-white" />
-            </div>
-          )}
+        <div className="absolute top-4 right-4">
+          <div className={`p-2 ${cfg.color}/90 backdrop-blur-sm rounded-full shadow-lg`}>
+            <TypeIcon className="w-4 h-4 text-white" />
+          </div>
         </div>
 
-        {/* Price for products */}
+        {/* Price */}
         {price && (
-          <div className="absolute bottom-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-            ${price}
+          <div className="absolute bottom-4 right-4">
+            <span className="px-3 py-1 rounded-full bg-emerald-500 text-white text-sm font-bold shadow-lg">
+              ${price}
+            </span>
           </div>
         )}
 
+        {/* Bottom content */}
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
-              {hookType === 'link' && <ExternalLink className="w-3 h-3" />}
-              {hookType === 'blog' && <FileText className="w-3 h-3" />}
-              {hookType === 'product' && <ShoppingBagIcon className="w-3 h-3" />}
-              {HOOK_TYPE_CONFIG[hookType]?.label}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm`}>
+              <TypeIcon className="w-3 h-3" />
+              {cfg.label}
             </span>
           </div>
           <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">{hook.title || hook.name}</h3>
-          <p className="text-white/70 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
+          <p className="text-white/60 text-sm mb-3 line-clamp-2">{hook.description || ''}</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -336,9 +340,9 @@ function FeaturedCard({ hook }: { hook: any }) {
               </div>
               <span className="text-white/80 text-sm">@{hook.creator_name || hook.creator || hook.creator_username || 'anonymous'}</span>
             </div>
-            <div className="flex items-center gap-3 text-white/70 text-sm">
-              <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {hook.views || hook.view_count || 0}</span>
-              <span className="flex items-center gap-1"><MousePointerClick className="w-4 h-4" /> {hook.clicks || hook.click_count || 0}</span>
+            <div className="flex items-center gap-3 text-white/60 text-xs">
+              <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {hook.views || hook.view_count || 0}</span>
+              <span className="flex items-center gap-1"><MousePointerClick className="w-3.5 h-3.5" /> {hook.clicks || hook.click_count || 0}</span>
             </div>
           </div>
         </div>
@@ -383,7 +387,6 @@ function FeaturedRow({ hooks, title }: { hooks: any[]; title: string }) {
     <div className="relative group/row max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-600" />
           <h2 className="text-xl sm:text-2xl font-bold text-neutral-900">{title}</h2>
         </div>
       </div>
@@ -435,87 +438,60 @@ function ExploreContent() {
   const [loading, setLoading] = useState(true)
   const [isVisible, setIsVisible] = useState(false)
   const [shuffledDemo, setShuffledDemo] = useState<any[]>([])
+  const [viewMode, setViewMode] = useState<'masonry' | 'grid'>('masonry')
 
   const supabase = createClient()
 
-  // ===== SHUFFLE ON EVERY REFRESH =====
   useEffect(() => {
     setIsVisible(true)
-    // Shuffle demo hooks immediately on mount
     setShuffledDemo(shuffleArray(DEMO_HOOKS))
     fetchCategories()
     fetchHooks()
   }, [])
 
-  // ===== SHUFFLE REAL HOOKS WHEN LOADED =====
   useEffect(() => {
-    if (hooks.length > 0) {
-      setHooks(prev => shuffleArray(prev))
-    }
-  }, [hooks.length]) // Only shuffle when hooks first load
+    if (hooks.length > 0) setHooks(prev => shuffleArray(prev))
+  }, [hooks.length])
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name')
-
+    const { data } = await supabase.from('categories').select('*').order('name')
     setCategories(data || [])
   }
 
   const fetchHooks = async () => {
     setLoading(true)
-
     const { data: featured } = await supabase
-      .from('hooks')
-      .select('*')
-      .eq('is_published', true)
-      .eq('is_featured', true)
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    // Shuffle featured hooks
+      .from('hooks').select('*').eq('is_published', true).eq('is_featured', true)
+      .order('created_at', { ascending: false }).limit(10)
     setFeaturedHooks(shuffleArray(featured || []))
 
     const { data } = await supabase
-      .from('hooks')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    // Shuffle all hooks randomly
+      .from('hooks').select('*').eq('is_published', true)
+      .order('created_at', { ascending: false }).limit(50)
     const shuffled = shuffleArray(data || [])
     setHooks(shuffled)
     setFilteredHooks(shuffled)
     setLoading(false)
   }
 
-  // ===== MANUAL SHUFFLE FUNCTION =====
   const handleShuffle = useCallback(() => {
     if (hooks.length > 0) {
-      const shuffled = shuffleArray(hooks)
-      setHooks(shuffled)
-      setFilteredHooks(shuffled)
+      const s = shuffleArray(hooks)
+      setHooks(s)
+      setFilteredHooks(s)
     } else {
-      const shuffled = shuffleArray(DEMO_HOOKS)
-      setShuffledDemo(shuffled)
+      setShuffledDemo(shuffleArray(DEMO_HOOKS))
     }
   }, [hooks])
 
-  // Filter by category AND type
   useEffect(() => {
     let filtered = hooks
-
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter((h) => h.category_slug === selectedCategory || h.category?.toLowerCase() === selectedCategory)
+      filtered = filtered.filter(h => h.category_slug === selectedCategory || h.category?.toLowerCase() === selectedCategory)
     }
-
     if (selectedType !== 'all') {
-      filtered = filtered.filter((h) => h.type === selectedType)
+      filtered = filtered.filter(h => h.type === selectedType)
     }
-
-    // Shuffle filtered results too
     setFilteredHooks(shuffleArray(filtered))
   }, [selectedCategory, selectedType, hooks])
 
@@ -525,13 +501,11 @@ function ExploreContent() {
       setFilteredHooks(shuffleArray(hooks))
       return
     }
-
-    const filtered = hooks.filter((h) =>
+    const filtered = hooks.filter(h =>
       (h.title || h.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (h.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (h.creator_name || h.creator || h.creator_username || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
-    // Shuffle search results too
     setFilteredHooks(shuffleArray(filtered))
   }
 
@@ -542,21 +516,18 @@ function ExploreContent() {
     setSelectedType('all')
   }
 
-  const getCategoryCount = (slug: string) => {
-    return hooks.filter((h) => h.category_slug === slug || h.category?.toLowerCase() === slug).length
-  }
+  const getCategoryCount = (slug: string) => hooks.filter(h => h.category_slug === slug || h.category?.toLowerCase() === slug).length
 
   const getHeadingText = () => {
     if (selectedCategory === 'all' && selectedType === 'all') return 'Discover Hooks'
     if (selectedType !== 'all') {
-      const typeLabels: Record<string, string> = { link: 'Link', blog: 'Blog', product: 'Product' }
-      return `${typeLabels[selectedType]} Hooks`
+      const labels: Record<string, string> = { link: 'Link', blog: 'Blog', product: 'Product' }
+      return `${labels[selectedType]} Hooks`
     }
     return categories.find(c => c.slug === selectedCategory)?.name || 'Hooks'
   }
 
-  // Use shuffled demo hooks
-  const displayHooks = hooks.length > 0 ? filteredHooks : shuffledDemo.filter((h) => {
+  const displayHooks = hooks.length > 0 ? filteredHooks : shuffledDemo.filter(h => {
     const catMatch = selectedCategory === 'all' ? true : h.category.toLowerCase() === selectedCategory
     const typeMatch = selectedType === 'all' ? true : h.type === selectedType
     return catMatch && typeMatch
@@ -571,8 +542,8 @@ function ExploreContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5 text-sm font-medium">
-              <Layers className="w-3 h-3 mr-1" />
-              One Feed. Every Type.
+              <Compass className="w-3 h-3 mr-1" />
+              Search Discovery Engine
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight mb-4">
@@ -583,8 +554,8 @@ function ExploreContent() {
             </h1>
 
             <p className="text-xl text-neutral-500 mb-8 max-w-2xl mx-auto">
-              Blogs, products, links, videos — all in one visual feed. 
-              You never know what you will discover next.
+              Search, discover, and find exactly what you are looking for. 
+              Every Hook is a searchable page designed to be found.
             </p>
 
             {/* Search Bar */}
@@ -663,33 +634,33 @@ function ExploreContent() {
         </section>
       )}
 
-      {/* All Hooks Masonry Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-neutral-900">
-                {getHeadingText()}
-              </h2>
+              <h2 className="text-2xl font-bold text-neutral-900">{getHeadingText()}</h2>
               <p className="text-neutral-500 text-sm mt-1">
                 {displayHooks.length} {displayHooks.length === 1 ? 'Hook' : 'Hooks'} found
               </p>
             </div>
-
             <div className="flex items-center gap-3">
-              {/* Shuffle Button */}
-              <button
-                onClick={handleShuffle}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white text-neutral-600 border border-neutral-200 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 shadow-sm"
-              >
+              {/* View Toggle */}
+              <div className="hidden sm:flex items-center bg-neutral-100 rounded-full p-1">
+                <button onClick={() => setViewMode('masonry')} className={`p-2 rounded-full transition-all ${viewMode === 'masonry' ? 'bg-white shadow-sm text-purple-600' : 'text-neutral-400 hover:text-neutral-600'}`}>
+                  <LayoutList className="w-4 h-4" />
+                </button>
+                <button onClick={() => setViewMode('grid')} className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-neutral-400 hover:text-neutral-600'}`}>
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+              </div>
+              {/* Shuffle */}
+              <button onClick={handleShuffle} className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-white text-neutral-600 border border-neutral-200 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 shadow-sm">
                 <Shuffle className="w-4 h-4" />
                 Shuffle
               </button>
-
               {hooks.length === 0 && (
-                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                  Showing demo content
-                </Badge>
+                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Demo Content</Badge>
               )}
             </div>
           </div>
@@ -699,12 +670,12 @@ function ExploreContent() {
               <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
             </div>
           ) : displayHooks.length > 0 ? (
-            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4">
+            <div className={viewMode === 'masonry' ? 'columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'}>
               {displayHooks.map((hook, i) => (
-  <Link key={hook.id || i} href={hook.slug ? `/hook/${hook.slug}` : '#'}>
-    <HookCard hook={hook} isDemo={hooks.length === 0} />
-  </Link>
-))}
+                <Link key={hook.id || i} href={hook.slug ? `/hook/${hook.slug}` : '#'}>
+                  <HookCard hook={hook} isDemo={hooks.length === 0} />
+                </Link>
+              ))}
             </div>
           ) : (
             <div className="text-center py-20">
@@ -713,13 +684,8 @@ function ExploreContent() {
               </div>
               <h3 className="text-lg font-medium text-neutral-900 mb-2">No hooks found</h3>
               <p className="text-neutral-500 mb-6">Try a different filter or search term</p>
-              <Button
-                onClick={clearSearch}
-                variant="outline"
-                className="rounded-full gap-2"
-              >
-                <X className="w-4 h-4" />
-                Clear Filters
+              <Button onClick={clearSearch} variant="outline" className="rounded-full gap-2">
+                <X className="w-4 h-4" /> Clear Filters
               </Button>
             </div>
           )}
@@ -741,7 +707,7 @@ function ExploreContent() {
             </p>
             <Link href="/hook/new" className="relative z-10 inline-block">
               <Button size="lg" className="bg-white text-purple-700 hover:bg-white/90 rounded-full h-14 px-10 text-lg gap-2 shadow-xl">
-                <Sparkles className="w-5 h-5" />
+                <Zap className="w-5 h-5" />
                 Create a Hook
                 <ArrowRight className="w-5 h-5" />
               </Button>

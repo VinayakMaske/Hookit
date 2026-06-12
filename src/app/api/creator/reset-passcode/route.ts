@@ -1,18 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { sendNewPasskeyReset } from '@/lib/email'
+import { sendPasscodeResetOTP } from '@/lib/email'
 import { NextResponse } from 'next/server'
 
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
-function generatePasskey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let result = 'HK-'
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
 }
 
 export async function POST(req: Request) {
@@ -37,14 +28,12 @@ export async function POST(req: Request) {
     }
 
     const otp = generateOTP()
-    const newPasskey = generatePasskey()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
 
-    // Store reset request
+    // Store reset request (no passcode — user will create it after OTP)
     const { error: insertError } = await supabase.from('creator_passcodes').insert({
       email: normalizedEmail,
       otp,
-      passcode: newPasskey,
       expires_at: expiresAt,
       is_used: false,
       is_returning: true,
@@ -55,12 +44,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to store reset request' }, { status: 500 })
     }
 
-    // Send email with new passkey + OTP
-    await sendNewPasskeyReset(email, newPasskey, creator.username, otp)
+    // Send email with OTP only (no passcode — user creates it)
+    await sendPasscodeResetOTP(email, creator.username, otp)
 
     return NextResponse.json({
       success: true,
-      message: 'New passkey and OTP sent to your email',
+      message: 'OTP sent to your email. Use it to set a new 4-digit passcode.',
       username: creator.username,
     })
   } catch (err: any) {

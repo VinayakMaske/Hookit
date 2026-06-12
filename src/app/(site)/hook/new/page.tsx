@@ -599,10 +599,9 @@ type CreatorFlow =
   | "enter_email"
   | "checking"
   | "new_otp_sent"
-  | "new_verified"
+  | "create_passcode"
   | "returning_show"
-  | "returning_otp"
-  | "forgot_passkey"
+  | "forgot_passcode"
   | "reset_otp_sent"
   | "verified";
 
@@ -635,7 +634,9 @@ export default function CreateHookPage() {
   const [creatorFlow, setCreatorFlow] = useState<CreatorFlow>("enter_email");
   const [creatorEmail, setCreatorEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [passkey, setPasskey] = useState("");
+  const [passcode, setPasscode] = useState("");
+  const [newPasscode, setNewPasscode] = useState("");
+  const [confirmPasscode, setConfirmPasscode] = useState("");
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [suggestedUsername, setSuggestedUsername] = useState("");
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -810,13 +811,15 @@ export default function CreateHookPage() {
     }
   };
 
-  const handleVerifyNewOTP = async () => {
+    const handleVerifyNewOTP = async () => {
     if (otp.length !== 6) {
       setUploadError("Enter 6-digit OTP");
       return;
     }
     setIsSubmitting(true);
     setUploadError(null);
+
+    console.log('Sending verify-otp:', { email: creatorEmail, otp });
 
     try {
       const res = await fetch("/api/creator/verify-otp", {
@@ -825,11 +828,12 @@ export default function CreateHookPage() {
         body: JSON.stringify({ email: creatorEmail, otp }),
       });
       const data = await res.json();
+      
+      console.log('verify-otp response:', { status: res.status, data });
 
       if (!res.ok) throw new Error(data.error);
 
-      setCreatorProfile(data.creator);
-      setCreatorFlow("new_verified");
+      setCreatorFlow("create_passcode");
     } catch (err: any) {
       setUploadError(err.message || "Invalid OTP");
     } finally {
@@ -837,25 +841,26 @@ export default function CreateHookPage() {
     }
   };
 
-  const handleVerifyPasskeyQuick = async () => {
-    if (!passkey.trim()) {
-      setUploadError("Enter your Creator Passkey");
+    const handleVerifyPasscodeQuick = async () => {
+    if (!passcode.trim() || passcode.length !== 4) {
+      setUploadError("Enter your 4-digit passcode");
       return;
     }
     setIsSubmitting(true);
     setUploadError(null);
 
     try {
-      const res = await fetch("/api/creator/verify-passkey", {
+      const res = await fetch("/api/creator/verify-passcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: creatorEmail, passkey }),
+        body: JSON.stringify({ email: creatorEmail, passcode }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
         if (data.needsNewPasskey) {
-          setCreatorFlow("forgot_passkey");
+          setCreatorFlow("forgot_passcode");
         }
         throw new Error(data.error);
       }
@@ -956,24 +961,24 @@ export default function CreateHookPage() {
       setUploadError("Enter 6-digit OTP");
       return;
     }
-    if (!passkey.trim()) {
-      setUploadError("Enter your Creator Passkey");
+    if (!passcode.trim() || passcode.length !== 4) {
+      setUploadError("Enter your 4-digit passcode");
       return;
     }
     setIsSubmitting(true);
     setUploadError(null);
 
     try {
-      const res = await fetch("/api/creator/verify-passkey", {
+      const res = await fetch("/api/creator/verify-passcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: creatorEmail, passkey, otp }),
+        body: JSON.stringify({ email: creatorEmail, passcode }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.needsNewPasskey) {
-          setCreatorFlow("forgot_passkey");
+        if (data.needsNewPasscode) {
+          setCreatorFlow("forgot_passcode");
         }
         throw new Error(data.error);
       }
@@ -987,12 +992,12 @@ export default function CreateHookPage() {
     }
   };
 
-  const handleRequestNewPasskey = async () => {
+  const handleRequestNewPasscode = async () => {
     setIsSubmitting(true);
     setUploadError(null);
 
     try {
-      const res = await fetch("/api/creator/reset-passkey", {
+      const res = await fetch("/api/creator/reset-passcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: creatorEmail }),
@@ -1026,11 +1031,56 @@ export default function CreateHookPage() {
 
       if (!res.ok) throw new Error(data.error);
 
-      setCreatorProfile(data.creator);
-      setPasskey(data.newPasskey);
-      setCreatorFlow("verified");
+      setCreatorProfile({ username: data.username, email: creatorEmail });
+      setCreatorFlow("create_passcode");
     } catch (err: any) {
       setUploadError(err.message || "Invalid OTP");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+      const handleSetPasscode = async () => {
+    if (newPasscode !== confirmPasscode) {
+      setUploadError("Passcodes don't match");
+      return;
+    }
+    if (newPasscode.length !== 4) {
+      setUploadError("Passcode must be 4 digits");
+      return;
+    }
+    
+    // DEBUG: Check OTP is available
+    if (!otp || otp.length !== 6) {
+      setUploadError("OTP is missing. Please verify your email again.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setUploadError(null);
+
+    try {
+      console.log('Sending set-passcode:', { email: creatorEmail, otp, passcode: newPasscode });
+      
+      const res = await fetch("/api/creator/set-passcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: creatorEmail, 
+          passcode: newPasscode,
+          otp: otp  // MUST be the same OTP from verify-otp step
+        }),
+      });
+      const data = await res.json();
+      console.log('set-passcode response:', data);
+
+      if (!res.ok) throw new Error(data.error);
+
+      setCreatorProfile({ username: data.username, email: creatorEmail });
+      setCreatorFlow("verified");
+      await handlePublishAfterVerify({ username: data.username });
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to set passcode");
     } finally {
       setIsSubmitting(false);
     }
@@ -1219,10 +1269,10 @@ export default function CreateHookPage() {
               <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-amber-800">
-                  Save your Creator Passkey
+                  Save your Creator Passcode
                 </p>
                 <p className="text-xs text-amber-600 mt-1">
-                  Passkey sent to <strong>{creatorEmail}</strong>. Use it to
+                  Your 4-digit passcode is set for <strong>{creatorEmail}</strong>. Use it to
                   publish more Hooks under the same profile.
                 </p>
               </div>
@@ -2091,7 +2141,7 @@ export default function CreateHookPage() {
                           />
                         </div>
                         <p className="text-xs text-neutral-500">
-                          New creators get a unique passkey. Returning creators
+                          New creators create a 4-digit passcode. Returning creators
                           use their existing one.
                         </p>
                         <Button
@@ -2174,8 +2224,8 @@ export default function CreateHookPage() {
                       </div>
                     )}
 
-                    {/* FLOW: NEW CREATOR - VERIFIED, SHOW PASSKEY INFO */}
-                    {creatorFlow === "new_verified" && (
+                                        {/* FLOW: CREATE 4-DIGIT PASSCODE */}
+                    {creatorFlow === "create_passcode" && (
                       <div className="space-y-4">
                         <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                           <div className="flex items-center gap-3 mb-2">
@@ -2185,32 +2235,51 @@ export default function CreateHookPage() {
                                 Email Verified!
                               </p>
                               <p className="text-sm text-green-600">
-                                @{creatorProfile?.username}
+                                @{suggestedUsername}
                               </p>
                             </div>
                           </div>
                         </div>
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                          <div className="flex items-start gap-3">
-                            <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-sm font-medium text-amber-800">
-                                Check your email for your Creator Passkey
-                              </p>
-                              <p className="text-xs text-amber-600 mt-1">
-                                A unique passkey (like{" "}
-                                <strong>HK-XXXXXX</strong>) has been sent to{" "}
-                                <strong>{creatorEmail}</strong>. Save it — you
-                                will need it every time you publish.
-                              </p>
-                            </div>
+                        
+                        <p className="text-sm text-neutral-600 font-medium">
+                          Create a 4-digit passcode for future logins:
+                        </p>
+                        
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={4}
+                              placeholder="••••"
+                              value={newPasscode}
+                              onChange={(e) => setNewPasscode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-2xl tracking-[0.5em] font-mono"
+                            />
+                          </div>
+                          
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={4}
+                              placeholder="Confirm ••••"
+                              value={confirmPasscode}
+                              onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                              className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-2xl tracking-[0.5em] font-mono"
+                            />
                           </div>
                         </div>
+                        
                         <Button
-                          onClick={() => setCreatorFlow("verified")}
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2"
+                          onClick={handleSetPasscode}
+                          disabled={newPasscode.length !== 4 || newPasscode !== confirmPasscode || isSubmitting}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
                         >
-                          <Sparkles className="w-4 h-4" /> I am Ready to Publish
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                          Set Passcode & Publish
                         </Button>
                       </div>
                     )}
@@ -2230,43 +2299,45 @@ export default function CreateHookPage() {
                           </p>
                         </div>
                         <p className="text-sm text-neutral-600">
-                          Enter your Creator Passkey to publish:
+                          Enter your 4-digit passcode to publish:
                         </p>
                         <div className="relative">
-                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                           <Input
-                            placeholder="HK-XXXXXX"
-                            value={passkey}
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="••••"
+                            value={passcode}
                             onChange={(e) =>
-                              setPasskey(e.target.value.toUpperCase())
+                              setPasscode(e.target.value.replace(/\D/g, "").slice(0, 4))
                             }
-                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 font-mono tracking-wider uppercase"
+                            className="h-12 rounded-xl border-neutral-200 bg-white focus:border-purple-300 pl-10 text-center text-2xl tracking-[0.5em] font-mono"
                           />
                         </div>
                         <button
-                          onClick={() => setCreatorFlow("forgot_passkey")}
+                          onClick={() => setCreatorFlow("forgot_passcode")}
                           className="text-xs text-purple-600 hover:text-purple-700 text-center w-full"
                         >
-                          Forgot your passkey? Request a new one
+                          Forgot your passcode? Request a new one
                         </button>
                       </div>
                     )}
 
-                    {/* FLOW: FORGOT PASSKEY */}
-                    {creatorFlow === "forgot_passkey" && (
+                    {/* FLOW: FORGOT PASSCODE */}
+                    {creatorFlow === "forgot_passcode" && (
                       <div className="space-y-4">
                         <div className="bg-red-50 rounded-xl p-4 border border-red-100 mb-4">
                           <div className="flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-sm font-medium text-red-800">
-                                Forgot your passkey?
-                              </p>
-                              <p className="text-xs text-red-600 mt-1">
-                                We will send a new passkey + OTP to{" "}
-                                {creatorEmail}. Your old passkey will no longer
-                                work.
-                              </p>
+                          <p className="text-sm font-medium text-red-800">
+                            Forgot your passcode?
+                          </p>
+                          <p className="text-xs text-red-600 mt-1">
+                            We will send an OTP to{" "}
+                            {creatorEmail}. You'll create a new 4-digit passcode.
+                          </p>
                             </div>
                           </div>
                         </div>
@@ -2279,7 +2350,7 @@ export default function CreateHookPage() {
                             Go Back
                           </Button>
                           <Button
-                            onClick={handleRequestNewPasskey}
+                            onClick={handleRequestNewPasscode}
                             disabled={isSubmitting}
                             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl h-12 gap-2 disabled:opacity-40"
                           >
@@ -2288,7 +2359,7 @@ export default function CreateHookPage() {
                             ) : (
                               <KeyRound className="w-4 h-4" />
                             )}
-                            Request New Passkey
+                            Request Reset OTP
                           </Button>
                         </div>
                       </div>
@@ -2299,11 +2370,11 @@ export default function CreateHookPage() {
                       <div className="space-y-4">
                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-4">
                           <p className="text-sm font-medium text-amber-800">
-                            New passkey sent!
+                            OTP sent!
                           </p>
                           <p className="text-xs text-amber-600 mt-1">
-                            Check your email for a new passkey and 6-digit OTP.
-                            Enter the OTP below to activate it.
+                            Enter the 6-digit OTP below. After verification,
+                            you'll create a new 4-digit passcode.
                           </p>
                         </div>
                         <div className="relative">
@@ -2328,7 +2399,7 @@ export default function CreateHookPage() {
                           ) : (
                             <CheckCircle2 className="w-4 h-4" />
                           )}
-                          Activate New Passkey
+                          Verify & Create Passcode
                         </Button>
                       </div>
                     )}
@@ -2348,7 +2419,7 @@ export default function CreateHookPage() {
                           </div>
                         </div>
                         <p className="text-xs text-green-600">
-                          Your Creator Passkey is saved. Use it to publish more
+                          Your Creator Passcode is saved. Use it to publish more
                           Hooks under this profile.
                         </p>
                       </div>
@@ -2366,7 +2437,7 @@ export default function CreateHookPage() {
                     <Button
                       onClick={
                         creatorFlow === "returning_show"
-                          ? handleVerifyPasskeyQuick
+                          ? handleVerifyPasscodeQuick
                           : handlePublish
                       }
                       disabled={

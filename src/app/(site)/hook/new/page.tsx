@@ -2315,7 +2315,7 @@ export default function CreateHookPage() {
               )}
 
               {/* STEP 5: Verify Email & Publish */}
-              {step === 4 && (
+              {step === 5 && (
                 <div className="p-8 pt-2 space-y-6">
                   {/* Preview Card */}
                   <div className="bg-white rounded-3xl shadow-lg border border-neutral-200 overflow-hidden mb-6">
@@ -2409,47 +2409,6 @@ export default function CreateHookPage() {
                         </div>
                       )}
                       {hookSubtype === "product" && productPrice && (
-                        <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                          <DollarSign className="w-4 h-4 text-emerald-500" />
-                          <span className="text-sm text-emerald-700 font-bold">
-                            {currency === "USD"
-                              ? "$"
-                              : currency === "INR"
-                                ? "₹"
-                                : currency === "EUR"
-                                  ? "€"
-                                  : currency === "GBP"
-                                    ? "£"
-                                    : currency === "JPY"
-                                      ? "¥"
-                                      : currency === "AUD"
-                                        ? "A$"
-                                        : "C$"}
-                            {productPrice}
-                          </span>
-                          {externalStoreUrl && (
-                            <span className="text-xs text-emerald-400 truncate flex-1 ml-2">
-                              {externalStoreUrl}
-                            </span>
-                          )}
-                          <span className="text-xs text-emerald-400">
-                            Product
-                          </span>
-                        </div>
-                      )}
-
-                      {hookType === "blog" && blogContent && (
-                        <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                          <BookOpen className="w-4 h-4 text-indigo-500" />
-                          <span className="text-sm text-indigo-700 flex-1">
-                            {blogContent.length} characters
-                          </span>
-                          <span className="text-xs text-indigo-400">
-                            Blog Article
-                          </span>
-                        </div>
-                      )}
-                      {hookType === "product" && productPrice && (
                         <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                           <DollarSign className="w-4 h-4 text-emerald-500" />
                           <span className="text-sm text-emerald-700 font-bold">

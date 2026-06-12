@@ -137,26 +137,60 @@ const topCreators = Array.from(
   .slice(0, 12)
 
   const categorySchema = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
 
-    name: `${categoryName} Blogs, Products & Creators`,
+  name: `${categoryName} Blogs, Products & Creators`,
 
-    description: `Discover the best ${categoryName} products, blogs, links, creators and ideas on Hookit.`,
+  description: `Discover the best ${categoryName} products, blogs, links, creators and ideas on Hookit.`,
 
-    url: `https://hookit.online/category/${slug}`,
+  url: `https://hookit.online/category/${slug}`,
 
-    publisher: {
-      '@type': 'Organization',
-      name: 'Hookit',
-      url: 'https://hookit.online',
+  publisher: {
+    '@type': 'Organization',
+    name: 'Hookit',
+    url: 'https://hookit.online',
+  },
+
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: hooks?.length || 0,
+
+    itemListElement:
+      (hooks || []).map((hook, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `https://hookit.online/hook/${hook.slug}`,
+        name: hook.title,
+      })),
+  },
+}
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://hookit.online',
     },
-
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: hooks?.length || 0,
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Category',
+      item: 'https://hookit.online/category',
     },
-  }
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: categoryName,
+      item: `https://hookit.online/category/${slug}`,
+    },
+  ],
+}
 
   return (
     <>
@@ -166,6 +200,41 @@ const topCreators = Array.from(
           __html: JSON.stringify(categorySchema),
         }}
       />
+
+      <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify(breadcrumbSchema),
+  }}
+/>
+
+<article className="sr-only">
+  <h1>{categoryName} on Hookit</h1>
+
+  <p>
+    Discover blogs, products, websites, tools,
+    resources, recommendations and creators
+    related to {categoryName}.
+  </p>
+
+  <h2>Popular Searches</h2>
+
+  <ul>
+    {popularSearchQueries.map(([query]) => (
+      <li key={query}>{query}</li>
+    ))}
+  </ul>
+
+  <h2>Top Creators</h2>
+
+  <ul>
+    {topCreators.map((creator) => (
+      <li key={creator.username}>
+        {creator.name}
+      </li>
+    ))}
+  </ul>
+</article>
 
       <div className="min-h-screen bg-white">
         <section className="bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-24 pb-14">

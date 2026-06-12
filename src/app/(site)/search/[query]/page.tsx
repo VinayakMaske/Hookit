@@ -119,28 +119,35 @@ export default async function SearchQueryPage(
 
       {/* SEO CONTENT */}
       <article className="sr-only">
-        <h1>
-          {readableQuery}
-        </h1>
+  <h1>{readableQuery}</h1>
 
-        <p>
-          Discover products, blogs, links,
-          creators and resources related to
-          {` ${readableQuery} `} on Hookit.
-        </p>
+  <p>
+    Discover products, blogs, tools,
+    resources, websites, recommendations,
+    reviews and creators related to
+    {` ${readableQuery} `} on Hookit.
+  </p>
 
-        <h2>
-          Related Hooks
-        </h2>
+  <h2>Related Hooks</h2>
 
-        <ul>
-          {matchingHooks.map((hook) => (
-            <li key={hook.id}>
-              {hook.title}
-            </li>
-          ))}
-        </ul>
-      </article>
+  <ul>
+    {matchingHooks.map((hook) => (
+      <li key={hook.id}>
+        {hook.title}
+      </li>
+    ))}
+  </ul>
+
+  <h2>Related Categories</h2>
+
+  <ul>
+    {relatedCategories.map((category) => (
+      <li key={category}>
+        {category}
+      </li>
+    ))}
+  </ul>
+</article>
 
       <div className="min-h-screen bg-white">
         <section className="bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-24 pb-14">
@@ -164,6 +171,35 @@ export default async function SearchQueryPage(
         </section>
 
         <section className="max-w-7xl mx-auto px-4 py-12">
+
+          <div className="mb-10">
+
+  <h2 className="text-2xl font-bold mb-4">
+    Related Searches
+  </h2>
+
+  <div className="flex flex-wrap gap-3">
+
+    {matchingHooks
+      .flatMap(
+        (hook) => hook.search_queries || []
+      )
+      .slice(0, 20)
+      .map((query: string) => (
+        <Link
+          key={query}
+          href={`/search/${query
+            .toLowerCase()
+            .replace(/\s+/g, '-')}`}
+          className="px-4 py-2 rounded-full bg-neutral-100"
+        >
+          {query}
+        </Link>
+      ))}
+
+  </div>
+
+</div>
 
           {relatedCategories.length > 0 && (
             <div className="mb-10">

@@ -1,7 +1,7 @@
 // src/app/(site)/page.tsx
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -71,7 +71,18 @@ import {
   Network,
   Radio,
   ScanLine,
-  Telescope
+  Telescope,
+  Quote,
+  BookMarked,
+  Landmark,
+  Film,
+  Dumbbell,
+  Wallet,
+  GraduationCap,
+  Sparkle,
+  Infinity,
+  TrendingUp as TrendIcon,
+  ArrowUpRight as ArrowUpRightIcon
 } from 'lucide-react'
 
 // ============================================
@@ -159,55 +170,36 @@ const HERO_DISCOVERY = [
 // ============================================
 const PLATFORM_COMPARISON = [
   {
-    name: 'Instagram',
+    name: 'Social Media',
     icon: Heart,
     color: 'from-pink-500 to-rose-500',
-    bgColor: 'bg-pink-50',
-    borderColor: 'border-pink-200',
-    textColor: 'text-pink-700',
-    problem: 'Content disappears in 24–48 hours. Algorithm decides who sees it.',
+    problem: 'Posts disappear in 24–48 hours. Algorithm decides who sees it.',
     stat: '90% of posts never seen after 2 days',
+    hookitCompare: 'Pages compound forever',
   },
   {
     name: 'YouTube',
     icon: Play,
     color: 'from-red-500 to-orange-500',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    textColor: 'text-red-700',
     problem: 'Requires subscribers and watch time. Hard to get discovered without existing audience.',
     stat: '500+ hours uploaded every minute',
+    hookitCompare: 'Search discoverable instantly',
   },
   {
     name: 'Blogs',
     icon: FileText,
     color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    textColor: 'text-blue-700',
     problem: 'Require SEO knowledge, hosting, and months of domain authority building.',
     stat: 'Average blog takes 6+ months to rank',
+    hookitCompare: 'SEO-ready from day one',
   },
   {
-    name: 'Websites',
+    name: 'Personal Sites',
     icon: Globe,
     color: 'from-indigo-500 to-violet-500',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-200',
-    textColor: 'text-indigo-700',
     problem: 'Need traffic, technical setup, and ongoing maintenance to stay visible.',
     stat: '97% of websites get zero organic traffic',
-  },
-  {
-    name: 'Hookit',
-    icon: Zap,
-    color: 'from-purple-600 to-pink-500',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    textColor: 'text-purple-700',
-    problem: 'Every hook becomes a discoverable page. Search engines, AI tools, and categories find it automatically.',
-    stat: 'One hook = multiple discovery paths',
-    isHookit: true,
+    hookitCompare: 'Built-in discovery network',
   },
 ]
 
@@ -218,50 +210,23 @@ const HOW_IT_WORKS = [
   {
     step: '01',
     icon: Upload,
-    title: 'Upload an image',
-    description: 'Add a stunning visual that represents your content. First impressions matter.',
+    title: 'Create a Hook',
+    description: 'Upload an image, title, description and links. First impressions matter.',
     color: 'from-purple-500 to-violet-500',
-    bgColor: 'bg-purple-50',
   },
   {
     step: '02',
-    icon: Type,
-    title: 'Add a title',
-    description: 'Write a clear, compelling title that tells people exactly what they will find.',
+    icon: Sparkles,
+    title: 'Become Discoverable',
+    description: 'Hookit automatically creates an SEO page, category page, creator page and search-intent connections.',
     color: 'from-pink-500 to-rose-500',
-    bgColor: 'bg-pink-50',
   },
   {
     step: '03',
-    icon: MessageSquare,
-    title: 'Explain the value',
-    description: 'Tell people why they should care. What problem does this solve? What will they learn?',
+    icon: Globe,
+    title: 'Get Found',
+    description: 'People discover your content through Google, ChatGPT, Gemini, Claude and Hookit search.',
     color: 'from-orange-500 to-amber-500',
-    bgColor: 'bg-orange-50',
-  },
-  {
-    step: '04',
-    icon: Hash,
-    title: 'Add search phrases',
-    description: 'Think about what people type into Google or ChatGPT. Add those exact phrases.',
-    color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-emerald-50',
-  },
-  {
-    step: '05',
-    icon: Link2,
-    title: 'Add your link',
-    description: 'Link to your store, blog, video, portfolio, or anywhere you want people to go.',
-    color: 'from-sky-500 to-blue-500',
-    bgColor: 'bg-sky-50',
-  },
-  {
-    step: '06',
-    icon: Send,
-    title: 'Publish',
-    description: 'Hookit instantly creates searchable pages, category listings, and SEO-ready content.',
-    color: 'from-purple-600 to-pink-500',
-    bgColor: 'bg-purple-50',
   },
 ]
 
@@ -331,6 +296,10 @@ const SEARCH_INTENTS = [
   { term: 'interior design ideas', category: 'Design', icon: Home },
   { term: 'architecture inspiration', category: 'Design', icon: Mountain },
   { term: 'cozy home decor', category: 'Lifestyle', icon: Coffee },
+  { term: 'ancient roman architecture', category: 'History', icon: Landmark },
+  { term: 'golden hour camera settings', category: 'Photography', icon: Camera },
+  { term: 'best running shoes beginners', category: 'Fitness', icon: Dumbbell },
+  { term: 'personal finance tips', category: 'Finance', icon: Wallet },
 ]
 
 // ============================================
@@ -404,6 +373,60 @@ const DISCOVERY_PATHS = [
 ]
 
 // ============================================
+// HOOK TYPES
+// ============================================
+const HOOK_TYPES = [
+  {
+    title: 'Blog Hooks',
+    description: 'Publish articles, insights and knowledge.',
+    icon: FileText,
+    color: 'from-purple-500 to-violet-500',
+    example: 'Atomic Habits Summary',
+    image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Product Hooks',
+    description: 'Showcase products and recommendations.',
+    icon: ShoppingBag,
+    color: 'from-pink-500 to-rose-500',
+    example: 'Best Budget Camera 2026',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Link Hooks',
+    description: 'Share websites, tools and resources.',
+    icon: Link2,
+    color: 'from-orange-500 to-amber-500',
+    example: 'Japanese Learning Resources',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Memory Hooks',
+    description: 'Travel stories, experiences and discoveries.',
+    icon: MapPin,
+    color: 'from-emerald-500 to-teal-500',
+    example: 'Hidden Waterfall in Manali',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Review Hooks',
+    description: 'Share opinions and recommendations.',
+    icon: Star,
+    color: 'from-sky-500 to-blue-500',
+    example: 'Best Running Shoes for Beginners',
+    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=300&fit=crop',
+  },
+  {
+    title: 'Collection Hooks',
+    description: 'Curated lists and knowledge collections.',
+    icon: Layers,
+    color: 'from-indigo-500 to-violet-500',
+    example: 'Cozy Home Interior Ideas',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop',
+  },
+]
+
+// ============================================
 // CATEGORIES
 // ============================================
 const CATEGORIES = [
@@ -417,8 +440,54 @@ const CATEGORIES = [
   { name: 'Technology', icon: Laptop, color: 'from-indigo-500 to-blue-500', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&h=400&fit=crop', count: '2.5K' },
   { name: 'Gaming', icon: Gamepad2, color: 'from-violet-600 to-fuchsia-500', image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&h=400&fit=crop', count: '1.3K' },
   { name: 'Music', icon: Play, color: 'from-cyan-500 to-blue-500', image: 'https://images.unsplash.com/photo-1511376777868-611b54f68947?w=300&h=400&fit=crop', count: '1.6K' },
+  { name: 'Books', icon: BookOpen, color: 'from-amber-600 to-orange-500', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop', count: '1.4K' },
+  { name: 'Movies', icon: Film, color: 'from-red-500 to-pink-500', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&h=400&fit=crop', count: '1.2K' },
+  { name: 'History', icon: Landmark, color: 'from-stone-500 to-neutral-500', image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=300&h=400&fit=crop', count: '980' },
+  { name: 'Architecture', icon: Mountain, color: 'from-slate-500 to-gray-500', image: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=300&h=400&fit=crop', count: '850' },
+  { name: 'Fitness', icon: Dumbbell, color: 'from-green-500 to-emerald-500', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&h=400&fit=crop', count: '1.1K' },
+  { name: 'Business', icon: Briefcase, color: 'from-blue-600 to-indigo-500', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&h=400&fit=crop', count: '1.7K' },
+  { name: 'Health', icon: Heart, color: 'from-rose-500 to-red-500', image: 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?w=300&h=400&fit=crop', count: '1.3K' },
+  { name: 'Self Improvement', icon: Lightbulb, color: 'from-yellow-500 to-amber-500', image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=300&h=400&fit=crop', count: '1.5K' },
+  { name: 'Interior Design', icon: Home, color: 'from-teal-500 to-cyan-500', image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=300&h=400&fit=crop', count: '920' },
+  { name: 'Learning', icon: GraduationCap, color: 'from-violet-500 to-purple-500', image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=300&h=400&fit=crop', count: '1.1K' },
 ]
 
+// ============================================
+// TESTIMONIALS
+// ============================================
+const TESTIMONIALS = [
+  {
+    quote: "My travel guides went from 50 views to 5,000+ monthly searches. Hookit turned my content into a discovery engine.",
+    name: "Sarah Mitchell",
+    role: "Travel Blogger",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
+    metric: "5,000+ monthly searches",
+  },
+  {
+    quote: "I published a product review and within a week it was ranking on Google. No SEO knowledge required.",
+    name: "David Chen",
+    role: "Tech Reviewer",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+    metric: "Ranked on Google in 7 days",
+  },
+  {
+    quote: "As an artist, I needed people to find my work without fighting algorithms. Hookit made my portfolio discoverable.",
+    name: "Elena Rodriguez",
+    role: "Digital Artist",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
+    metric: "Portfolio fully indexed",
+  },
+]
+
+// ============================================
+// STATS
+// ============================================
+const STATS = [
+  { icon: FileText, value: '10K+', label: 'Discoverable Hooks' },
+  { icon: Users, value: '500+', label: 'Active Creators' },
+  { icon: Layers, value: '100+', label: 'Categories' },
+  { icon: SearchIcon, value: '50K+', label: 'Search Queries' },
+]
 
 // ============================================
 // COMPONENT: Hook Type Badge
@@ -458,7 +527,6 @@ function SearchTermBadge({ term }: { term: string }) {
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<number | null>(null)
-  const [activeCategory, setActiveCategory] = useState<string>('all')
 
   useEffect(() => {
     setIsVisible(true)
@@ -482,7 +550,7 @@ export default function HomePage() {
             <div className={`transition-all duration-1000 delay-100 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <Badge className="mb-5 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5 text-sm">
                 <Rocket className="w-3.5 h-3.5 mr-1.5" />
-                Search Discovery Engine for Creators
+                The Search Discovery Engine for Creators
               </Badge>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-neutral-900 leading-[1.05] mb-5">
@@ -496,9 +564,9 @@ export default function HomePage() {
               </h1>
 
               <p className="text-lg sm:text-xl text-neutral-500 mb-6 max-w-lg leading-relaxed">
-                Turn products, blogs, websites, videos, portfolios, research, travel guides and ideas into 
+                Turn any idea, product, blog, recommendation, travel discovery, resource, review or memory into 
                 <span className="text-neutral-700 font-semibold"> searchable pages</span> that get discovered 
-                through search engines, AI-powered search tools, categories and creator profiles.
+                through Google, ChatGPT, Gemini, Claude and AI search engines.
               </p>
 
               <div className="flex flex-wrap gap-3 mb-6">
@@ -511,7 +579,7 @@ export default function HomePage() {
                 <Link href="/explore">
                   <Button size="lg" variant="outline" className="rounded-full h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg border-neutral-300 hover:border-purple-300 hover:bg-purple-50 gap-2">
                     <Eye className="w-5 h-5" />
-                    See Example Hook
+                    Explore Hooks
                   </Button>
                 </Link>
               </div>
@@ -596,61 +664,20 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
-      {/* WHY CREATORS USE HOOKIT — Platform Comparison */}
+      {/* DISCOVERY STATS SECTION */}
       {/* ============================================ */}
-      <section className="py-16 sm:py-20 bg-gradient-to-b from-white via-purple-50/30 to-white">
+      <section className="py-12 sm:py-16 bg-gradient-to-b from-white via-purple-50/30 to-white border-y border-neutral-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-14">
-            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
-              <Target className="w-3.5 h-3.5 mr-1.5" />
-              The Problem
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
-              Content disappears on every platform
-            </h2>
-            <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
-              Algorithms bury content. Followers are required. SEO is complex. Hookit changes the game.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {PLATFORM_COMPARISON.map((platform, i) => {
-              const Icon = platform.icon
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
+            {STATS.map((stat, i) => {
+              const Icon = stat.icon
               return (
-                <div 
-                  key={i} 
-                  className={`relative rounded-2xl p-5 sm:p-6 border transition-all duration-300 ${
-                    platform.isHookit 
-                      ? 'bg-gradient-to-br from-purple-600 to-pink-500 border-purple-300 shadow-xl shadow-purple-200/50 lg:scale-105' 
-                      : 'bg-white border-neutral-100 hover:border-neutral-200 hover:shadow-lg'
-                  }`}
-                >
-                  {platform.isHookit && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-white text-purple-700 border-purple-200 shadow-sm">
-                        <Zap className="w-3 h-3 mr-1" />
-                        The Solution
-                      </Badge>
-                    </div>
-                  )}
-
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${platform.color} flex items-center justify-center mb-4 ${platform.isHookit ? 'shadow-lg shadow-white/20' : ''}`}>
-                    <Icon className="w-5 h-5 text-white" />
+                <div key={i} className="text-center p-6 rounded-2xl bg-white border border-neutral-100 hover:border-purple-200 hover:shadow-lg transition-all duration-300">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-6 h-6 text-purple-600" />
                   </div>
-
-                  <h3 className={`font-bold text-lg mb-2 ${platform.isHookit ? 'text-white' : 'text-neutral-900'}`}>
-                    {platform.name}
-                  </h3>
-
-                  <p className={`text-sm leading-relaxed mb-3 ${platform.isHookit ? 'text-white/80' : 'text-neutral-500'}`}>
-                    {platform.problem}
-                  </p>
-
-                  <div className={`mt-4 pt-3 border-t ${platform.isHookit ? 'border-white/20' : 'border-neutral-100'}`}>
-                    <p className={`text-xs font-bold ${platform.isHookit ? 'text-white/90' : 'text-red-500'}`}>
-                      {platform.stat}
-                    </p>
-                  </div>
+                  <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">{stat.value}</p>
+                  <p className="text-sm text-neutral-500 mt-2 font-medium">{stat.label}</p>
                 </div>
               )
             })}
@@ -659,7 +686,7 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
-      {/* HOW IT WORKS — 6 Step Process */}
+      {/* HOW IT WORKS — 3 Step Process */}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -669,23 +696,26 @@ export default function HomePage() {
               How It Works
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
-              Publish in 6 simple steps
+              Publish in 3 simple steps
             </h2>
             <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
               Hookit automatically creates discoverable pages. You just create the content.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 relative">
+            {/* Connector line */}
+            <div className="hidden md:block absolute top-24 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-200" />
+
             {HOW_IT_WORKS.map((step, i) => {
               const Icon = step.icon
               return (
-                <div key={i} className="group relative bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-100/50 transition-all duration-300">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6 text-white" />
+                <div key={i} className="group relative bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-100/50 transition-all duration-300 text-center">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300 mx-auto`}>
+                    <Icon className="w-8 h-8 text-white" />
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold text-neutral-300">{step.step}</span>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{step.step}</span>
                     <h3 className="text-xl font-bold text-neutral-900">{step.title}</h3>
                   </div>
                   <p className="text-neutral-500 text-sm leading-relaxed">{step.description}</p>
@@ -704,9 +734,58 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
-      {/* THE DISCOVERY GRAPH — Visual Flow */}
+      {/* HOOK TYPES SECTION */}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-14">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
+              <Layers className="w-3.5 h-3.5 mr-1.5" />
+              Hook Types
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
+              Every idea deserves a Hook
+            </h2>
+            <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
+              Publish articles, showcase products, share resources, tell stories, write reviews, or curate collections.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {HOOK_TYPES.map((hookType, i) => {
+              const Icon = hookType.icon
+              return (
+                <div key={i} className="group relative bg-white rounded-2xl border border-neutral-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    <img 
+                      src={hookType.image} 
+                      alt={hookType.example}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute bottom-3 left-4">
+                      <span className="text-white/80 text-xs font-medium">Example:</span>
+                      <p className="text-white font-semibold text-sm">{hookType.example}</p>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${hookType.color} flex items-center justify-center mb-3 shadow-md`}>
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-neutral-900 mb-1">{hookType.title}</h3>
+                    <p className="text-sm text-neutral-500">{hookType.description}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* THE DISCOVERY GRAPH — Visual Flow */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-14">
             <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
@@ -762,7 +841,7 @@ export default function HomePage() {
       {/* ============================================ */}
       {/* SEARCH INTENT EXAMPLES — People Search. Hookit Connects. */}
       {/* ============================================ */}
-      <section className="py-16 sm:py-20 bg-white">
+      <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-14">
             <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
@@ -815,7 +894,7 @@ export default function HomePage() {
       {/* ============================================ */}
       {/* CREATOR EXAMPLES — Real Discovery Stories */}
       {/* ============================================ */}
-      <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
+      <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-14">
             <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
@@ -892,6 +971,147 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
+      {/* WHY HOOKIT IS DIFFERENT — Comparison Table */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-14">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
+              <Target className="w-3.5 h-3.5 mr-1.5" />
+              Why Hookit Is Different
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
+              Stop fighting algorithms. Start building discoverability.
+            </h2>
+            <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
+              Social media buries content. Hookit makes it discoverable forever.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm">
+            {/* Header */}
+            <div className="grid grid-cols-3 gap-4 p-4 sm:p-6 bg-neutral-50 border-b border-neutral-200">
+              <div className="text-sm font-semibold text-neutral-500">Platform</div>
+              <div className="text-sm font-semibold text-neutral-500 text-center">The Problem</div>
+              <div className="text-sm font-semibold text-purple-700 text-center">Hookit</div>
+            </div>
+
+            {/* Rows */}
+            {[
+              { platform: 'Social Media', problem: 'Posts disappear in 24–48 hours', hookit: 'Pages compound forever', icon: Heart },
+              { platform: 'YouTube', problem: 'Algorithm dependent on subscribers', hookit: 'Search discoverable instantly', icon: Play },
+              { platform: 'Blogs', problem: 'Content lifespan is hours', hookit: 'Content lifespan is years', icon: FileText },
+              { platform: 'Personal Sites', problem: 'Followers required', hookit: 'Search intent required', icon: Globe },
+            ].map((row, i) => {
+              const Icon = row.icon
+              return (
+                <div key={i} className={`grid grid-cols-3 gap-4 p-4 sm:p-6 items-center ${i !== 3 ? 'border-b border-neutral-100' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-neutral-500" />
+                    </div>
+                    <span className="font-semibold text-sm text-neutral-900">{row.platform}</span>
+                  </div>
+                  <div className="text-center text-sm text-neutral-500">{row.problem}</div>
+                  <div className="text-center text-sm font-semibold text-purple-700 bg-purple-50 py-2 rounded-lg">{row.hookit}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* AI DISCOVERY SECTION */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-14">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
+              <Bot className="w-3.5 h-3.5 mr-1.5" />
+              Built For The AI Search Era
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
+              Every Hook is AI-ready
+            </h2>
+            <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
+              Structured data, semantic content, and LLM-readable summaries make your Hooks discoverable by AI search tools.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { title: 'Structured Data', desc: 'Schema.org markup for every Hook page', icon: FileText, color: 'from-purple-500 to-violet-500' },
+              { title: 'Semantic Content', desc: 'Context-rich content AI can understand', icon: BrainCircuit, color: 'from-pink-500 to-rose-500' },
+              { title: 'Search Intent', desc: 'Mapped to real user search queries', icon: SearchIcon, color: 'from-orange-500 to-amber-500' },
+              { title: 'Category Context', desc: 'Organized in topic hierarchies', icon: Layers, color: 'from-emerald-500 to-teal-500' },
+              { title: 'Creator Context', desc: 'Author profiles with authority signals', icon: Users, color: 'from-sky-500 to-blue-500' },
+              { title: 'LLM Summaries', desc: 'Auto-generated concise descriptions', icon: Sparkles, color: 'from-indigo-500 to-violet-500' },
+            ].map((item, i) => {
+              const Icon = item.icon
+              return (
+                <div key={i} className="group bg-white rounded-2xl p-6 border border-neutral-100 hover:border-purple-200 hover:shadow-lg transition-all duration-300">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-neutral-900 mb-1">{item.title}</h3>
+                  <p className="text-sm text-neutral-500">{item.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            {['ChatGPT', 'Gemini', 'Claude', 'Perplexity', 'Grok', 'Google'].map((ai, i) => (
+              <span key={i} className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 text-sm font-medium text-purple-700">
+                {ai}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* TESTIMONIALS SECTION */}
+      {/* ============================================ */}
+      <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-14">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
+              <Quote className="w-3.5 h-3.5 mr-1.5" />
+              Creator Stories
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-3">
+              Discoverability that drives growth
+            </h2>
+            <p className="text-base sm:text-lg text-neutral-500 max-w-2xl mx-auto">
+              Real creators using Hookit to get discovered through search.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+            {TESTIMONIALS.map((t, i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
+                <Quote className="w-8 h-8 text-purple-200 mb-4" />
+                <p className="text-neutral-700 text-sm leading-relaxed mb-6">"{t.quote}"</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-100" />
+                  <div>
+                    <p className="font-semibold text-sm text-neutral-900">{t.name}</p>
+                    <p className="text-xs text-neutral-400">{t.role}</p>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                  <TrendIcon className="w-3 h-3" />
+                  {t.metric}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
       {/* ONE HOOK, MANY DISCOVERY PATHS */}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 bg-white">
@@ -956,7 +1176,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon
               return (
@@ -992,34 +1212,90 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
-      {/* STATS / TRUST BAR */}
+      {/* CREATOR PROFILE SECTION */}
       {/* ============================================ */}
-      <section className="py-12 sm:py-16 bg-white">
+      <section className="py-16 sm:py-20 bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {[
-              { icon: FileText, value: '10K+', label: 'Hooks Published' },
-              { icon: SearchIcon, value: '50K+', label: 'Searchable Pages' },
-              { icon: Users, value: '2,400+', label: 'Active Creators' },
-              { icon: Globe, value: '∞', label: 'Discovery Paths' },
-            ].map((stat, i) => {
-              const Icon = stat.icon
-              return (
-                <div key={i} className="p-4">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mx-auto mb-3">
-                    <Icon className="w-5 h-5 text-purple-600" />
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div>
+              <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-0 px-4 py-1.5">
+                <Users className="w-3.5 h-3.5 mr-1.5" />
+                Creator Profiles
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-4">
+                Build Your Discoverable Creator Profile
+              </h2>
+              <p className="text-base sm:text-lg text-neutral-500 mb-8 leading-relaxed">
+                Every creator gets a public, SEO-optimized profile page. All your Hooks in one place, 
+                discoverable through search and AI.
+              </p>
+
+              <div className="space-y-4">
+                {[
+                  { icon: Globe, title: 'Public creator profile', desc: 'Your own discoverable page on Hookit' },
+                  { icon: SearchIcon, title: 'SEO optimized creator pages', desc: 'Rank for your name and niche' },
+                  { icon: Bot, title: 'AI discoverability', desc: 'LLMs can find and reference your work' },
+                  { icon: Target, title: 'Category authority', desc: 'Build topical authority over time' },
+                  { icon: TrendIcon, title: 'Search visibility', desc: 'Appear in Google and AI search results' },
+                ].map((feature, i) => {
+                  const Icon = feature.icon
+                  return (
+                    <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-white border border-neutral-100 hover:border-purple-200 transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-neutral-900 text-sm">{feature.title}</h4>
+                        <p className="text-neutral-500 text-sm mt-0.5">{feature.desc}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Creator Profile Mockup */}
+            <div className="relative hidden lg:block">
+              <div className="bg-white rounded-3xl border border-neutral-200 shadow-xl overflow-hidden">
+                {/* Profile Header */}
+                <div className="h-24 bg-gradient-to-r from-purple-600 to-pink-500" />
+                <div className="px-6 pb-6">
+                  <div className="relative -mt-10 mb-4">
+                    <img 
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face" 
+                      alt="Creator" 
+                      className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg"
+                    />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-neutral-900">{stat.value}</p>
-                  <p className="text-sm text-neutral-500 mt-1">{stat.label}</p>
+                  <h3 className="text-xl font-bold text-neutral-900">Maya Chen</h3>
+                  <p className="text-sm text-neutral-500 mb-4">Digital Artist & Designer</p>
+
+                  <div className="flex gap-2 mb-4">
+                    <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-medium">Art</span>
+                    <span className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-medium">Design</span>
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">Photography</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {[1,2,3].map((n) => (
+                      <div key={n} className="aspect-square rounded-xl bg-neutral-100 overflow-hidden">
+                        <img 
+                          src={`https://images.unsplash.com/photo-${n === 1 ? '1541961017774-22349e4a1262' : n === 2 ? '1515886657613-9f3515b0c78f' : '1523275335684-37898b6baf30'}?w=200&h=200&fit=crop`}
+                          alt="Hook"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )
-            })}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ============================================ */}
-      {/* FINAL CTA — "Stop Fighting Algorithms" */}
+      {/* FINAL CTA — "Your Next Discovery Starts With One Hook" */}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 bg-gradient-to-br from-purple-900 via-purple-800 to-pink-700 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
@@ -1031,16 +1307,16 @@ export default function HomePage() {
             <div>
               <Badge className="mb-6 bg-white/15 text-white border-0 hover:bg-white/20 backdrop-blur-sm px-4 py-1.5">
                 <Megaphone className="w-3.5 h-3.5 mr-1.5" />
-                For Creators
+                Start Creating
               </Badge>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-5 leading-tight">
-                Stop fighting algorithms.
+                Your Next Discovery
                 <br />
-                <span className="text-purple-200">Start building discoverability.</span>
+                <span className="text-purple-200">Starts With One Hook.</span>
               </h2>
               <p className="text-lg sm:text-xl text-white/70 mb-8 leading-relaxed">
-                Your content deserves to be found long after you publish it. 
-                Create a Hook and let people discover it through search — for years.
+                Create a Hook and make your knowledge discoverable across the internet. 
+                No followers. No algorithms. Just search.
               </p>
 
               <div className="space-y-3 mb-8">
@@ -1065,12 +1341,12 @@ export default function HomePage() {
                 <Link href="/hook/new">
                   <Button size="lg" className="bg-white text-purple-700 hover:bg-white/90 rounded-full h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg gap-2 shadow-lg">
                     <Zap className="w-5 h-5" />
-                    Create My First Hook
+                    Create Your First Hook
                   </Button>
                 </Link>
                 <Link href="/explore">
                   <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-full h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg">
-                    See Examples
+                    Explore Discoveries
                   </Button>
                 </Link>
               </div>

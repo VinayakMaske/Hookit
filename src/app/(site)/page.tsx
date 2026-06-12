@@ -1402,7 +1402,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-neutral-400">
-              Hookit — The Search Discovery Engine for Creators. Create once. Get discovered everywhere.
+              Hookit — The Search Discovery Engine for Creators. Create once. Get discovered anywhere and everywhere.
             </p>
             <div className="flex items-center gap-4 text-sm text-neutral-400">
               <Link href="/explore" className="hover:text-purple-600 transition-colors">Explore</Link>

@@ -338,15 +338,6 @@ function HookCard({ hook, creatorName }: { hook: any; creatorName: string }) {
               </div>
             </div>
           </div>
-
-          {/* Type indicator - always visible top right */}
-          <div className="absolute top-2.5 right-2.5">
-            <div className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
-              {hookType === 'link' && <ExternalLink className="w-3.5 h-3.5 text-blue-600" />}
-              {hookType === 'blog' && <FileText className="w-3.5 h-3.5 text-purple-600" />}
-              {hookType === 'product' && <ShoppingBag className="w-3.5 h-3.5 text-emerald-600" />}
-            </div>
-          </div>
         </div>
 
         {/* Content */}
@@ -696,60 +687,10 @@ export default async function CreatorPage({ params }: Props) {
           </div>
         </section>
 
-        {/* Categories Pills */}
-        {categories.length > 0 && (
-          <section className="px-4 pb-6 mb-5">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex flex-wrap justify-center gap-2">
-                {categories.map((category: string) => (
-                  <Link
-                    key={category}
-                    href={`/category/${slugify(category)}`}
-                    className="px-1.5 py-12.5 rounded-full bg-neutral-100 hover:bg-purple-50 text-neutral-600 hover:text-purple-700 text-xs font-medium transition-colors border border-transparent hover:border-purple-200"
-                  >
-                    {category}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* Divider */}
         <div className="max-w-7xl mx-auto px-4">
           <div className="border-t border-neutral-100" />
         </div>
-
-        {/* Tabs - Hook Types */}
-        {hookTypes.length > 1 && (
-          <section className="px-4 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-30">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-center gap-1 overflow-x-auto">
-                <button className="px-4 py-2 rounded-full text-sm font-medium bg-neutral-900 text-white">
-                  All
-                </button>
-                {hookTypes.map((type: string) => {
-                  const label = type.replace(/_/g, ' ')
-                  const configs: Record<string, { icon: any }> = {
-                    blog: { icon: FileText },
-                    product: { icon: ShoppingBag },
-                    link: { icon: ExternalLink },
-                  }
-                  const Icon = configs[type]?.icon || Link2
-                  return (
-                    <button
-                      key={type}
-                      className="px-4 py-2 rounded-full text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors flex items-center gap-1.5 whitespace-nowrap"
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      {label.charAt(0).toUpperCase() + label.slice(1)}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Hooks Grid - Pinterest Masonry Style */}
         <section className="px-4 pb-16">

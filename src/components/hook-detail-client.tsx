@@ -546,9 +546,17 @@ export default function HookDetailClient({
               <div className="p-6 lg:p-8 flex flex-col">
                 {/* Creator + Purpose/Subtype */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                    {(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
+  {hook.creator_avatar_url ? (
+    <img 
+      src={hook.creator_avatar_url} 
+      alt={hook.creator_display_name || hook.creator_name || hook.creator_username || 'Creator'}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span>{(hook.creator_name || hook.creator || 'A')[0].toUpperCase()}</span>
+  )}
+</div>
                   <div className="flex-1">
                     <Link
   href={`/creator/${hook.creator_username || hook.creator_name || 'anonymous'}`}

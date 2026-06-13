@@ -993,9 +993,11 @@ export default function CreateHookPage() {
 
       if (!res.ok) {
         if (data.needsNewPasskey) {
-          setCreatorFlow("forgot_passcode");
+          setCreatorFlow("forgot_passcode")
+          setIsSubmitting(false)
+          return
         }
-        throw new Error(data.error);
+        throw new Error(data.error)
       }
 
       setCreatorProfile(data.creator);
@@ -1674,7 +1676,7 @@ export default function CreateHookPage() {
                 </div>
               )}
 
-                            {/* STEP 2: Choose Hook Subtype */}
+             {/* STEP 2: Choose Hook Subtype */}
               {step === 2 && (
                 <div className="p-8 pt-2 space-y-6">
                   <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-4">
@@ -1856,7 +1858,7 @@ export default function CreateHookPage() {
                     </div>
                   )}
 
-                                    {/* Title */}
+                  {/* Title */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
                       <MousePointerClick className="w-4 h-4 text-purple-500" />{" "}
@@ -2061,37 +2063,6 @@ export default function CreateHookPage() {
                       <p className="text-xs text-emerald-600">
                         {getSearchQueryExamples()}
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Social Links */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                      <ExternalLink className="w-4 h-4 text-blue-500" /> Social Links (Optional)
-                    </label>
-                    <p className="text-xs text-neutral-500">
-                      Drive traffic to your profiles. These will appear on your Hook page.
-                    </p>
-                    <div className="grid gap-3">
-                      {SOCIAL_PLATFORMS.map((platform) => {
-                        const Icon = platform.icon;
-                        return (
-                          <div key={platform.key} className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
-                              <Icon className="w-5 h-5 text-neutral-500" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-neutral-500 mb-1">{platform.label}</p>
-                              <Input
-                                placeholder={platform.placeholder}
-                                value={socialLinks[platform.key] || ""}
-                                onChange={(e) => updateSocialLink(platform.key, e.target.value)}
-                                className="h-10 rounded-xl border-neutral-200 focus:border-purple-300 text-sm"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
 

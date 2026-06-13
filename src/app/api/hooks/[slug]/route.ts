@@ -18,9 +18,25 @@ export async function GET(
       .eq('is_published', true)
       .single()
 
-    if (hookError || !hook) {
+        if (hookError || !hook) {
       return NextResponse.json({ error: 'Hook not found' }, { status: 404 })
     }
+
+    // Fetch creator avatar from creators table
+    const { data: creator } = await supabase
+      .from('creators')
+      .select('avatar_url, display_name, username')
+      .eq('username', hook.creator_username || hook.creator_name || '')
+      .maybeSingle()
+
+    // Attach creator data to hook
+    const hookWithCreator = {
+      ...hook,
+      creator_avatar_url: creator?.avatar_url || null,
+      creator_display_name: creator?.display_name || hook.creator_name || hook.creator_username,
+    }
+
+    // Fetch related hooks using search intent + same category + fallback hooks
 
     // Fetch related hooks using search intent + same category + fallback hooks
 const relatedSelect = `
@@ -99,9 +115,10 @@ if (related.length < 24) {
 }
 
     return NextResponse.json({
-      hook,
+      hook: hookWithCreator,
       related: related || []
     })
+    
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch hook' }, { status: 500 })
   }

@@ -367,18 +367,11 @@ const breadcrumbSchema = {
                         `Discover this ${categoryName} hook on Hookit.`}
                     </p>
 
-                    <Link
-  href={`/creator/${
-    hook.creator_username ||
-    hook.creator_name ||
-    'anonymous'
-  }`}
-  className="text-xs text-neutral-400 mt-4 block hover:text-purple-600"
->
+                    <span className="text-xs text-neutral-400 mt-4 block">
   @{hook.creator_username ||
     hook.creator_name ||
     'anonymous'}
-</Link>
+</span>
                   </div>
                 </Link>
               ))}

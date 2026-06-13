@@ -118,12 +118,6 @@ export function Navbar() {
                   Explore
                 </Button>
               </Link>
-              <Link href="/trending" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start gap-3 text-neutral-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl h-12">
-                  <Flame className="w-5 h-5" />
-                  Trending
-                </Button>
-              </Link>
               <Button
                 variant="ghost"
                 onClick={() => {

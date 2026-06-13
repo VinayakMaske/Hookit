@@ -53,17 +53,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
       creatorEmail = foundHook.creator_email_ref
       creatorData = {
-        username: foundHook.creator_username || foundHook.creator_name || username,
-        display_name: foundHook.creator_name || foundHook.creator_username || username,
-        bio: null,
-        location: null,
-        website: null,
-        joined_at: foundHook.created_at,
-        is_verified: false,
-        total_views: 0,
-        total_clicks: 0,
-        email: creatorEmail,
-      }
+  username: foundHook.creator_username || foundHook.creator_name || username,
+  display_name: foundHook.creator_name || foundHook.creator_username || username,
+  bio: null,
+  location: null,
+  website: null,
+  avatar_url: null,
+  banner_url: null,
+  joined_at: foundHook.created_at,
+  is_verified: false,
+  total_views: 0,
+  total_clicks: 0,
+  email: creatorEmail,
+}
     }
 
     // Fetch hooks
@@ -108,22 +110,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
       return true
     })
 
-    return NextResponse.json({
-      creator: {
-        username: creatorData.username,
-        display_name: creatorData.display_name || creatorData.username,
-        bio: creatorData.bio,
-        location: creatorData.location,
-        website: creatorData.website,
-        avatar_url: creatorData.avatar_url,
-        banner_url: creatorData.banner_url,
-        joined_at: creatorData.joined_at || creatorData.created_at,
-        verified: creatorData.is_verified,
-        total_views: creatorData.total_views,
-        total_clicks: creatorData.total_clicks,
-      },
-      hooks: uniqueHooks
-    })
+    return NextResponse.json(
+  {
+    creator: {
+      username: creatorData.username,
+      display_name: creatorData.display_name || creatorData.username,
+      bio: creatorData.bio,
+      location: creatorData.location,
+      website: creatorData.website,
+      avatar_url: creatorData.avatar_url,
+      banner_url: creatorData.banner_url,
+      joined_at: creatorData.joined_at || creatorData.created_at,
+      verified: creatorData.is_verified,
+      total_views: creatorData.total_views,
+      total_clicks: creatorData.total_clicks,
+    },
+    hooks: uniqueHooks
+  },
+  {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    }
+  }
+)
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch creator' }, { status: 500 })
   }

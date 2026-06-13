@@ -664,28 +664,6 @@ export default function HomePage() {
       </section>
 
       {/* ============================================ */}
-      {/* DISCOVERY STATS SECTION */}
-      {/* ============================================ */}
-      <section className="py-12 sm:py-16 bg-gradient-to-b from-white via-purple-50/30 to-white border-y border-neutral-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
-            {STATS.map((stat, i) => {
-              const Icon = stat.icon
-              return (
-                <div key={i} className="text-center p-6 rounded-2xl bg-white border border-neutral-100 hover:border-purple-200 hover:shadow-lg transition-all duration-300">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">{stat.value}</p>
-                  <p className="text-sm text-neutral-500 mt-2 font-medium">{stat.label}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================ */}
       {/* HOW IT WORKS — 3 Step Process */}
       {/* ============================================ */}
       <section className="py-16 sm:py-20 bg-white">
